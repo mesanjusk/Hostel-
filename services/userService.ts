@@ -2,8 +2,10 @@ import "server-only";
 
 import { connectDB } from "@/lib/db";
 import { User } from "@/models/User";
+import { ChecklistItem } from "@/models/ChecklistItem";
 import type { OnboardingInput } from "@/lib/validations/auth";
 import type { ProfileUpdateInput } from "@/lib/validations/profile";
+import type { BroadcastInput } from "@/lib/validations/admin";
 
 export async function getUserByMobile(mobile: string) {
   await connectDB();
@@ -62,4 +64,17 @@ export async function countActiveUsers(sinceDays: number) {
   await connectDB();
   const since = new Date(Date.now() - sinceDays * 24 * 60 * 60 * 1000);
   return User.countDocuments({ updatedAt: { $gte: since } });
+}
+
+export async function listBroadcastRecipients(audience: BroadcastInput["audience"]) {
+  await connectDB();
+
+  if (audience === "incomplete-checklist") {
+    const userIds = await ChecklistItem.distinct("userId", { completed: false });
+    return User.find({ _id: { $in: userIds }, optedOutOfBroadcast: false })
+      .select("mobile")
+      .lean();
+  }
+
+  return User.find({ optedOutOfBroadcast: false }).select("mobile").lean();
 }
