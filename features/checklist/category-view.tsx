@@ -8,7 +8,6 @@ import {
   Check,
   Copy,
   ListChecks,
-  MoreVertical,
   Pencil,
   Search,
   Trash2,
@@ -47,6 +46,7 @@ import type { ChecklistCategory, ChecklistPriority } from "@/types";
 import type { ChecklistItemDTO } from "@/features/checklist/checklist-item-dto";
 import { ItemFormDialog } from "@/features/checklist/item-form-dialog";
 import { ItemDetailSheet } from "@/features/checklist/item-detail-sheet";
+import { QuickRenameDialog } from "@/features/checklist/quick-rename-dialog";
 
 type PriorityFilter = "all" | ChecklistPriority;
 type StatusFilter = "all" | "completed" | "incomplete";
@@ -68,21 +68,42 @@ export function CategoryView({
   category,
   initialItems,
   embedded = false,
+  hideToolbar = false,
+  selectMode: controlledSelectMode,
+  selectedIds: controlledSelectedIds,
+  onToggleSelected,
 }: {
   category: ChecklistCategory;
   initialItems: ChecklistItemDTO[];
   /** When true, renders without the page-level title/back-link, for use inside an accordion panel. */
   embedded?: boolean;
+  /** When true, hides the search/filter card and the local select/add-item toolbar — used when a parent renders global bulk controls instead. */
+  hideToolbar?: boolean;
+  /** When provided, select-mode and selection are driven by a parent (e.g. a global "Bulk Edit" toggle spanning all categories) instead of local state. */
+  selectMode?: boolean;
+  selectedIds?: string[];
+  onToggleSelected?: (id: string) => void;
 }) {
   const [items, setItems] = useState(initialItems);
   const [search, setSearch] = useState("");
   const [priorityFilter, setPriorityFilter] = useState<PriorityFilter>("all");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [sortBy, setSortBy] = useState<SortOption>("name");
-  const [selectMode, setSelectMode] = useState(false);
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [localSelectMode, setLocalSelectMode] = useState(false);
+  const [localSelectedIds, setLocalSelectedIds] = useState<string[]>([]);
   const [detailItem, setDetailItem] = useState<ChecklistItemDTO | null>(null);
+  const [renameItem, setRenameItem] = useState<ChecklistItemDTO | null>(null);
   const [bulkLoading, setBulkLoading] = useState(false);
+
+  const isControlled = controlledSelectMode !== undefined;
+  const selectMode = isControlled ? controlledSelectMode : localSelectMode;
+  const selectedIds = isControlled ? (controlledSelectedIds ?? []) : localSelectedIds;
+  const toggleSelected = isControlled
+    ? (onToggleSelected ?? (() => {}))
+    : (id: string) =>
+        setLocalSelectedIds((prev) =>
+          prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+        );
 
   const Icon = CHECKLIST_CATEGORY_ICONS[category];
 
@@ -113,15 +134,10 @@ export function CategoryView({
     return sorted;
   }, [items, search, priorityFilter, statusFilter, sortBy]);
 
-  function toggleSelected(id: string) {
-    setSelectedIds((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
-    );
-  }
-
   function exitSelectMode() {
-    setSelectMode(false);
-    setSelectedIds([]);
+    if (isControlled) return;
+    setLocalSelectMode(false);
+    setLocalSelectedIds([]);
   }
 
   async function toggleCompleted(item: ChecklistItemDTO) {
@@ -188,7 +204,7 @@ export function CategoryView({
       <Button
         variant={selectMode ? "secondary" : "outline"}
         size="sm"
-        onClick={() => (selectMode ? exitSelectMode() : setSelectMode(true))}
+        onClick={() => (selectMode ? exitSelectMode() : setLocalSelectMode(true))}
       >
         <ListChecks className="size-4" />
         {selectMode ? "Cancel" : "Select"}
@@ -217,7 +233,7 @@ export function CategoryView({
         </>
       )}
 
-      {embedded && <div className="mb-4 flex justify-end">{toolbar}</div>}
+      {embedded && !hideToolbar && <div className="mb-4 flex justify-end">{toolbar}</div>}
 
       {items.length === 0 ? (
         <EmptyState
@@ -228,57 +244,59 @@ export function CategoryView({
         />
       ) : (
         <>
-          <Card className="mb-4 flex-row flex-wrap items-center gap-3 p-4">
-            <div className="relative min-w-[180px] flex-1">
-              <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
-              <Input
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search items…"
-                className="pl-9"
-              />
-            </div>
+          {!hideToolbar && (
+            <Card className="mb-4 flex-row flex-wrap items-center gap-3 p-4">
+              <div className="relative min-w-[180px] flex-1">
+                <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
+                <Input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Search items…"
+                  className="pl-9"
+                />
+              </div>
 
-            <Select
-              value={priorityFilter}
-              onValueChange={(v) => setPriorityFilter(v as PriorityFilter)}
-            >
-              <SelectTrigger size="sm" className="w-[140px]">
-                <SelectValue placeholder="Priority" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All priorities</SelectItem>
-                <SelectItem value="low">Low</SelectItem>
-                <SelectItem value="medium">Medium</SelectItem>
-                <SelectItem value="high">High</SelectItem>
-              </SelectContent>
-            </Select>
+              <Select
+                value={priorityFilter}
+                onValueChange={(v) => setPriorityFilter(v as PriorityFilter)}
+              >
+                <SelectTrigger size="sm" className="w-[140px]">
+                  <SelectValue placeholder="Priority" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All priorities</SelectItem>
+                  <SelectItem value="low">Low</SelectItem>
+                  <SelectItem value="medium">Medium</SelectItem>
+                  <SelectItem value="high">High</SelectItem>
+                </SelectContent>
+              </Select>
 
-            <Select
-              value={statusFilter}
-              onValueChange={(v) => setStatusFilter(v as StatusFilter)}
-            >
-              <SelectTrigger size="sm" className="w-[140px]">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All items</SelectItem>
-                <SelectItem value="completed">Completed</SelectItem>
-                <SelectItem value="incomplete">Incomplete</SelectItem>
-              </SelectContent>
-            </Select>
+              <Select
+                value={statusFilter}
+                onValueChange={(v) => setStatusFilter(v as StatusFilter)}
+              >
+                <SelectTrigger size="sm" className="w-[140px]">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All items</SelectItem>
+                  <SelectItem value="completed">Completed</SelectItem>
+                  <SelectItem value="incomplete">Incomplete</SelectItem>
+                </SelectContent>
+              </Select>
 
-            <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortOption)}>
-              <SelectTrigger size="sm" className="w-[140px]">
-                <SelectValue placeholder="Sort by" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="name">Sort: Name</SelectItem>
-                <SelectItem value="price">Sort: Price</SelectItem>
-                <SelectItem value="priority">Sort: Priority</SelectItem>
-              </SelectContent>
-            </Select>
-          </Card>
+              <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortOption)}>
+                <SelectTrigger size="sm" className="w-[140px]">
+                  <SelectValue placeholder="Sort by" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="name">Sort: Name</SelectItem>
+                  <SelectItem value="price">Sort: Price</SelectItem>
+                  <SelectItem value="priority">Sort: Priority</SelectItem>
+                </SelectContent>
+              </Select>
+            </Card>
+          )}
 
           {visibleItems.length === 0 ? (
             <EmptyState
@@ -333,43 +351,51 @@ export function CategoryView({
                     </button>
 
                     {!selectMode && (
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="size-8 shrink-0" aria-label="Item actions">
-                            <MoreVertical className="size-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <ItemFormDialog
-                            category={category}
-                            item={item}
-                            trigger={
-                              <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                                <Pencil className="size-4" />
-                                Edit
-                              </DropdownMenuItem>
-                            }
-                          />
-                          <DropdownMenuItem onClick={() => handleDuplicate(item.id)}>
-                            <Copy className="size-4" />
-                            Duplicate
-                          </DropdownMenuItem>
-                          <ConfirmDialog
-                            trigger={
-                              <DropdownMenuItem
-                                variant="destructive"
-                                onSelect={(e) => e.preventDefault()}
-                              >
-                                <Trash2 className="size-4" />
-                                Delete
-                              </DropdownMenuItem>
-                            }
-                            title="Delete this item?"
-                            description="This can't be undone."
-                            onConfirm={() => handleDelete(item.id)}
-                          />
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                      <div className="flex shrink-0 items-center gap-1">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="size-8" aria-label="Edit item">
+                              <Pencil className="size-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => setRenameItem(item)}>
+                              <Pencil className="size-4" />
+                              Edit name
+                            </DropdownMenuItem>
+                            <ItemFormDialog
+                              category={category}
+                              item={item}
+                              trigger={
+                                <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                                  <ListChecks className="size-4" />
+                                  Edit complete details
+                                </DropdownMenuItem>
+                              }
+                            />
+                            <DropdownMenuItem onClick={() => handleDuplicate(item.id)}>
+                              <Copy className="size-4" />
+                              Duplicate
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+
+                        <ConfirmDialog
+                          trigger={
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="text-destructive hover:text-destructive size-8"
+                              aria-label="Delete item"
+                            >
+                              <Trash2 className="size-4" />
+                            </Button>
+                          }
+                          title="Delete this item?"
+                          description="This can't be undone."
+                          onConfirm={() => handleDelete(item.id)}
+                        />
+                      </div>
                     )}
                   </Card>
                 </motion.div>
@@ -379,7 +405,16 @@ export function CategoryView({
         </>
       )}
 
-      {selectMode && selectedIds.length > 0 && (
+      {renameItem && (
+        <QuickRenameDialog
+          id={renameItem.id}
+          currentName={renameItem.item}
+          open={renameItem !== null}
+          onOpenChange={(open) => !open && setRenameItem(null)}
+        />
+      )}
+
+      {!isControlled && selectMode && selectedIds.length > 0 && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}

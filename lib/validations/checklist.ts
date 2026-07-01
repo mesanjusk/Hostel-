@@ -28,6 +28,19 @@ export const bulkActionSchema = z.object({
   action: z.enum(["complete", "incomplete", "delete", "duplicate"]),
 });
 
+export const bulkCreateItemsSchema = z.object({
+  category: z.enum(CHECKLIST_CATEGORIES),
+  priority: z.enum(CHECKLIST_PRIORITIES),
+  names: z.array(z.string().trim().min(1).max(120)).min(1),
+});
+
+export const quickRenameItemSchema = z.object({
+  id: z.string().min(1),
+  item: z.string().trim().min(1, "Item name is required").max(120),
+});
+
 export type ChecklistItemInput = z.infer<typeof checklistItemSchema>;
 export type ChecklistItemUpdateInput = z.infer<typeof checklistItemUpdateSchema>;
 export type BulkActionInput = z.infer<typeof bulkActionSchema>;
+export type BulkCreateItemsInput = z.infer<typeof bulkCreateItemsSchema>;
+export type QuickRenameItemInput = z.infer<typeof quickRenameItemSchema>;

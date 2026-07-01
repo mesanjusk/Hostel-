@@ -2,9 +2,10 @@ import "server-only";
 
 import { connectDB } from "@/lib/db";
 import { ChecklistItem } from "@/models/ChecklistItem";
-import { CHECKLIST_CATEGORIES, type ChecklistCategory } from "@/types";
+import { CHECKLIST_CATEGORIES, type ChecklistCategory, type ChecklistPriority } from "@/types";
 import type { ChecklistItemInput, ChecklistItemUpdateInput } from "@/lib/validations/checklist";
 import { DEFAULT_CHECKLIST_TEMPLATE } from "@/lib/default-checklist-template";
+import { areNearDuplicateNames } from "@/lib/text-similarity";
 
 export async function getCategorySummaries(userId: string) {
   await connectDB();
@@ -87,10 +88,90 @@ export async function createChecklistItem(userId: string, input: ChecklistItemIn
   return ChecklistItem.create({ userId, ...input });
 }
 
+/** Adds several items to one category in a single insert, skipping names already present. */
+export async function createChecklistItems(
+  userId: string,
+  category: ChecklistCategory,
+  names: string[],
+  priority: ChecklistPriority,
+) {
+  await connectDB();
+
+  const existing = await ChecklistItem.find({ userId, category }).select("item").lean();
+  const existingNames = existing.map((i) => i.item);
+
+  const seen: string[] = [];
+  const docs: { userId: string; category: ChecklistCategory; item: string; priority: ChecklistPriority }[] = [];
+
+  for (const rawName of names) {
+    const name = rawName.trim();
+    if (!name) continue;
+    const isDuplicate = [...existingNames, ...seen].some((other) =>
+      areNearDuplicateNames(name, other),
+    );
+    if (isDuplicate) continue;
+    seen.push(name);
+    docs.push({ userId, category, item: name, priority });
+  }
+
+  if (docs.length === 0) {
+    return { count: 0, skipped: names.length };
+  }
+
+  await ChecklistItem.insertMany(docs);
+  return { count: docs.length, skipped: names.length - docs.length };
+}
+
 export async function updateChecklistItem(userId: string, input: ChecklistItemUpdateInput) {
   await connectDB();
   const { id, ...rest } = input;
   return ChecklistItem.findOneAndUpdate({ _id: id, userId }, rest, { returnDocument: "after" }).lean();
+}
+
+export async function renameChecklistItem(userId: string, id: string, item: string) {
+  await connectDB();
+  return ChecklistItem.findOneAndUpdate({ _id: id, userId }, { item }, { returnDocument: "after" }).lean();
+}
+
+/** Finds near-duplicate items within each category (typos/pluralization like "Fee Reciept" vs "Fee Receipts") and merges each group into the oldest item, deleting the rest. */
+export async function mergeDuplicateItems(userId: string) {
+  await connectDB();
+
+  const items = await ChecklistItem.find({ userId }).sort({ createdAt: 1 }).lean();
+  const idsToDelete: string[] = [];
+  const idsToComplete: string[] = [];
+
+  for (const category of CHECKLIST_CATEGORIES) {
+    const inCategory = items.filter((i) => i.category === category);
+    const grouped: (typeof inCategory)[number][][] = [];
+
+    for (const current of inCategory) {
+      const group = grouped.find((g) => areNearDuplicateNames(g[0].item, current.item));
+      if (group) {
+        group.push(current);
+      } else {
+        grouped.push([current]);
+      }
+    }
+
+    for (const group of grouped) {
+      if (group.length < 2) continue;
+      const [keep, ...rest] = group;
+      idsToDelete.push(...rest.map((r) => String(r._id)));
+      if (group.some((g) => g.completed) && !keep.completed) {
+        idsToComplete.push(String(keep._id));
+      }
+    }
+  }
+
+  if (idsToDelete.length > 0) {
+    await ChecklistItem.deleteMany({ _id: { $in: idsToDelete }, userId });
+  }
+  if (idsToComplete.length > 0) {
+    await ChecklistItem.updateMany({ _id: { $in: idsToComplete }, userId }, { completed: true });
+  }
+
+  return { mergedCount: idsToDelete.length };
 }
 
 export async function deleteChecklistItem(userId: string, id: string) {
