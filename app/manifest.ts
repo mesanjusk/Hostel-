@@ -8,8 +8,8 @@ export default function manifest(): MetadataRoute.Manifest {
       "Your all-in-one hostel survival kit — checklist, budget, notes, documents, and more for first-time hostel students.",
     start_url: "/dashboard",
     display: "standalone",
-    background_color: "#f7f3ec",
-    theme_color: "#8b5e34",
+    background_color: "#f0f2f5",
+    theme_color: "#008069",
     orientation: "portrait",
     icons: [
       {

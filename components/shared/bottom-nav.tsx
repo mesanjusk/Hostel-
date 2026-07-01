@@ -19,7 +19,7 @@ export function BottomNav({ isAdmin }: { isAdmin: boolean }) {
   const pathname = usePathname();
 
   return (
-    <nav className="glass fixed inset-x-0 bottom-0 z-40 flex items-center justify-around rounded-t-2xl px-2 py-2 shadow-xl lg:hidden">
+    <nav className="glass fixed inset-x-0 bottom-0 z-40 flex items-center justify-around px-2 py-2 lg:hidden">
       {BOTTOM_NAV_ITEMS.map((item) => {
         const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
         const Icon = item.icon;
