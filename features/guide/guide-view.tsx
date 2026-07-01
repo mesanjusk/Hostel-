@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { BookOpen } from "lucide-react";
+import { BookOpen, Luggage, ArrowRight } from "lucide-react";
 
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -23,6 +23,27 @@ export function GuideView({ articles }: { articles: GuideArticleSummaryDTO[] }) 
         title="Hostel Survival Guide"
         description="Everything a first-timer needs to know before move-in day"
       />
+
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
+        <Link href="/guide/survival-guide">
+          <Card className="gradient-brand flex-row items-center justify-between gap-4 border-none p-6 text-white shadow-lg shadow-primary/20 transition-transform hover:-translate-y-0.5">
+            <div className="flex items-center gap-4">
+              <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-white/15">
+                <Luggage className="size-5" />
+              </div>
+              <div>
+                <p className="font-display font-semibold">
+                  The Hostel Survival Guide for First-Time Students
+                </p>
+                <p className="text-sm text-white/80">
+                  Move-in day, roommates, money, safety — the full read.
+                </p>
+              </div>
+            </div>
+            <ArrowRight className="size-5 shrink-0" />
+          </Card>
+        </Link>
+      </motion.div>
 
       {articles.length === 0 ? (
         <EmptyState
