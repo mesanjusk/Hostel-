@@ -1,22 +1,29 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
-import { motion } from "framer-motion";
 import { ClipboardCheck, Sparkles, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { PageHeader } from "@/components/shared/page-header";
 import { CHECKLIST_CATEGORY_ICONS } from "@/lib/checklist-icons";
 import { loadStarterChecklistAction } from "@/actions/checklist";
+import { CategoryView } from "@/features/checklist/category-view";
+import type { ChecklistCategory } from "@/types";
+import type { ChecklistItemDTO } from "@/features/checklist/checklist-item-dto";
 
-interface CategorySummary {
-  category: string;
-  total: number;
-  completed: number;
+interface CategoryGroup {
+  category: ChecklistCategory;
+  items: ChecklistItemDTO[];
 }
 
 interface OverallProgress {
@@ -25,10 +32,10 @@ interface OverallProgress {
 }
 
 export function ChecklistOverview({
-  summaries,
+  groups,
   overall,
 }: {
-  summaries: CategorySummary[];
+  groups: CategoryGroup[];
   overall: OverallProgress;
 }) {
   const overallPercent =
@@ -56,9 +63,14 @@ export function ChecklistOverview({
     <div>
       <PageHeader
         title="Packing Checklist"
-        description="Track everything you need to pack, category by category"
+        description="Tap a category to expand it and start ticking things off"
         action={
-          <Button variant="outline" size="sm" onClick={handleLoadStarterChecklist} disabled={isLoadingStarter}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleLoadStarterChecklist}
+            disabled={isLoadingStarter}
+          >
             {isLoadingStarter ? (
               <Loader2 className="size-4 animate-spin" />
             ) : (
@@ -69,11 +81,12 @@ export function ChecklistOverview({
         }
       />
 
-      <Card className="mb-6 p-6">
-        <div className="mb-3 flex items-center justify-between gap-4">
+      <Card className="relative mb-6 overflow-hidden p-6">
+        <div className="gradient-brand pointer-events-none absolute -top-16 -right-16 size-48 rounded-full opacity-15 blur-2xl" />
+        <div className="relative mb-3 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="gradient-brand flex size-11 items-center justify-center rounded-2xl shadow-lg shadow-primary/20">
-              <ClipboardCheck className="size-5 text-white" />
+            <div className="gradient-brand flex size-12 items-center justify-center rounded-2xl shadow-lg shadow-primary/25">
+              <ClipboardCheck className="size-6 text-white" />
             </div>
             <div>
               <p className="font-display font-semibold">Overall progress</p>
@@ -82,44 +95,52 @@ export function ChecklistOverview({
               </p>
             </div>
           </div>
-          <span className="font-display text-2xl font-bold">{overallPercent}%</span>
+          <span className="font-display text-3xl font-bold">{overallPercent}%</span>
         </div>
-        <Progress value={overallPercent} />
+        <Progress value={overallPercent} className="relative" />
       </Card>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {summaries.map((summary, i) => {
-          const Icon = CHECKLIST_CATEGORY_ICONS[summary.category as keyof typeof CHECKLIST_CATEGORY_ICONS];
-          const percent =
-            summary.total > 0 ? Math.round((summary.completed / summary.total) * 100) : 0;
+      <Accordion type="multiple" className="flex flex-col gap-3">
+        {groups.map(({ category, items }) => {
+          const Icon = CHECKLIST_CATEGORY_ICONS[category];
+          const completed = items.filter((i) => i.completed).length;
+          const percent = items.length > 0 ? Math.round((completed / items.length) * 100) : 0;
 
           return (
-            <motion.div
-              key={summary.category}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.04 }}
+            <div
+              key={category}
+              className="border-border/60 bg-card overflow-hidden rounded-2xl border px-2 shadow-sm"
             >
-              <Link href={`/checklist/${encodeURIComponent(summary.category)}`}>
-                <Card className="h-full gap-3 p-5 transition-shadow hover:shadow-md">
-                  <div className="flex items-center gap-3">
-                    <div className="bg-primary/10 flex size-10 items-center justify-center rounded-xl">
+              <AccordionItem value={category} className="border-none">
+                <AccordionTrigger className="px-3 py-3 hover:no-underline">
+                  <div className="flex flex-1 items-center gap-3">
+                    <div className="bg-primary/10 flex size-11 shrink-0 items-center justify-center rounded-xl">
                       <Icon className="text-primary size-5" />
                     </div>
-                    <h3 className="font-display line-clamp-1 font-semibold">
-                      {summary.category}
-                    </h3>
+                    <div className="min-w-0 flex-1 text-left">
+                      <p className="font-display truncate font-semibold">{category}</p>
+                      <div className="mt-1 flex items-center gap-2">
+                        <Progress value={percent} className="h-1.5 max-w-[140px]" />
+                        <span className="text-muted-foreground shrink-0 text-xs">
+                          {completed}/{items.length}
+                        </span>
+                      </div>
+                    </div>
+                    {items.length === 0 && (
+                      <Badge variant="outline" className="shrink-0">
+                        empty
+                      </Badge>
+                    )}
                   </div>
-                  <Progress value={percent} />
-                  <p className="text-muted-foreground text-sm">
-                    {summary.completed} / {summary.total} items
-                  </p>
-                </Card>
-              </Link>
-            </motion.div>
+                </AccordionTrigger>
+                <AccordionContent className="px-1 pb-2">
+                  <CategoryView category={category} initialItems={items} embedded />
+                </AccordionContent>
+              </AccordionItem>
+            </div>
           );
         })}
-      </div>
+      </Accordion>
     </div>
   );
 }

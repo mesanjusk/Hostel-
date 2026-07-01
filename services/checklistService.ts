@@ -35,6 +35,17 @@ export async function listItemsByCategory(userId: string, category: ChecklistCat
   return ChecklistItem.find({ userId, category }).sort({ createdAt: -1 }).lean();
 }
 
+/** All items for a user, grouped by category — for the expandable accordion overview. */
+export async function getAllItemsByCategory(userId: string) {
+  await connectDB();
+  const items = await ChecklistItem.find({ userId }).sort({ createdAt: -1 }).lean();
+
+  return CHECKLIST_CATEGORIES.map((category) => ({
+    category,
+    items: items.filter((i) => i.category === category),
+  }));
+}
+
 /** Idempotent: only seeds the starter checklist if the user has no items yet. */
 export async function seedDefaultChecklistIfEmpty(userId: string) {
   await connectDB();

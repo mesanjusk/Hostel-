@@ -67,9 +67,12 @@ const PRIORITY_WEIGHT: Record<ChecklistPriority, number> = {
 export function CategoryView({
   category,
   initialItems,
+  embedded = false,
 }: {
   category: ChecklistCategory;
   initialItems: ChecklistItemDTO[];
+  /** When true, renders without the page-level title/back-link, for use inside an accordion panel. */
+  embedded?: boolean;
 }) {
   const [items, setItems] = useState(initialItems);
   const [search, setSearch] = useState("");
@@ -180,33 +183,41 @@ export function CategoryView({
     exitSelectMode();
   }
 
-  return (
-    <div className="pb-24">
-      <Link
-        href="/checklist"
-        className="text-muted-foreground mb-3 inline-flex items-center gap-1 text-sm hover:text-foreground"
+  const toolbar = (
+    <div className="flex items-center gap-2">
+      <Button
+        variant={selectMode ? "secondary" : "outline"}
+        size="sm"
+        onClick={() => (selectMode ? exitSelectMode() : setSelectMode(true))}
       >
-        <ArrowLeft className="size-3.5" />
-        All categories
-      </Link>
+        <ListChecks className="size-4" />
+        {selectMode ? "Cancel" : "Select"}
+      </Button>
+      <ItemFormDialog category={category} />
+    </div>
+  );
 
-      <PageHeader
-        title={category}
-        description={`${items.filter((i) => i.completed).length} / ${items.length} items packed`}
-        action={
-          <div className="flex items-center gap-2">
-            <Button
-              variant={selectMode ? "secondary" : "outline"}
-              size="sm"
-              onClick={() => (selectMode ? exitSelectMode() : setSelectMode(true))}
-            >
-              <ListChecks className="size-4" />
-              {selectMode ? "Cancel" : "Select"}
-            </Button>
-            <ItemFormDialog category={category} />
-          </div>
-        }
-      />
+  return (
+    <div className={embedded ? "" : "pb-24"}>
+      {!embedded && (
+        <>
+          <Link
+            href="/checklist"
+            className="text-muted-foreground mb-3 inline-flex items-center gap-1 text-sm hover:text-foreground"
+          >
+            <ArrowLeft className="size-3.5" />
+            All categories
+          </Link>
+
+          <PageHeader
+            title={category}
+            description={`${items.filter((i) => i.completed).length} / ${items.length} items packed`}
+            action={toolbar}
+          />
+        </>
+      )}
+
+      {embedded && <div className="mb-4 flex justify-end">{toolbar}</div>}
 
       {items.length === 0 ? (
         <EmptyState
