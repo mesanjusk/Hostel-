@@ -3,7 +3,7 @@ import { z } from "zod";
 export const noteSchema = z.object({
   title: z.string().trim().min(1, "Title is required").max(120),
   content: z.string().trim().max(8000).optional().or(z.literal("")),
-  pinned: z.boolean().default(false),
+  pinned: z.boolean(),
 });
 
 export const noteUpdateSchema = noteSchema.partial().extend({

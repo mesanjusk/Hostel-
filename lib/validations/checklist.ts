@@ -7,7 +7,7 @@ export const checklistItemSchema = z.object({
   item: z.string().trim().min(1, "Item name is required").max(120),
   description: z.string().trim().max(500).optional().or(z.literal("")),
   imageUrl: z.string().trim().url().optional().or(z.literal("")),
-  priority: z.enum(CHECKLIST_PRIORITIES).default("medium"),
+  priority: z.enum(CHECKLIST_PRIORITIES),
   price: z.coerce.number().min(0).optional().nullable(),
   priceRangeMin: z.coerce.number().min(0).optional().nullable(),
   priceRangeMax: z.coerce.number().min(0).optional().nullable(),

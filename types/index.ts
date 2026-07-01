@@ -59,6 +59,14 @@ export const STORE_OPTIONS = [
 ] as const;
 export type StoreOption = (typeof STORE_OPTIONS)[number];
 
+export interface NoteDTO {
+  id: string;
+  title: string;
+  content: string;
+  pinned: boolean;
+  updatedAt: string;
+}
+
 export const GUIDE_CATEGORIES = [
   "Packing",
   "Laundry",

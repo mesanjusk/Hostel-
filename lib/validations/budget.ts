@@ -6,7 +6,7 @@ export const budgetEntrySchema = z.object({
   title: z.string().trim().min(1, "Title is required").max(120),
   amount: z.coerce.number().positive("Amount must be greater than 0"),
   category: z.enum(BUDGET_CATEGORIES),
-  type: z.enum(BUDGET_ENTRY_TYPES).default("expense"),
+  type: z.enum(BUDGET_ENTRY_TYPES),
   date: z.coerce.date(),
 });
 

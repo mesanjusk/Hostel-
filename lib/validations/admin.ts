@@ -8,10 +8,10 @@ export const productSchema = z.object({
   category: z.enum(CHECKLIST_CATEGORIES),
   store: z.string().trim().min(1).max(80),
   price: z.coerce.number().min(0),
-  discountPercent: z.coerce.number().min(0).max(100).default(0),
-  rating: z.coerce.number().min(0).max(5).default(4),
-  pros: z.array(z.string().trim().min(1)).default([]),
-  cons: z.array(z.string().trim().min(1)).default([]),
+  discountPercent: z.coerce.number().min(0).max(100),
+  rating: z.coerce.number().min(0).max(5),
+  pros: z.array(z.string().trim().min(1)),
+  cons: z.array(z.string().trim().min(1)),
   buyLinks: z.object({
     amazon: z.string().trim().url().optional().or(z.literal("")),
     flipkart: z.string().trim().url().optional().or(z.literal("")),
@@ -21,7 +21,7 @@ export const productSchema = z.object({
   }),
   budgetAlternative: z.string().optional().nullable(),
   premiumAlternative: z.string().optional().nullable(),
-  featured: z.boolean().default(false),
+  featured: z.boolean(),
 });
 
 export const productUpdateSchema = productSchema.partial().extend({
@@ -37,10 +37,10 @@ export const guideArticleSchema = z.object({
     .max(150)
     .regex(/^[a-z0-9-]+$/, "Slug may only contain lowercase letters, numbers, and hyphens"),
   category: z.enum(GUIDE_CATEGORIES),
-  icon: z.string().trim().max(60).default("BookOpen"),
+  icon: z.string().trim().max(60),
   summary: z.string().trim().max(300).optional().or(z.literal("")),
   content: z.string().trim().min(1),
-  order: z.coerce.number().default(0),
+  order: z.coerce.number(),
 });
 
 export const guideArticleUpdateSchema = guideArticleSchema.partial().extend({
@@ -49,7 +49,7 @@ export const guideArticleUpdateSchema = guideArticleSchema.partial().extend({
 
 export const broadcastSchema = z.object({
   message: z.string().trim().min(1, "Message is required").max(1000),
-  audience: z.enum(["all", "incomplete-checklist"]).default("all"),
+  audience: z.enum(["all", "incomplete-checklist"]),
 });
 
 export type ProductInput = z.infer<typeof productSchema>;
