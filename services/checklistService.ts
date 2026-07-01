@@ -4,6 +4,7 @@ import { connectDB } from "@/lib/db";
 import { ChecklistItem } from "@/models/ChecklistItem";
 import { CHECKLIST_CATEGORIES, type ChecklistCategory } from "@/types";
 import type { ChecklistItemInput, ChecklistItemUpdateInput } from "@/lib/validations/checklist";
+import { DEFAULT_CHECKLIST_TEMPLATE } from "@/lib/default-checklist-template";
 
 export async function getCategorySummaries(userId: string) {
   await connectDB();
@@ -32,6 +33,21 @@ export async function getOverallProgress(userId: string) {
 export async function listItemsByCategory(userId: string, category: ChecklistCategory) {
   await connectDB();
   return ChecklistItem.find({ userId, category }).sort({ createdAt: -1 }).lean();
+}
+
+/** Idempotent: only seeds the starter checklist if the user has no items yet. */
+export async function seedDefaultChecklistIfEmpty(userId: string) {
+  await connectDB();
+
+  const existingCount = await ChecklistItem.countDocuments({ userId });
+  if (existingCount > 0) {
+    return { seeded: false, count: 0 };
+  }
+
+  const docs = DEFAULT_CHECKLIST_TEMPLATE.map((template) => ({ userId, ...template }));
+  await ChecklistItem.insertMany(docs);
+
+  return { seeded: true, count: docs.length };
 }
 
 export async function createChecklistItem(userId: string, input: ChecklistItemInput) {

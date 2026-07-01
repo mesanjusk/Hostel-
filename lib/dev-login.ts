@@ -2,6 +2,7 @@ import { timingSafeEqual } from "node:crypto";
 
 import { connectDB } from "@/lib/db";
 import { User } from "@/models/User";
+import { seedDefaultChecklistIfEmpty } from "@/services/checklistService";
 
 const DEV_TEST_MOBILE = "910000000000";
 
@@ -39,6 +40,8 @@ export async function getOrCreateDevTestUser() {
     },
     { upsert: true, returnDocument: "after" },
   );
+
+  await seedDefaultChecklistIfEmpty(user._id.toString());
 
   return user;
 }
