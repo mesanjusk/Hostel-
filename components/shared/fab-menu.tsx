@@ -123,17 +123,19 @@ export function FabMenu() {
 
   return (
     <>
-      {/* Mobile: embedded in the center of the bottom tab bar. */}
-      <div className="fixed inset-x-0 bottom-0 z-40 flex h-16 items-center justify-center lg:hidden">
-        <div className="relative">
+      {/* Mobile: embedded in the center of the bottom tab bar.
+          pointer-events-none on this full-width wrapper is required — otherwise its
+          invisible hit-testing area covers the whole bar and blocks the nav links under it. */}
+      <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 flex h-16 items-center justify-center lg:hidden">
+        <div className="pointer-events-auto relative">
           {speedDialPopup}
           {toggleButton("sm")}
         </div>
       </div>
 
       {/* Desktop: floating bottom-right (the sidebar has no center-nav slot). */}
-      <div className="fixed right-8 bottom-8 z-40 hidden lg:block">
-        <div className="relative">
+      <div className="pointer-events-none fixed right-8 bottom-8 z-40 hidden lg:block">
+        <div className="pointer-events-auto relative">
           {speedDialPopup}
           {toggleButton("lg")}
         </div>

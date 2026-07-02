@@ -65,7 +65,7 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section id={id} className="scroll-mt-28 border-b border-stone-200/70 px-5 py-16 sm:px-8 lg:px-12">
+    <section id={id} className="scroll-mt-28 border-b border-border/70 px-5 py-16 sm:px-8 lg:px-12">
       <div className="mx-auto max-w-4xl">
         <motion.div
           initial={{ opacity: 0, y: 16 }}
@@ -73,10 +73,10 @@ function Section({
           viewport={{ once: true, margin: "-80px" }}
           transition={{ duration: 0.5 }}
         >
-          <p className="mb-1 text-xs font-semibold tracking-[0.2em] text-stone-400 uppercase">
+          <p className="mb-1 text-xs font-semibold tracking-[0.2em] text-muted-foreground uppercase">
             {eyebrow}
           </p>
-          <h2 className="mb-8 text-2xl font-bold text-stone-800 sm:text-3xl">{title}</h2>
+          <h2 className="mb-8 text-2xl font-bold text-foreground sm:text-3xl">{title}</h2>
           {children}
         </motion.div>
       </div>
@@ -102,13 +102,13 @@ function TipCard({
       viewport={{ once: true }}
       transition={{ duration: 0.4, delay }}
       whileHover={{ y: -3 }}
-      className="rounded-2xl border border-stone-200 bg-white/80 p-5 shadow-sm shadow-stone-200/50 transition-shadow hover:shadow-md"
+      className="rounded-2xl border border-border bg-card/80 p-5 shadow-sm shadow-black/5 transition-shadow hover:shadow-md"
     >
-      <div className="mb-3 flex size-9 items-center justify-center rounded-xl bg-stone-100 text-stone-700">
+      <div className="mb-3 flex size-9 items-center justify-center rounded-xl bg-muted text-foreground">
         <Icon className="size-4.5" />
       </div>
-      <p className="font-semibold text-stone-800">{title}</p>
-      <p className="mt-1 text-sm leading-relaxed text-stone-500">{description}</p>
+      <p className="font-semibold text-foreground">{title}</p>
+      <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{description}</p>
     </motion.div>
   );
 }
@@ -126,8 +126,8 @@ function HighlightBox({
     <div
       className={`mt-6 flex items-start gap-3 rounded-2xl border px-5 py-4 text-sm ${
         isWarning
-          ? "border-amber-200 bg-amber-50 text-amber-900"
-          : "border-emerald-200 bg-emerald-50 text-emerald-900"
+          ? "border-warning/30 bg-warning/10 text-warning"
+          : "border-success/30 bg-success/10 text-success"
       }`}
     >
       <Icon className="mt-0.5 size-4.5 shrink-0" />
@@ -138,8 +138,8 @@ function HighlightBox({
 
 function ChecklistLine({ children }: { children: React.ReactNode }) {
   return (
-    <li className="flex items-center gap-3 rounded-xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-700">
-      <CheckCircle2 className="size-4 shrink-0 text-stone-400" />
+    <li className="flex items-center gap-3 rounded-xl border border-border bg-card/80 px-4 py-3 text-sm text-foreground">
+      <CheckCircle2 className="size-4 shrink-0 text-muted-foreground" />
       {children}
     </li>
   );
@@ -149,11 +149,11 @@ export function SurvivalGuideView() {
   const [activeSection, setActiveSection] = useState<string | null>(null);
 
   return (
-    <div className="relative -m-4 bg-[#f7f3ec] text-stone-800 lg:-m-8">
+    <div className="relative -m-4 bg-background text-foreground lg:-m-8">
       {/* HERO */}
       <section className="relative overflow-hidden px-5 pt-16 pb-20 text-center sm:px-8 sm:pt-24 sm:pb-28">
         <GridBackdrop />
-        <div className="pointer-events-none absolute top-10 left-1/2 -z-10 h-72 w-72 -translate-x-1/2 rounded-full bg-amber-100/60 blur-3xl" />
+        <div className="pointer-events-none absolute top-10 left-1/2 -z-10 h-72 w-72 -translate-x-1/2 rounded-full bg-primary/15 blur-3xl" />
 
         <motion.div
           initial={{ opacity: 0, y: -10 }}
@@ -161,26 +161,26 @@ export function SurvivalGuideView() {
           transition={{ duration: 0.5 }}
           className="mx-auto flex max-w-2xl flex-col items-center gap-5"
         >
-          <div className="flex items-center gap-2 rounded-full border border-stone-300 bg-white/70 px-4 py-1.5 text-xs font-medium text-stone-500">
+          <div className="flex items-center gap-2 rounded-full border border-border bg-card/70 px-4 py-1.5 text-xs font-medium text-muted-foreground">
             <Luggage className="size-3.5" />
             First-time hostel students, this one&apos;s for you
           </div>
 
-          <h1 className="text-4xl leading-[1.1] font-bold text-stone-900 sm:text-6xl">
+          <h1 className="text-4xl leading-[1.1] font-bold text-foreground sm:text-6xl">
             Hostel{" "}
-            <span className={`${caveat.className} text-amber-600`} style={{ fontWeight: 700 }}>
+            <span className={`${caveat.className} text-primary`} style={{ fontWeight: 700 }}>
               Survival
             </span>{" "}
             Guide
           </h1>
 
-          <p className="max-w-md text-base text-stone-500 sm:text-lg">
+          <p className="max-w-md text-base text-muted-foreground sm:text-lg">
             Everything no one tells you before move-in day.
           </p>
 
           <a
             href="#mental-prep"
-            className="group mt-2 inline-flex items-center gap-2 rounded-full bg-stone-900 px-6 py-3 text-sm font-semibold text-white transition-transform hover:-translate-y-0.5"
+            className="gradient-brand group mt-2 inline-flex items-center gap-2 rounded-full px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-primary/20 transition-transform hover:-translate-y-0.5"
           >
             Start Preparing
             <ArrowDown className="size-4 transition-transform group-hover:translate-y-0.5" />
@@ -189,7 +189,7 @@ export function SurvivalGuideView() {
       </section>
 
       {/* STICKY SECTION NAV */}
-      <nav className="sticky top-0 z-20 border-y border-stone-200 bg-[#f7f3ec]/90 backdrop-blur-md">
+      <nav className="sticky top-0 z-20 border-y border-border bg-background/90 backdrop-blur-md">
         <div className="scrollbar-none flex gap-1.5 overflow-x-auto px-5 py-3 sm:justify-center sm:px-8">
           {NAV_SECTIONS.map((s) => (
             <a
@@ -198,8 +198,8 @@ export function SurvivalGuideView() {
               onClick={() => setActiveSection(s.id)}
               className={`shrink-0 rounded-full border px-3.5 py-1.5 text-xs font-medium whitespace-nowrap transition-colors ${
                 activeSection === s.id
-                  ? "border-stone-800 bg-stone-800 text-white"
-                  : "border-stone-300 bg-white/70 text-stone-600 hover:border-stone-400"
+                  ? "gradient-brand border-primary text-white"
+                  : "border-border bg-card/70 text-muted-foreground hover:border-primary/50"
               }`}
             >
               {s.label}
@@ -209,13 +209,13 @@ export function SurvivalGuideView() {
       </nav>
 
       {/* INTRO */}
-      <section className="border-b border-stone-200/70 px-5 py-14 text-center sm:px-8">
+      <section className="border-b border-border/70 px-5 py-14 text-center sm:px-8">
         <motion.p
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
           transition={{ duration: 0.5 }}
-          className="mx-auto max-w-2xl text-lg leading-relaxed text-stone-600"
+          className="mx-auto max-w-2xl text-lg leading-relaxed text-muted-foreground"
         >
           Moving to hostel for the first time is exciting <em>and</em> a little overwhelming —
           new room, new people, zero idea where anything is. This guide won&apos;t make it
@@ -327,7 +327,7 @@ export function SurvivalGuideView() {
         </div>
         <Link
           href="/contacts"
-          className="mt-6 inline-flex items-center gap-1.5 text-sm font-semibold text-stone-800 underline underline-offset-4 hover:text-amber-700"
+          className="mt-6 inline-flex items-center gap-1.5 text-sm font-semibold text-foreground underline underline-offset-4 hover:text-primary"
         >
           Add your emergency contacts in the app
           <ArrowRight className="size-3.5" />
@@ -361,7 +361,7 @@ export function SurvivalGuideView() {
         </div>
         <Link
           href="/budget"
-          className="mt-6 inline-flex items-center gap-1.5 text-sm font-semibold text-stone-800 underline underline-offset-4 hover:text-amber-700"
+          className="mt-6 inline-flex items-center gap-1.5 text-sm font-semibold text-foreground underline underline-offset-4 hover:text-primary"
         >
           Track your spending in the Budget tab
           <ArrowRight className="size-3.5" />
@@ -378,7 +378,7 @@ export function SurvivalGuideView() {
               whileInView={{ opacity: 1, scale: 1 }}
               viewport={{ once: true }}
               transition={{ delay: i * 0.05 }}
-              className="rounded-2xl border border-stone-200 bg-white/80 px-3 py-6 text-center text-sm font-medium text-stone-700 shadow-sm"
+              className="rounded-2xl border border-border bg-card/80 px-3 py-6 text-center text-sm font-medium text-foreground shadow-sm"
             >
               {item}
             </motion.div>
@@ -386,7 +386,7 @@ export function SurvivalGuideView() {
         </div>
         <Link
           href="/checklist"
-          className="mt-6 inline-flex items-center gap-1.5 text-sm font-semibold text-stone-800 underline underline-offset-4 hover:text-amber-700"
+          className="mt-6 inline-flex items-center gap-1.5 text-sm font-semibold text-foreground underline underline-offset-4 hover:text-primary"
         >
           These are already in your packing checklist
           <ArrowRight className="size-3.5" />
@@ -403,16 +403,16 @@ export function SurvivalGuideView() {
           transition={{ duration: 0.6 }}
           className="mx-auto flex max-w-xl flex-col items-center gap-6"
         >
-          <p className={`${caveat.className} text-3xl text-amber-700 sm:text-4xl`}>
+          <p className={`${caveat.className} text-3xl text-primary sm:text-4xl`}>
             One last thing
           </p>
-          <p className="text-xl leading-relaxed font-medium text-stone-800 sm:text-2xl">
+          <p className="text-xl leading-relaxed font-medium text-foreground sm:text-2xl">
             Hostel life isn&apos;t about comfort. It&apos;s about growth, independence, and
             stories you&apos;ll never forget.
           </p>
           <Link
             href="/checklist"
-            className="group mt-2 inline-flex items-center gap-2 rounded-full bg-stone-900 px-6 py-3 text-sm font-semibold text-white transition-transform hover:-translate-y-0.5"
+            className="gradient-brand group mt-2 inline-flex items-center gap-2 rounded-full px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-primary/20 transition-transform hover:-translate-y-0.5"
           >
             Start Your Hostel Journey
             <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" />

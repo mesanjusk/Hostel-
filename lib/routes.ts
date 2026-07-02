@@ -3,5 +3,5 @@
  * pulling in icon components or other heavier modules.
  */
 
-/** Post-login landing page — a light page, not the heavier stats-and-charts dashboard. */
-export const HOME_ROUTE = "/guide";
+/** Post-login landing page — the long-form survival guide, not the heavier stats-and-charts dashboard. */
+export const HOME_ROUTE = "/guide/survival-guide";

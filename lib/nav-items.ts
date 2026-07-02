@@ -32,7 +32,7 @@ export const PRIMARY_NAV_ITEMS: NavItem[] = [
   { href: "/contacts", label: "Emergency Contacts", icon: PhoneCall },
   { href: "/wishlist", label: "Wishlist", icon: Heart },
   { href: "/shopping", label: "Shopping", icon: ShoppingBag },
-  { href: "/guide", label: "Hostel Guide", icon: BookOpen },
+  { href: "/guide/survival-guide", label: "Hostel Guide", icon: BookOpen },
   { href: "/search", label: "Search", icon: Search },
 ];
 
@@ -56,7 +56,7 @@ export const SETTINGS_NAV_ITEM: NavItem = {
 
 /** Bottom tab bar: Guide, Checklist, [FAB in the middle], Notes, Shopping. */
 export const BOTTOM_NAV_ITEMS: NavItem[] = [
-  PRIMARY_NAV_ITEMS.find((i) => i.href === "/guide")!,
+  PRIMARY_NAV_ITEMS.find((i) => i.href === "/guide/survival-guide")!,
   PRIMARY_NAV_ITEMS.find((i) => i.href === "/checklist")!,
   PRIMARY_NAV_ITEMS.find((i) => i.href === "/notes")!,
   PRIMARY_NAV_ITEMS.find((i) => i.href === "/shopping")!,
