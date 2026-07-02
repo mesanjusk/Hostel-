@@ -26,6 +26,7 @@ import {
 import {
   adminUpdateUser,
   createUserByAdmin,
+  deleteUserByAdmin,
   listBroadcastRecipients,
   regeneratePin,
 } from "@/services/userService";
@@ -215,4 +216,21 @@ export async function regeneratePinAction(input: unknown): Promise<RegeneratePin
 
   revalidatePath("/admin/users");
   return { success: true, pin: result.pin };
+}
+
+export async function deleteUserByAdminAction(id: string): Promise<ActionResult> {
+  const session = await requireAdmin();
+  if (!session) return { success: false, error: "Not authorized" };
+
+  if (id === session.user.id) {
+    return { success: false, error: "You can't delete your own account" };
+  }
+
+  const result = await deleteUserByAdmin(id);
+  if (!result.success) {
+    return { success: false, error: result.error };
+  }
+
+  revalidatePath("/admin/users");
+  return { success: true };
 }

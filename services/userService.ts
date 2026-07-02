@@ -3,6 +3,12 @@ import "server-only";
 import { connectDB } from "@/lib/db";
 import { User } from "@/models/User";
 import { ChecklistItem } from "@/models/ChecklistItem";
+import { Category } from "@/models/Category";
+import { BudgetEntry } from "@/models/BudgetEntry";
+import { Note } from "@/models/Note";
+import { DocumentItem } from "@/models/DocumentItem";
+import { EmergencyContact } from "@/models/EmergencyContact";
+import { WishlistItem } from "@/models/WishlistItem";
 import { generatePin, hashPin } from "@/lib/pin";
 import type { OnboardingInput } from "@/lib/validations/auth";
 import type { ProfileUpdateInput } from "@/lib/validations/profile";
@@ -116,6 +122,31 @@ export async function adminUpdateUser(
     ...(input.mobile ? { mobile: input.mobile } : {}),
     ...(input.role ? { role: input.role } : {}),
   });
+
+  return { success: true as const };
+}
+
+/** Deletes the user and everything keyed to their account. Callers must ensure an admin
+ * can't delete their own account (checked at the call site, where the session is available). */
+export async function deleteUserByAdmin(userId: string) {
+  await connectDB();
+
+  const user = await User.findById(userId).lean();
+  if (!user) {
+    return { success: false as const, error: "User not found" };
+  }
+
+  await Promise.all([
+    ChecklistItem.deleteMany({ userId }),
+    Category.deleteMany({ userId }),
+    BudgetEntry.deleteMany({ userId }),
+    Note.deleteMany({ userId }),
+    DocumentItem.deleteMany({ userId }),
+    EmergencyContact.deleteMany({ userId }),
+    WishlistItem.deleteMany({ userId }),
+  ]);
+
+  await User.findByIdAndDelete(userId);
 
   return { success: true as const };
 }

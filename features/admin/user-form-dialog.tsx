@@ -3,11 +3,12 @@
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Check, Copy, KeyRound, Loader2, Plus } from "lucide-react";
+import { Check, Copy, KeyRound, Loader2, MessageCircle, Plus } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { formatMobileForDisplay } from "@/lib/phone";
 import {
   Dialog,
   DialogContent,
@@ -54,6 +55,17 @@ function PinRevealPanel({ mobile, pin, onDone }: { mobile: string; pin: string; 
     setTimeout(() => setCopied(false), 1500);
   }
 
+  function handleShareOnWhatsApp() {
+    const message = [
+      "Hi! Here's your Pack with Me login:",
+      `Mobile: ${formatMobileForDisplay(mobile)}`,
+      `Code: ${pin}`,
+      "",
+      `Log in at ${window.location.origin}/login`,
+    ].join("\n");
+    window.open(`https://wa.me/${mobile}?text=${encodeURIComponent(message)}`, "_blank", "noopener,noreferrer");
+  }
+
   return (
     <div className="flex flex-col gap-4">
       <div className="bg-warning/10 text-warning rounded-xl px-4 py-3 text-sm font-medium">
@@ -67,6 +79,10 @@ function PinRevealPanel({ mobile, pin, onDone }: { mobile: string; pin: string; 
           {copied ? "Copied" : "Copy"}
         </Button>
       </div>
+      <Button type="button" variant="outline" onClick={handleShareOnWhatsApp}>
+        <MessageCircle className="size-4" />
+        Share via WhatsApp
+      </Button>
       <DialogFooter>
         <Button type="button" onClick={onDone}>
           Done

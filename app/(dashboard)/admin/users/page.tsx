@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 
+import { auth } from "@/lib/auth";
 import { listUsers } from "@/services/userService";
 import { toPlain } from "@/lib/serialize";
 import { UsersView } from "@/features/admin/users-view";
@@ -17,7 +18,7 @@ export default async function AdminUsersPage({
   const { page: pageParam } = await searchParams;
   const page = Math.max(1, Number(pageParam) || 1);
 
-  const { users, total } = await listUsers(page, PAGE_SIZE);
+  const [session, { users, total }] = await Promise.all([auth(), listUsers(page, PAGE_SIZE)]);
   const plain = toPlain(users);
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
@@ -33,5 +34,12 @@ export default async function AdminUsersPage({
     createdAt: user.createdAt,
   }));
 
-  return <UsersView users={dtoUsers} page={page} totalPages={totalPages} />;
+  return (
+    <UsersView
+      users={dtoUsers}
+      page={page}
+      totalPages={totalPages}
+      currentUserId={session?.user.id ?? null}
+    />
+  );
 }

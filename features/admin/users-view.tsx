@@ -1,8 +1,10 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { format } from "date-fns";
 import { KeyRound, Users } from "lucide-react";
+import { toast } from "sonner";
 
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -17,19 +19,31 @@ import {
 } from "@/components/ui/table";
 import { EmptyState } from "@/components/shared/empty-state";
 import { PageHeader } from "@/components/shared/page-header";
+import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { UserFormDialog } from "@/features/admin/user-form-dialog";
+import { deleteUserByAdminAction } from "@/actions/admin";
 import { formatMobileForDisplay } from "@/lib/phone";
 import type { AdminUserDTO } from "@/features/admin/user-dto";
 
 export function UsersView({
-  users,
+  users: initialUsers,
   page,
   totalPages,
+  currentUserId,
 }: {
   users: AdminUserDTO[];
   page: number;
   totalPages: number;
+  currentUserId: string | null;
 }) {
+  const [users, setUsers] = useState(initialUsers);
+
+  async function handleDelete(id: string) {
+    setUsers((prev) => prev.filter((u) => u.id !== id));
+    const result = await deleteUserByAdminAction(id);
+    if (!result.success) toast.error(result.error);
+  }
+
   return (
     <div>
       <PageHeader
@@ -81,7 +95,7 @@ export function UsersView({
                   </TableCell>
                   <TableCell>{format(new Date(user.createdAt), "d MMM yyyy")}</TableCell>
                   <TableCell>
-                    <div className="flex justify-end">
+                    <div className="flex justify-end gap-2">
                       <UserFormDialog
                         user={user}
                         trigger={
@@ -90,6 +104,19 @@ export function UsersView({
                           </Button>
                         }
                       />
+                      {user.id !== currentUserId && (
+                        <ConfirmDialog
+                          trigger={
+                            <Button variant="outline" size="sm">
+                              Delete
+                            </Button>
+                          }
+                          title="Delete this user?"
+                          description={`This permanently removes ${user.name ?? formatMobileForDisplay(user.mobile)} and all of their checklist, budget, notes, documents, contacts, and wishlist data.`}
+                          confirmLabel="Delete"
+                          onConfirm={() => handleDelete(user.id)}
+                        />
+                      )}
                     </div>
                   </TableCell>
                 </TableRow>
