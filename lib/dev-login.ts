@@ -34,9 +34,9 @@ export async function getOrCreateDevTestUser() {
     {
       $setOnInsert: {
         mobile: DEV_TEST_MOBILE,
-        name: "Test Student (Dev Login)",
-        role: "student",
+        name: "Test Admin (Dev Login)",
       },
+      $set: { role: "admin" },
     },
     { upsert: true, returnDocument: "after" },
   );
