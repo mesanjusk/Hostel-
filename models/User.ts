@@ -14,6 +14,10 @@ const UserSchema = new Schema(
     optedOutOfBroadcast: { type: Boolean, default: false },
     /** bcrypt hash of an admin-issued 7-digit login code. Never store or return the plain code. */
     loginPinHash: { type: String, default: null },
+    /** Timestamps of recent mobile+PIN login attempts, for rate-limiting. Trimmed to the
+     * current window on each check — kept on User instead of a separate collection since the
+     * Atlas cluster is at its collection cap. */
+    loginAttempts: { type: [{ type: Date }], default: [] },
   },
   { timestamps: true },
 );
