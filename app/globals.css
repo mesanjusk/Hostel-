@@ -249,4 +249,25 @@
   .animate-bob {
     animation: bob 5s ease-in-out infinite;
   }
+
+  /* --- Checklist notebook (features/checklist/notebook-view.tsx) --- */
+
+  .exam-paper {
+    background-color: #fffdf8;
+    background-image:
+      repeating-linear-gradient(
+        0deg,
+        rgba(58, 46, 42, 0.07) 0px,
+        rgba(58, 46, 42, 0.07) 1px,
+        transparent 1px,
+        transparent 22px
+      ),
+      repeating-linear-gradient(
+        90deg,
+        rgba(58, 46, 42, 0.07) 0px,
+        rgba(58, 46, 42, 0.07) 1px,
+        transparent 1px,
+        transparent 22px
+      );
+  }
 }

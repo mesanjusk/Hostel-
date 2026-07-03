@@ -1,9 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { Check, CheckCheck, ClipboardCheck, Copy, Trash2, X } from "lucide-react";
+import { BookOpen, Check, CheckCheck, ClipboardCheck, Copy, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { Card } from "@/components/ui/card";
@@ -84,6 +85,18 @@ export function ChecklistOverview({
 
   return (
     <div>
+      {!bulkEditMode && (
+        <div className="mb-4 flex justify-end">
+          <Link
+            href="/checklist"
+            className="text-muted-foreground hover:text-foreground flex items-center gap-1.5 text-sm font-medium"
+          >
+            <BookOpen className="size-4" />
+            Notebook view
+          </Link>
+        </div>
+      )}
+
       {bulkEditMode && (
         <div className="bg-muted mb-4 flex items-center justify-between gap-3 rounded-xl px-4 py-2.5">
           <span className="text-sm font-medium">

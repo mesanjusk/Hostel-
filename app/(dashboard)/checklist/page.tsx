@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth";
 import { getAllItemsByCategory, getOverallProgress } from "@/services/checklistService";
 import { toPlain } from "@/lib/serialize";
 import { ChecklistOverview } from "@/features/checklist/checklist-overview";
+import { NotebookView } from "@/features/checklist/notebook-view";
 import type { ChecklistItemDTO } from "@/features/checklist/checklist-item-dto";
 
 export const metadata: Metadata = { title: "Packing Checklist — Pack with Me" };
@@ -11,9 +12,9 @@ export const metadata: Metadata = { title: "Packing Checklist — Pack with Me" 
 export default async function ChecklistPage({
   searchParams,
 }: {
-  searchParams: Promise<{ bulkEdit?: string }>;
+  searchParams: Promise<{ bulkEdit?: string; view?: string }>;
 }) {
-  const { bulkEdit } = await searchParams;
+  const { bulkEdit, view } = await searchParams;
   const session = await auth();
   const [grouped, overall] = await Promise.all([
     getAllItemsByCategory(session!.user.id),
@@ -45,5 +46,11 @@ export default async function ChecklistPage({
     ),
   }));
 
-  return <ChecklistOverview groups={groups} overall={overall} initialBulkEdit={bulkEdit === "1"} />;
+  const allCategories = groups.map((g) => g.category);
+
+  if (view === "list" || bulkEdit === "1") {
+    return <ChecklistOverview groups={groups} overall={overall} initialBulkEdit={bulkEdit === "1"} />;
+  }
+
+  return <NotebookView groups={groups} overall={overall} allCategories={allCategories} />;
 }
