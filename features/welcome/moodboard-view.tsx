@@ -10,7 +10,7 @@ import {
   Polaroid,
   ScribbleArrow,
   ScribbleCircle,
-  Sticker,
+  StickerField,
   StickyNote,
 } from "@/features/welcome/moodboard-pieces";
 
@@ -55,18 +55,7 @@ export function MoodboardView() {
       <section className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-5 py-24 text-center">
         <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_25%_20%,#ffd6e8_0%,transparent_45%),radial-gradient(circle_at_75%_15%,#cfeaff_0%,transparent_45%),radial-gradient(circle_at_50%_85%,#e3d9ff_0%,transparent_50%)]" />
 
-        <Sticker className="top-[12%] left-[8%] text-4xl lg:text-5xl" bobDelay={0}>
-          📷
-        </Sticker>
-        <Sticker className="top-[20%] right-[10%] text-4xl lg:text-5xl" bobDelay={0.6}>
-          🎀
-        </Sticker>
-        <Sticker className="bottom-[24%] left-[12%] text-3xl lg:text-4xl" bobDelay={1.1}>
-          🧿
-        </Sticker>
-        <Sticker className="right-[14%] bottom-[18%] text-4xl lg:text-5xl" bobDelay={1.6}>
-          🍒
-        </Sticker>
+        <StickerField emojis={["📷", "🎀", "🧿", "🍒", "🎧"]} seed={1} />
 
         <Pasted rotate={-3} className="tape max-w-lg bg-white/90 px-8 py-10 shadow-[6px_10px_24px_rgba(58,46,42,0.18)] lg:max-w-2xl lg:px-12 lg:py-14">
           <p className="text-sm font-semibold tracking-[0.3em] text-[#c96b9a] uppercase lg:text-base">
@@ -95,12 +84,7 @@ export function MoodboardView() {
       {/* 2. MENTAL PREP */}
       <section id="mental-prep" className="relative px-5 py-24">
         <SectionTitle emoji="💭">Mental Prep</SectionTitle>
-        <Sticker className="top-6 left-[6%] text-4xl sm:left-[15%] lg:text-5xl" bobDelay={0.3}>
-          😅
-        </Sticker>
-        <Sticker className="top-10 right-[6%] text-4xl sm:right-[15%] lg:text-5xl" bobDelay={0.9}>
-          🩷
-        </Sticker>
+        <StickerField emojis={["😅", "🩷", "🌸"]} seed={2} />
         <div className="mx-auto flex max-w-4xl flex-wrap items-start justify-center gap-8">
           <StickyNote color="yellow" rotate={-6} delay={0}>
             <NoteHeadline>First week = chaos.</NoteHeadline>
@@ -165,12 +149,7 @@ export function MoodboardView() {
             <p className="mt-1 text-base font-semibold sm:text-lg lg:text-xl">power bank is life</p>
           </StickyNote>
         </div>
-        <Sticker className="top-8 right-[10%] text-5xl lg:text-6xl" bobDelay={0.4}>
-          🎧
-        </Sticker>
-        <Sticker className="bottom-4 left-[8%] text-4xl lg:text-5xl" bobDelay={1}>
-          🚨
-        </Sticker>
+        <StickerField emojis={["🎧", "🚨", "⚡"]} seed={3} />
         <p className="mt-10 text-center text-2xl font-bold text-[#b5651d] sm:text-3xl lg:text-4xl">
           <Highlight color="#baffc9">don&apos;t leave gadgets unattended</Highlight> — ever.
         </p>
@@ -220,9 +199,7 @@ export function MoodboardView() {
       {/* 7. ROOMMATE VIBES */}
       <section className="relative px-5 py-24">
         <SectionTitle emoji="👯">Roommate Vibes</SectionTitle>
-        <Sticker className="top-4 right-[10%] text-4xl sm:right-[18%] lg:text-5xl" bobDelay={0.5}>
-          🐈‍⬛
-        </Sticker>
+        <StickerField emojis={["🐈‍⬛", "🎀"]} seed={4} />
         <div className="mx-auto flex max-w-3xl flex-col items-start gap-5">
           <Pasted
             rotate={-2}
@@ -274,15 +251,7 @@ export function MoodboardView() {
       {/* 9. FINAL — EMOTIONAL CLOSURE */}
       <section className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-5 py-24 text-center">
         <div className="pointer-events-none absolute inset-0 -z-10 bg-[linear-gradient(180deg,#d9c8ff_0%,#b8ddff_45%,#ffc2dd_100%)]" />
-        <Sticker className="top-[15%] left-[10%] text-4xl lg:text-5xl" bobDelay={0}>
-          💗
-        </Sticker>
-        <Sticker className="top-[22%] right-[12%] text-3xl lg:text-4xl" bobDelay={0.7}>
-          🐰
-        </Sticker>
-        <Sticker className="bottom-[26%] left-[16%] text-3xl lg:text-4xl" bobDelay={1.3}>
-          🌸
-        </Sticker>
+        <StickerField emojis={["💗", "🐰", "🌸", "🧿"]} seed={5} />
         <ScribbleCircle className="top-1/2 left-1/2 h-24 w-40 -translate-x-1/2 -translate-y-1/2 opacity-40" />
 
         <motion.div

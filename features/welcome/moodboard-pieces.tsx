@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 
 import { cn } from "@/lib/utils";
@@ -116,10 +117,14 @@ export function Sticker({
   children,
   className,
   bobDelay = 0,
+  bobRotate = 0,
+  style,
 }: {
   children: React.ReactNode;
   className?: string;
   bobDelay?: number;
+  bobRotate?: number;
+  style?: React.CSSProperties;
 }) {
   return (
     <span
@@ -128,10 +133,101 @@ export function Sticker({
         "animate-bob pointer-events-none absolute flex aspect-square select-none items-center justify-center rounded-full border-[3px] border-white bg-white leading-none shadow-[2px_5px_12px_rgba(58,46,42,0.28)]",
         className,
       )}
-      style={{ animationDelay: `${bobDelay}s`, padding: "0.3em" }}
+      style={{
+        animationDelay: `${bobDelay}s`,
+        padding: "0.3em",
+        ["--bob-rotate" as string]: `${bobRotate}deg`,
+        ...style,
+      }}
     >
       {children}
     </span>
+  );
+}
+
+function seededRandom(seed: number) {
+  let value = seed;
+  return () => {
+    value = (value * 9301 + 49297) % 233280;
+    return value / 233280;
+  };
+}
+
+interface ScatterSpec {
+  emoji: string;
+  top: number;
+  left: number;
+  size: string;
+  bobDelay: number;
+  bobRotate: number;
+}
+
+/** Four edge pockets — keeps stickers off the centered content column while still feeling
+ * scattered. Each is [topRange, leftRange] as percentages of the section box. */
+const CORNER_POCKETS: [number, number, number, number][] = [
+  [4, 20, 2, 20], // top-left
+  [4, 20, 80, 96], // top-right
+  [76, 94, 2, 20], // bottom-left
+  [76, 94, 80, 96], // bottom-right
+];
+
+/**
+ * Scatters a set of emoji stickers at pseudo-random positions in the section's four corner
+ * pockets (never the centered content column), each with its own size/rotation/bob timing —
+ * reshuffled (seeded by section index) on every mount so the board doesn't look identical on
+ * repeat visits. Renders nothing until mounted to avoid an SSR/client markup mismatch, since
+ * positions are only computed in the browser.
+ */
+export function StickerField({
+  emojis,
+  seed,
+  pockets = CORNER_POCKETS,
+}: {
+  emojis: string[];
+  seed: number;
+  pockets?: [number, number, number, number][];
+}) {
+  const [specs, setSpecs] = useState<ScatterSpec[] | null>(null);
+
+  useEffect(() => {
+    const rand = seededRandom(seed * 7919 + Date.now());
+    const sizes = ["text-3xl", "text-4xl", "text-5xl"];
+    const order = pockets
+      .map((pocket, i) => ({ pocket, sort: rand(), i }))
+      .sort((a, b) => a.sort - b.sort);
+
+    setSpecs(
+      emojis.map((emoji, i) => {
+        const [topMin, topMax, leftMin, leftMax] = order[i % order.length].pocket;
+        return {
+          emoji,
+          top: topMin + rand() * (topMax - topMin),
+          left: leftMin + rand() * (leftMax - leftMin),
+          size: sizes[Math.floor(rand() * sizes.length)],
+          bobDelay: rand() * 2,
+          bobRotate: rand() * 14 - 7,
+        };
+      }),
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  if (!specs) return null;
+
+  return (
+    <>
+      {specs.map((s, i) => (
+        <Sticker
+          key={i}
+          className={s.size}
+          bobDelay={s.bobDelay}
+          bobRotate={s.bobRotate}
+          style={{ top: `${s.top}%`, left: `${s.left}%` }}
+        >
+          {s.emoji}
+        </Sticker>
+      ))}
+    </>
   );
 }
 
