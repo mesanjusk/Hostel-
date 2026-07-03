@@ -317,14 +317,23 @@ export function MoodboardView() {
             &ldquo;Hostel life isn&apos;t comfort. It&apos;s chaos, independence, and memories
             you&apos;ll never forget.&rdquo;
           </p>
-          <Link
-            href="/login"
-            className="mt-8 inline-block rotate-1 rounded-full bg-[#3a2e2a] px-8 py-3.5 text-sm font-bold text-white shadow-[4px_5px_0_rgba(0,0,0,0.15)] transition-transform hover:-translate-y-0.5 hover:rotate-0 lg:px-10 lg:py-4 lg:text-base"
-          >
-            Start Your Hostel Era ✨
-          </Link>
         </motion.div>
       </section>
+
+      {/* Persistent FAB — always reachable while scrolling the board */}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.8 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ delay: 0.6, type: "spring", stiffness: 260, damping: 20 }}
+        className="fixed right-5 bottom-5 z-50 sm:right-8 sm:bottom-8"
+      >
+        <Link
+          href="/login"
+          className="inline-flex items-center gap-1.5 rounded-full bg-[#3a2e2a] px-6 py-3.5 text-sm font-bold text-white shadow-[4px_6px_16px_rgba(0,0,0,0.3)] transition-transform hover:-translate-y-0.5 active:scale-95 sm:px-7 sm:py-4 sm:text-base"
+        >
+          Start Your Hostel Era ✨
+        </Link>
+      </motion.div>
     </div>
   );
 }
