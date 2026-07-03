@@ -150,7 +150,7 @@ export function NotebookPage({
   const completed = items.filter((i) => i.completed);
 
   return (
-    <div className="exam-paper relative flex h-full min-h-[70vh] flex-col overflow-hidden rounded-[20px] border border-[#e9ddc9] p-5 shadow-[0_2px_14px_rgba(58,46,42,0.14)] sm:min-h-[560px] sm:p-8">
+    <div className="exam-paper relative flex h-full min-h-[70vh] flex-col overflow-hidden rounded-[20px] border border-[#e9ddc9] p-5 shadow-[0_2px_14px_rgba(58,46,42,0.14)] sm:min-h-[560px] sm:p-8 lg:min-h-[calc(100dvh-230px)] lg:p-10">
       <motion.div
         variants={cornerPeelVariants}
         className="pointer-events-none absolute right-0 bottom-0 h-20 w-20"
@@ -162,27 +162,27 @@ export function NotebookPage({
       />
 
       <h2
-        className="relative z-10 text-4xl leading-none font-bold text-[#3a2e2a] sm:text-5xl"
+        className="relative z-10 text-4xl leading-none font-bold text-[#3a2e2a] sm:text-5xl lg:text-6xl"
         style={{ fontFamily: "var(--font-caveat-notebook)" }}
       >
         {category}
       </h2>
-      <p className="relative z-10 mt-1.5 text-sm text-[#8a7a6a]">
+      <p className="relative z-10 mt-1.5 text-sm text-[#8a7a6a] lg:text-base">
         {items.length === 0 ? "nothing added yet" : `${completed.length}/${items.length} packed`}
       </p>
 
       <LayoutGroup>
-        <div className="relative z-10 mt-4 flex-1 space-y-0.5 overflow-y-auto">
+        <div className="relative z-10 mt-4 flex-1 space-y-0.5 overflow-y-auto lg:mt-8 lg:space-y-1">
           {items.length === 0 ? (
             <p
-              className="mt-10 text-center text-xl text-[#8a7a6a]"
+              className="mt-10 text-center text-xl text-[#8a7a6a] lg:text-2xl"
               style={{ fontFamily: "var(--font-caveat-notebook)" }}
             >
               add your first item with the + button ✨
             </p>
           ) : pending.length === 0 ? (
             <p
-              className="mt-10 text-center text-xl text-[#8a7a6a]"
+              className="mt-10 text-center text-xl text-[#8a7a6a] lg:text-2xl"
               style={{ fontFamily: "var(--font-caveat-notebook)" }}
             >
               all packed for {category.toLowerCase()}! 🎉
@@ -198,11 +198,11 @@ export function NotebookPage({
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
                   whileHover={{ x: 2 }}
-                  className="group flex items-center gap-3 border-b border-dashed border-[#e9ddc9]/80 py-2"
+                  className="group flex items-center gap-3 border-b border-dashed border-[#e9ddc9]/80 py-2 lg:gap-4 lg:py-3"
                 >
                   <HandDrawnCheckbox checked={false} onClick={() => toggle(item)} />
                   <span
-                    className="min-w-0 flex-1 truncate text-lg text-[#3a2e2a] sm:text-xl"
+                    className="min-w-0 flex-1 truncate text-lg text-[#3a2e2a] sm:text-xl lg:text-2xl"
                     style={{ fontFamily: "var(--font-caveat-notebook)" }}
                   >
                     {item.item}

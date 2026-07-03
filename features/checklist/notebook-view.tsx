@@ -32,6 +32,25 @@ function pickSticker(seed: number) {
   return PAGE_STICKERS[i];
 }
 
+/** A single metal binder ring: a beveled conic-gradient torus with a punched-out center
+ * (filled with the page backdrop color, so it reads as an actual hole rather than a flat dot). */
+function MetalRing({ className }: { className?: string }) {
+  return (
+    <span
+      aria-hidden
+      className={cn("relative block shrink-0 rounded-full", className)}
+      style={{
+        background:
+          "conic-gradient(from 210deg, #fafafa, #8f8f96 22%, #4b4b52 48%, #c9c9ce 72%, #fafafa)",
+        boxShadow:
+          "0 2px 3px rgba(58,46,42,0.4), inset 0 1px 1px rgba(255,255,255,0.7), inset 0 -1px 1.5px rgba(0,0,0,0.4)",
+      }}
+    >
+      <span className="bg-background absolute rounded-full" style={{ inset: "27%" }} />
+    </span>
+  );
+}
+
 /** A small decorative sticker pinned to a fixed spot on the notebook's outer chrome (not the
  * paper itself) — half hanging over the backing board, half over the page's rounded corner.
  * Fixed position (never scattered), so it can never drift over the title or item list, no
@@ -52,7 +71,7 @@ function CornerSticker({
       alt={alt}
       draggable={false}
       className={cn(
-        "animate-bob pointer-events-none absolute z-30 size-11 object-contain drop-shadow-[2px_4px_8px_rgba(58,46,42,0.3)] sm:size-14",
+        "animate-bob pointer-events-none absolute z-30 size-11 object-contain drop-shadow-[2px_4px_8px_rgba(58,46,42,0.3)] sm:size-14 lg:size-16",
         className,
       )}
     />
@@ -157,7 +176,7 @@ export function NotebookView({
         </Link>
       </div>
 
-      <div className="relative mx-auto max-w-md">
+      <div className="relative mx-auto w-full max-w-md lg:max-w-4xl xl:max-w-5xl">
         {/* translucent backing board, peeking out behind the page stack */}
         <div
           aria-hidden
@@ -175,13 +194,10 @@ export function NotebookView({
             }}
           />
         ))}
-        {/* spiral / perforation strip along the top edge, like an exam pad's binding */}
-        <div className="pointer-events-none absolute -top-2.5 right-6 left-6 z-20 flex justify-between">
-          {Array.from({ length: 12 }).map((_, i) => (
-            <span
-              key={i}
-              className="size-2.5 rounded-full bg-[#d8c7a9] shadow-[inset_0_1px_2px_rgba(58,46,42,0.35)]"
-            />
+        {/* metal binder rings along the top edge, threaded through punched holes */}
+        <div className="pointer-events-none absolute -top-3.5 right-8 left-8 z-20 flex justify-between sm:-top-4">
+          {Array.from({ length: 18 }).map((_, i) => (
+            <MetalRing key={i} className="size-6 sm:size-7" />
           ))}
         </div>
 
