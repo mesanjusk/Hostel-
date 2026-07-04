@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Caveat } from "next/font/google";
 import { motion, AnimatePresence, type Variants } from "framer-motion";
@@ -138,6 +138,9 @@ export function NotebookView({
   const [groups, setGroups] = useState(initialGroups);
   const [index, setIndex] = useState(0);
   const [direction, setDirection] = useState(1);
+  // Framer's gesture callbacks (onTap) can hand back an event whose `currentTarget` has
+  // already been torn down by the time the callback runs — use a ref for a reliable rect.
+  const pageRef = useRef<HTMLDivElement>(null);
 
   // Re-sync from the server whenever fresh props arrive (e.g. after router.refresh()
   // following an add/edit elsewhere, like the FAB), since this component's own local
@@ -240,6 +243,15 @@ export function NotebookView({
           <AnimatePresence initial={false} custom={direction} mode="popLayout">
             <motion.div
               key={current.category}
+              ref={(node) => {
+                // A callback ref, not a plain object ref: AnimatePresence keeps the
+                // outgoing page mounted (for its exit animation) alongside the incoming
+                // one, and both briefly share this same ref. If we let the outgoing
+                // instance's unmount null it out, that null can land *after* the new
+                // page has already set it, wiping out the ref for the page the user is
+                // now actually looking at. Only ever assign on mount, never clear.
+                if (node) pageRef.current = node;
+              }}
               custom={direction}
               variants={pageVariants}
               initial="enter"
@@ -257,9 +269,17 @@ export function NotebookView({
               // Framer's own tap gesture (not a native onClick) — it only fires when the
               // gesture resolves to a genuine tap, not a drag, so it can't race with the
               // drag-release spring animation the way a plain onClick did (that dual-fire
-              // was leaving the page mid-transition, misaligned with clipped text).
+              // was leaving the page mid-transition, misaligned with clipped text). Uses a
+              // ref (not event.currentTarget, which Framer may hand back already detached)
+              // to reliably read the page's bounding rect.
               onTap={(event) => {
-                const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
+                // Interactive controls (checkbox, edit/delete, add-item, completed tags)
+                // are marked with data-no-flip. stopPropagation doesn't work here — Framer
+                // tracks the gesture independently of normal DOM bubbling — so check where
+                // the tap actually landed instead of trying to stop it from being seen.
+                if ((event.target as HTMLElement)?.closest("[data-no-flip]")) return;
+                const rect = pageRef.current?.getBoundingClientRect();
+                if (!rect) return;
                 const clickX = (event as MouseEvent).clientX - rect.left;
                 goTo(clickX > rect.width / 2 ? index + 1 : index - 1);
               }}

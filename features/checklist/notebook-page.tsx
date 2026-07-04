@@ -49,9 +49,8 @@ function ItemRowMenu({
 }) {
   return (
     <div
+      data-no-flip
       className="flex shrink-0 items-center gap-0.5 opacity-70 transition-opacity group-hover:opacity-100"
-      onClick={(e) => e.stopPropagation()}
-      onPointerDown={(e) => e.stopPropagation()}
     >
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
@@ -226,11 +225,8 @@ export function NotebookPage({
 
           <button
             type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              setAddOpen(true);
-            }}
-            onPointerDown={(e) => e.stopPropagation()}
+            data-no-flip
+            onClick={() => setAddOpen(true)}
             className="mt-2 flex items-center gap-1 text-sm font-semibold text-[#8a7a6a] underline decoration-dashed underline-offset-4 hover:text-[#3a2e2a] lg:text-base"
           >
             <Plus className="size-4" />
@@ -250,11 +246,8 @@ export function NotebookPage({
                   layoutId={`item-${item.id}`}
                   layout
                   type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    toggle(item);
-                  }}
-                  onPointerDown={(e) => e.stopPropagation()}
+                  data-no-flip
+                  onClick={() => toggle(item)}
                   whileTap={{ scale: 0.94 }}
                   className="flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-xs text-[#8a7a6a] shadow-sm"
                 >
