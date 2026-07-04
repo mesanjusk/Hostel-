@@ -10,20 +10,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import {
-  ADMIN_NAV_ITEM,
-  OVERFLOW_NAV_ITEMS,
-  PROFILE_NAV_ITEM,
-  SETTINGS_NAV_ITEM,
-} from "@/lib/nav-items";
+import { ADMIN_NAV_ITEM, OVERFLOW_NAV_ITEMS, SETTINGS_NAV_ITEM } from "@/lib/nav-items";
 
 export function OverflowMenu({ isAdmin }: { isAdmin: boolean }) {
-  const items = [
-    ...OVERFLOW_NAV_ITEMS,
-    PROFILE_NAV_ITEM,
-    SETTINGS_NAV_ITEM,
-    ...(isAdmin ? [ADMIN_NAV_ITEM] : []),
-  ];
+  // Profile is no longer listed here — it's already reachable from the bottom tab bar.
+  const items = [...OVERFLOW_NAV_ITEMS, SETTINGS_NAV_ITEM, ...(isAdmin ? [ADMIN_NAV_ITEM] : [])];
 
   return (
     <DropdownMenu>

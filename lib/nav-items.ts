@@ -54,12 +54,12 @@ export const SETTINGS_NAV_ITEM: NavItem = {
   icon: Settings,
 };
 
-/** Bottom tab bar: Checklist, Documents, [FAB in the middle], Notes, Shopping. */
+/** Bottom tab bar: Dashboard, Checklist, [FAB in the middle], Hostel Guide, Profile. */
 export const BOTTOM_NAV_ITEMS: NavItem[] = [
+  PRIMARY_NAV_ITEMS.find((i) => i.href === "/dashboard")!,
   PRIMARY_NAV_ITEMS.find((i) => i.href === "/checklist")!,
-  PRIMARY_NAV_ITEMS.find((i) => i.href === "/documents")!,
-  PRIMARY_NAV_ITEMS.find((i) => i.href === "/notes")!,
-  PRIMARY_NAV_ITEMS.find((i) => i.href === "/shopping")!,
+  PRIMARY_NAV_ITEMS.find((i) => i.href === "/guide/survival-guide")!,
+  PROFILE_NAV_ITEM,
 ];
 
 /** Everything not already reachable from the bottom tab bar — surfaced in the top-right overflow menu. */
