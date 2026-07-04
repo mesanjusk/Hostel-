@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence, LayoutGroup } from "framer-motion";
-import { Check, Copy, ListChecks, Pencil, Trash2 } from "lucide-react";
+import { Check, Copy, ListChecks, Pencil, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -47,14 +48,17 @@ function ItemRowMenu({
   onDelete: () => void;
 }) {
   return (
-    <div className="flex shrink-0 items-center opacity-70 transition-opacity group-hover:opacity-100">
+    <div
+      className="flex shrink-0 items-center gap-0.5 opacity-70 transition-opacity group-hover:opacity-100"
+      onClick={(e) => e.stopPropagation()}
+    >
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
             variant="ghost"
             size="icon"
             className="size-7 text-[#8a7a6a] hover:text-[#3a2e2a]"
-            aria-label="Item options"
+            aria-label="Edit item"
           >
             <Pencil className="size-3.5" />
           </Button>
@@ -79,22 +83,24 @@ function ItemRowMenu({
             <Copy className="size-4" />
             Duplicate
           </DropdownMenuItem>
-          <ConfirmDialog
-            trigger={
-              <DropdownMenuItem
-                onSelect={(e) => e.preventDefault()}
-                className="text-destructive focus:text-destructive"
-              >
-                <Trash2 className="size-4" />
-                Delete
-              </DropdownMenuItem>
-            }
-            title="Delete this item?"
-            description="This can't be undone."
-            onConfirm={onDelete}
-          />
         </DropdownMenuContent>
       </DropdownMenu>
+
+      <ConfirmDialog
+        trigger={
+          <Button
+            variant="ghost"
+            size="icon"
+            className="text-destructive hover:text-destructive size-7"
+            aria-label="Delete item"
+          >
+            <Trash2 className="size-3.5" />
+          </Button>
+        }
+        title="Delete this item?"
+        description="This can't be undone."
+        onConfirm={onDelete}
+      />
     </div>
   );
 }
@@ -102,37 +108,37 @@ function ItemRowMenu({
 export function NotebookPage({
   category,
   allCategories,
-  items: initialItems,
+  items,
   onItemsChange,
+  onNavigate,
 }: {
   category: string;
   allCategories: string[];
   items: ChecklistItemDTO[];
   onItemsChange: (updater: (prev: ChecklistItemDTO[]) => ChecklistItemDTO[]) => void;
+  /** Tapping the page's background (anywhere not on an interactive control) turns the page:
+   * left half = previous, right half = next. */
+  onNavigate: (direction: 1 | -1) => void;
 }) {
-  const [items, setItems] = useState(initialItems);
+  const router = useRouter();
   const [renameItem, setRenameItem] = useState<ChecklistItemDTO | null>(null);
-
-  function mutate(updater: (prev: ChecklistItemDTO[]) => ChecklistItemDTO[]) {
-    setItems(updater);
-    onItemsChange(updater);
-  }
+  const [addOpen, setAddOpen] = useState(false);
 
   async function toggle(item: ChecklistItemDTO) {
-    mutate((prev) =>
+    onItemsChange((prev) =>
       prev.map((i) => (i.id === item.id ? { ...i, completed: !i.completed } : i)),
     );
     const result = await updateChecklistItemAction({ id: item.id, completed: !item.completed });
     if (!result.success) {
       toast.error(result.error);
-      mutate((prev) =>
+      onItemsChange((prev) =>
         prev.map((i) => (i.id === item.id ? { ...i, completed: item.completed } : i)),
       );
     }
   }
 
   async function handleDelete(id: string) {
-    mutate((prev) => prev.filter((i) => i.id !== id));
+    onItemsChange((prev) => prev.filter((i) => i.id !== id));
     const result = await deleteChecklistItemAction(id);
     if (!result.success) toast.error(result.error);
   }
@@ -144,13 +150,23 @@ export function NotebookPage({
       return;
     }
     toast.success("Item duplicated");
+    router.refresh();
+  }
+
+  function handlePageClick(e: React.MouseEvent<HTMLDivElement>) {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const clickedRight = e.clientX - rect.left > rect.width / 2;
+    onNavigate(clickedRight ? 1 : -1);
   }
 
   const pending = items.filter((i) => !i.completed);
   const completed = items.filter((i) => i.completed);
 
   return (
-    <div className="exam-paper relative flex h-full min-h-[70vh] flex-col overflow-hidden rounded-[20px] border border-[#e9ddc9] p-5 shadow-[0_2px_14px_rgba(58,46,42,0.14)] sm:min-h-[560px] sm:p-8 lg:min-h-[calc(100dvh-230px)] lg:p-10">
+    <div
+      onClick={handlePageClick}
+      className="exam-paper relative flex h-full min-h-[70vh] flex-col overflow-hidden rounded-[20px] border border-[#e9ddc9] p-5 shadow-[0_2px_14px_rgba(58,46,42,0.14)] sm:min-h-[560px] sm:p-8 lg:min-h-[calc(100dvh-230px)] lg:p-10"
+    >
       <motion.div
         variants={cornerPeelVariants}
         className="pointer-events-none absolute right-0 bottom-0 h-20 w-20"
@@ -178,7 +194,7 @@ export function NotebookPage({
               className="mt-10 text-center text-xl text-[#8a7a6a] lg:text-2xl"
               style={{ fontFamily: "var(--font-caveat-notebook)" }}
             >
-              add your first item with the + button ✨
+              add your first item below ✨
             </p>
           ) : pending.length === 0 ? (
             <p
@@ -219,6 +235,18 @@ export function NotebookPage({
               ))}
             </AnimatePresence>
           )}
+
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setAddOpen(true);
+            }}
+            className="mt-2 flex items-center gap-1 text-sm font-semibold text-[#8a7a6a] underline decoration-dashed underline-offset-4 hover:text-[#3a2e2a] lg:text-base"
+          >
+            <Plus className="size-4" />
+            Add item
+          </button>
         </div>
 
         {completed.length > 0 && (
@@ -233,7 +261,10 @@ export function NotebookPage({
                   layoutId={`item-${item.id}`}
                   layout
                   type="button"
-                  onClick={() => toggle(item)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggle(item);
+                  }}
                   whileTap={{ scale: 0.94 }}
                   className="flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-xs text-[#8a7a6a] shadow-sm"
                 >
@@ -254,6 +285,16 @@ export function NotebookPage({
           onOpenChange={(open) => !open && setRenameItem(null)}
         />
       )}
+
+      <ItemFormDialog
+        categories={allCategories}
+        category={category}
+        open={addOpen}
+        onOpenChange={(open) => {
+          setAddOpen(open);
+          if (!open) router.refresh();
+        }}
+      />
     </div>
   );
 }

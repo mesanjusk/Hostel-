@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Caveat } from "next/font/google";
 import { motion, AnimatePresence, type Variants } from "framer-motion";
@@ -139,6 +139,13 @@ export function NotebookView({
   const [index, setIndex] = useState(0);
   const [direction, setDirection] = useState(1);
 
+  // Re-sync from the server whenever fresh props arrive (e.g. after router.refresh()
+  // following an add/edit elsewhere, like the FAB), since this component's own local
+  // `groups` state would otherwise keep showing whatever it had at mount.
+  useEffect(() => {
+    setGroups(initialGroups);
+  }, [initialGroups]);
+
   const total = groups.length;
   const current = groups[index];
   const overallPercent =
@@ -253,6 +260,7 @@ export function NotebookView({
                 allCategories={allCategories}
                 items={current.items}
                 onItemsChange={(u) => updateCategoryItems(current.category, u)}
+                onNavigate={(dir) => goTo(index + dir)}
               />
             </motion.div>
           </AnimatePresence>

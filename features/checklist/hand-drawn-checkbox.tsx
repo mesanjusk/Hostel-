@@ -16,7 +16,10 @@ export function HandDrawnCheckbox({
   return (
     <motion.button
       type="button"
-      onClick={onClick}
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick();
+      }}
       aria-pressed={checked}
       aria-label={label ?? (checked ? "Mark as not packed" : "Mark as packed")}
       whileTap={{ scale: 0.82 }}
