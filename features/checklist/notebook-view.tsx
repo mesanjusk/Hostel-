@@ -160,10 +160,11 @@ export function NotebookView({
     );
   }
 
+  /** Categories loop: past the last page it wraps to the first, and vice versa. */
   function goTo(next: number) {
-    if (next < 0 || next >= total || !groups[next]) return;
-    setDirection(next > index ? 1 : -1);
-    setIndex(next);
+    if (total === 0) return;
+    setDirection(next > index ? 1 : next < index ? -1 : direction);
+    setIndex(((next % total) + total) % total);
   }
 
   if (total === 0 || !current) {
@@ -253,6 +254,15 @@ export function NotebookView({
                 if (power < -SWIPE_THRESHOLD || info.offset.x < -100) goTo(index + 1);
                 else if (power > SWIPE_THRESHOLD || info.offset.x > 100) goTo(index - 1);
               }}
+              // Framer's own tap gesture (not a native onClick) — it only fires when the
+              // gesture resolves to a genuine tap, not a drag, so it can't race with the
+              // drag-release spring animation the way a plain onClick did (that dual-fire
+              // was leaving the page mid-transition, misaligned with clipped text).
+              onTap={(event) => {
+                const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
+                const clickX = (event as MouseEvent).clientX - rect.left;
+                goTo(clickX > rect.width / 2 ? index + 1 : index - 1);
+              }}
               whileHover={{ y: -2 }}
             >
               <NotebookPage
@@ -260,7 +270,6 @@ export function NotebookView({
                 allCategories={allCategories}
                 items={current.items}
                 onItemsChange={(u) => updateCategoryItems(current.category, u)}
-                onNavigate={(dir) => goTo(index + dir)}
               />
             </motion.div>
           </AnimatePresence>
@@ -271,9 +280,8 @@ export function NotebookView({
         <button
           type="button"
           onClick={() => goTo(index - 1)}
-          disabled={index === 0}
           aria-label="Previous page"
-          className="flex size-10 items-center justify-center rounded-full bg-white text-[#3a2e2a] shadow-sm transition-transform enabled:hover:-translate-y-0.5 disabled:opacity-30"
+          className="flex size-10 items-center justify-center rounded-full bg-white text-[#3a2e2a] shadow-sm transition-transform hover:-translate-y-0.5"
         >
           <ChevronLeft className="size-5" />
         </button>
@@ -283,9 +291,8 @@ export function NotebookView({
         <button
           type="button"
           onClick={() => goTo(index + 1)}
-          disabled={index === total - 1}
           aria-label="Next page"
-          className="flex size-10 items-center justify-center rounded-full bg-white text-[#3a2e2a] shadow-sm transition-transform enabled:hover:-translate-y-0.5 disabled:opacity-30"
+          className="flex size-10 items-center justify-center rounded-full bg-white text-[#3a2e2a] shadow-sm transition-transform hover:-translate-y-0.5"
         >
           <ChevronRight className="size-5" />
         </button>

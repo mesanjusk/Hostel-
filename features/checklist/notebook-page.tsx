@@ -51,6 +51,7 @@ function ItemRowMenu({
     <div
       className="flex shrink-0 items-center gap-0.5 opacity-70 transition-opacity group-hover:opacity-100"
       onClick={(e) => e.stopPropagation()}
+      onPointerDown={(e) => e.stopPropagation()}
     >
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
@@ -110,15 +111,11 @@ export function NotebookPage({
   allCategories,
   items,
   onItemsChange,
-  onNavigate,
 }: {
   category: string;
   allCategories: string[];
   items: ChecklistItemDTO[];
   onItemsChange: (updater: (prev: ChecklistItemDTO[]) => ChecklistItemDTO[]) => void;
-  /** Tapping the page's background (anywhere not on an interactive control) turns the page:
-   * left half = previous, right half = next. */
-  onNavigate: (direction: 1 | -1) => void;
 }) {
   const router = useRouter();
   const [renameItem, setRenameItem] = useState<ChecklistItemDTO | null>(null);
@@ -153,20 +150,11 @@ export function NotebookPage({
     router.refresh();
   }
 
-  function handlePageClick(e: React.MouseEvent<HTMLDivElement>) {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const clickedRight = e.clientX - rect.left > rect.width / 2;
-    onNavigate(clickedRight ? 1 : -1);
-  }
-
   const pending = items.filter((i) => !i.completed);
   const completed = items.filter((i) => i.completed);
 
   return (
-    <div
-      onClick={handlePageClick}
-      className="exam-paper relative flex h-full min-h-[70vh] flex-col overflow-hidden rounded-[20px] border border-[#e9ddc9] p-5 shadow-[0_2px_14px_rgba(58,46,42,0.14)] sm:min-h-[560px] sm:p-8 lg:min-h-[calc(100dvh-230px)] lg:p-10"
-    >
+    <div className="exam-paper relative flex h-full min-h-[70vh] flex-col overflow-hidden rounded-[20px] border border-[#e9ddc9] p-5 shadow-[0_2px_14px_rgba(58,46,42,0.14)] sm:min-h-[560px] sm:p-8 lg:min-h-[calc(100dvh-230px)] lg:p-10">
       <motion.div
         variants={cornerPeelVariants}
         className="pointer-events-none absolute right-0 bottom-0 h-20 w-20"
@@ -242,6 +230,7 @@ export function NotebookPage({
               e.stopPropagation();
               setAddOpen(true);
             }}
+            onPointerDown={(e) => e.stopPropagation()}
             className="mt-2 flex items-center gap-1 text-sm font-semibold text-[#8a7a6a] underline decoration-dashed underline-offset-4 hover:text-[#3a2e2a] lg:text-base"
           >
             <Plus className="size-4" />
@@ -265,6 +254,7 @@ export function NotebookPage({
                     e.stopPropagation();
                     toggle(item);
                   }}
+                  onPointerDown={(e) => e.stopPropagation()}
                   whileTap={{ scale: 0.94 }}
                   className="flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-xs text-[#8a7a6a] shadow-sm"
                 >

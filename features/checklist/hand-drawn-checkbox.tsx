@@ -20,6 +20,7 @@ export function HandDrawnCheckbox({
         e.stopPropagation();
         onClick();
       }}
+      onPointerDown={(e) => e.stopPropagation()}
       aria-pressed={checked}
       aria-label={label ?? (checked ? "Mark as not packed" : "Mark as packed")}
       whileTap={{ scale: 0.82 }}
