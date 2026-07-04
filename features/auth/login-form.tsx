@@ -1,11 +1,10 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
-import Script from "next/script";
 import { Phone, ArrowLeft, Loader2, CheckCircle2, KeyRound, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 
@@ -23,6 +22,13 @@ type Method = "otp" | "code";
 const MSG91_WIDGET_ID = process.env.NEXT_PUBLIC_MSG91_WIDGET_ID ?? "";
 const MSG91_TOKEN_AUTH = process.env.NEXT_PUBLIC_MSG91_TOKEN_AUTH ?? "";
 
+// MSG91 serves the widget script from two mirrors; fall back to the second if the
+// first is unreachable (matches the loader snippet from the MSG91 widget dashboard).
+const MSG91_SCRIPT_URLS = [
+  "https://verify.msg91.com/otp-provider.js",
+  "https://verify.phone91.com/otp-provider.js",
+];
+
 export function LoginForm() {
   const router = useRouter();
   const [method, setMethod] = useState<Method>("otp");
@@ -34,15 +40,45 @@ export function LoginForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const widgetReady = useRef(false);
 
-  function initWidget() {
-    if (widgetReady.current || !window.initSendOTP) return;
-    window.initSendOTP({
-      widgetId: MSG91_WIDGET_ID,
-      tokenAuth: MSG91_TOKEN_AUTH,
-      exposeMethods: true,
-    });
-    widgetReady.current = true;
-  }
+  useEffect(() => {
+    function initWidget() {
+      if (widgetReady.current || !window.initSendOTP) return;
+      window.initSendOTP({
+        widgetId: MSG91_WIDGET_ID,
+        tokenAuth: MSG91_TOKEN_AUTH,
+        exposeMethods: true,
+      });
+      widgetReady.current = true;
+    }
+
+    if (window.initSendOTP) {
+      initWidget();
+      return;
+    }
+
+    let cancelled = false;
+    let urlIndex = 0;
+
+    function loadNext() {
+      const script = document.createElement("script");
+      script.src = MSG91_SCRIPT_URLS[urlIndex];
+      script.async = true;
+      script.onload = () => {
+        if (!cancelled) initWidget();
+      };
+      script.onerror = () => {
+        urlIndex += 1;
+        if (!cancelled && urlIndex < MSG91_SCRIPT_URLS.length) loadNext();
+      };
+      document.head.appendChild(script);
+    }
+
+    loadNext();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   async function handleMobileSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -133,12 +169,6 @@ export function LoginForm() {
 
   return (
     <div className="glass relative w-full max-w-md overflow-hidden rounded-3xl p-8 shadow-2xl">
-      <Script
-        src="https://verify.msg91.com/otp-provider.js"
-        strategy="afterInteractive"
-        onReady={initWidget}
-      />
-
       <div className="mb-8 flex flex-col items-center gap-3 text-center">
         <Image src="/logo.png" alt="" width={64} height={64} priority />
         <h1 className="text-2xl">
