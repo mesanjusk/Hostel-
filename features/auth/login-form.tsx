@@ -29,6 +29,11 @@ const MSG91_SCRIPT_URLS = [
   "https://verify.phone91.com/otp-provider.js",
 ];
 
+// DOM id the widget renders its captcha step into, if the widget has one enabled
+// (Widget Settings in MSG91). Without a matching element present, a widget with
+// captcha enabled can hang indefinitely instead of exposing sendOtp/verifyOtp.
+const MSG91_CAPTCHA_ID = "msg91-captcha-box";
+
 type WidgetStatus = "loading" | "ready" | "error";
 
 const WIDGET_READY_TIMEOUT_MS = 12000;
@@ -95,6 +100,7 @@ export function LoginForm() {
         widgetId: MSG91_WIDGET_ID,
         tokenAuth: MSG91_TOKEN_AUTH,
         exposeMethods: true,
+        captchaRenderId: MSG91_CAPTCHA_ID,
         failure: (err) => {
           if (!cancelled) {
             failWidget(`MSG91 widget error: ${err?.message || "unknown error"}`);
@@ -164,6 +170,13 @@ export function LoginForm() {
               " You can use a login code instead."
           : "OTP service is still loading. Please wait a moment and try again.",
       );
+      return;
+    }
+
+    // Present only when the widget's captcha step is enabled; absent (undefined) means
+    // there's no captcha to solve, so treat that as verified.
+    if (window.isCaptchaVerified && !window.isCaptchaVerified()) {
+      setError("Please complete the verification above.");
       return;
     }
 
@@ -305,6 +318,9 @@ export function LoginForm() {
                   </p>
                 )}
               </div>
+              {/* MSG91 renders its captcha step here if one is enabled on the widget;
+                  stays empty (and harmless) when captcha is disabled. */}
+              <div id={MSG91_CAPTCHA_ID} className="empty:hidden" />
               <Button
                 type="submit"
                 size="lg"

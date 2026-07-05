@@ -3,6 +3,8 @@ export interface Msg91WidgetConfig {
   tokenAuth: string;
   identifier?: string;
   exposeMethods?: boolean;
+  /** DOM id of a container element to render the widget's captcha step into, if enabled. */
+  captchaRenderId?: string;
   success?: (data: { message: string }) => void;
   failure?: (error: { message: string }) => void;
 }
@@ -31,5 +33,7 @@ declare global {
       onFailure?: Msg91WidgetCallback,
       reqId?: string,
     ) => void;
+    /** Present only when the widget's captcha step is enabled; absent otherwise. */
+    isCaptchaVerified?: () => boolean;
   }
 }
