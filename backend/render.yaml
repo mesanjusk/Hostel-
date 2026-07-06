@@ -15,3 +15,13 @@ services:
         sync: false
       - key: NODE_ENV
         value: production
+      - key: WHATSAPP_ACCESS_TOKEN
+        sync: false
+      - key: WHATSAPP_PHONE_NUMBER_ID
+        sync: false
+      - key: WHATSAPP_API_VERSION
+        value: v18.0
+      - key: WHATSAPP_OTP_TEMPLATE_NAME
+        value: instify_otp
+      - key: WHATSAPP_OTP_TEMPLATE_LANGUAGE
+        value: en_US

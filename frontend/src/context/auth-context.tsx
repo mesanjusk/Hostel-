@@ -10,6 +10,12 @@ interface OnboardingInput {
   roomNumber?: string;
 }
 
+interface OtpRequestResult {
+  sent: boolean;
+  error?: string | null;
+  devOtp?: string;
+}
+
 interface AuthContextValue {
   user: UserDTO | null;
   loading: boolean;
@@ -18,6 +24,10 @@ interface AuthContextValue {
   completeOnboarding: (input: OnboardingInput) => Promise<void>;
   refreshUser: () => Promise<void>;
   setUser: (user: UserDTO) => void;
+  requestRegisterOtp: (mobile: string) => Promise<OtpRequestResult>;
+  registerWithOtp: (mobile: string, code: string, pin: string) => Promise<void>;
+  requestResetOtp: (mobile: string) => Promise<OtpRequestResult>;
+  resetWithOtp: (mobile: string, code: string, pin: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -69,9 +79,47 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(user);
   }, []);
 
+  const requestRegisterOtp = useCallback(async (mobile: string) => {
+    return api.post<OtpRequestResult>("/api/auth/register/request-otp", { mobile });
+  }, []);
+
+  const registerWithOtp = useCallback(async (mobile: string, code: string, pin: string) => {
+    const { token, user } = await api.post<{ token: string; user: UserDTO }>(
+      "/api/auth/register/verify",
+      { mobile, code, pin },
+    );
+    setAuthToken(token);
+    setUser(user);
+  }, []);
+
+  const requestResetOtp = useCallback(async (mobile: string) => {
+    return api.post<OtpRequestResult>("/api/auth/forgot-password/request-otp", { mobile });
+  }, []);
+
+  const resetWithOtp = useCallback(async (mobile: string, code: string, pin: string) => {
+    const { token, user } = await api.post<{ token: string; user: UserDTO }>(
+      "/api/auth/forgot-password/reset",
+      { mobile, code, pin },
+    );
+    setAuthToken(token);
+    setUser(user);
+  }, []);
+
   return (
     <AuthContext.Provider
-      value={{ user, loading, login, logout, completeOnboarding, refreshUser, setUser }}
+      value={{
+        user,
+        loading,
+        login,
+        logout,
+        completeOnboarding,
+        refreshUser,
+        setUser,
+        requestRegisterOtp,
+        registerWithOtp,
+        requestResetOtp,
+        resetWithOtp,
+      }}
     >
       {children}
     </AuthContext.Provider>

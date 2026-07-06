@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import { KeyRound, Loader2, Phone } from "lucide-react";
 
@@ -97,6 +97,20 @@ export function LoginForm() {
           Log in
         </Button>
       </motion.form>
+
+      <div className="text-muted-foreground mt-6 flex flex-col items-center gap-1 text-center text-sm">
+        <p>
+          New here?{" "}
+          <Link to="/register" className="text-foreground font-medium underline underline-offset-4">
+            Create an account
+          </Link>
+        </p>
+        <p>
+          <Link to="/forgot-password" className="text-foreground font-medium underline underline-offset-4">
+            Forgot your login code?
+          </Link>
+        </p>
+      </div>
     </div>
   );
 }

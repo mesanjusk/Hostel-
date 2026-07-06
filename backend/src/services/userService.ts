@@ -88,6 +88,33 @@ export async function createUserByAdmin(mobile: string) {
   return { success: true as const, user, pin };
 }
 
+/** Self-service registration once the mobile's OTP has been verified by the caller. */
+export async function registerUserWithOtp(mobile: string, pin: string) {
+  await connectDB();
+
+  const existing = await User.findOne({ mobile }).lean();
+  if (existing) {
+    return { success: false as const, error: "An account with this mobile number already exists" };
+  }
+
+  const loginPinHash = await hashPin(pin);
+  const user = await User.create({ mobile, role: "student", loginPinHash });
+  return { success: true as const, user };
+}
+
+/** Sets a new login code for an existing account once the mobile's OTP has been verified. */
+export async function resetPinWithOtp(mobile: string, pin: string) {
+  await connectDB();
+
+  const loginPinHash = await hashPin(pin);
+  const user = await User.findOneAndUpdate({ mobile }, { loginPinHash }, { returnDocument: "after" });
+  if (!user) {
+    return { success: false as const, error: "No account found with this mobile number" };
+  }
+
+  return { success: true as const, user };
+}
+
 export async function regeneratePin(userId: string) {
   await connectDB();
 

@@ -1,6 +1,6 @@
 # Pack with Me
 
-Your all-in-one hostel survival kit — checklist, budget, notes, documents, emergency contacts, shopping recommendations, and a hostel survival guide, for students moving into a hostel for the first time. Login is a mobile number + admin-issued 7-digit code (no passwords, no OTP/SMS provider).
+Your all-in-one hostel survival kit — checklist, budget, notes, documents, emergency contacts, shopping recommendations, and a hostel survival guide, for students moving into a hostel for the first time. Login is a mobile number + 7-digit code, set either by an admin or by the student themselves via WhatsApp OTP self-registration / forgot-code reset.
 
 ## Architecture
 
@@ -11,7 +11,28 @@ backend/    Express + TypeScript + Mongoose REST API — deploy to Render
 frontend/   Vite + React + TypeScript SPA — deploy to Vercel
 ```
 
-The frontend talks to the backend entirely over HTTP (CORS), authenticating with a JWT bearer token. There is no shared server runtime between them — MSG91 OTP and the WhatsApp Meta Cloud API broadcast feature from the original Next.js build have been removed; the only login path now is an admin-provisioned mobile number + 7-digit login code.
+The frontend talks to the backend entirely over HTTP (CORS), authenticating with a JWT bearer token. There is no shared server runtime between them. Accounts can be admin-provisioned (mobile + admin-issued 7-digit code) or self-registered via WhatsApp OTP; either way, login itself is always mobile number + 7-digit code, never a password or SMS OTP.
+
+## WhatsApp OTP setup
+
+Self-registration and forgot-code both send a one-time code over WhatsApp via the Meta Cloud API. This requires:
+
+1. A [Facebook Developer App](https://developers.facebook.com/) with the **WhatsApp** product added, and a WhatsApp Business Account (WABA) with a phone number registered to it (Meta's free test number works for development).
+2. A **permanent System User access token** (Meta Business Settings → System Users), assigned the `whatsapp_business_messaging` permission — the token from the WhatsApp quick-start page expires in 24h and isn't suitable for production.
+3. The **Phone Number ID** (WhatsApp → API Setup in the Meta dashboard — a numeric ID, not the phone number itself).
+4. An **Authentication-category template** submitted for approval in Meta's Template Library (e.g. named `instify_otp`), with a `{{1}}` body placeholder for the code and a URL button with the code as its parameter. A first-time contact has no open 24h conversation window, so a template message is the only way to reach them — free-form text is rejected by the Graph API.
+
+Set these on the backend (see `backend/.env.example`):
+
+| Key | Value |
+| --- | --- |
+| `WHATSAPP_ACCESS_TOKEN` | the permanent System User token from step 2 |
+| `WHATSAPP_PHONE_NUMBER_ID` | the numeric Phone Number ID from step 3 |
+| `WHATSAPP_API_VERSION` | `v18.0` (or your Graph API version) |
+| `WHATSAPP_OTP_TEMPLATE_NAME` | your approved template's name |
+| `WHATSAPP_OTP_TEMPLATE_LANGUAGE` | must match the template's approved language, e.g. `en_US` |
+
+In local dev (`NODE_ENV` unset or not `production`), if the WhatsApp send fails or these vars are unset, the OTP request response includes a `devOtp` field with the plaintext code so you can test the flow without a live WhatsApp send.
 
 ## Tech stack
 
@@ -92,6 +113,7 @@ Open [http://localhost:5173](http://localhost:5173) and log in with the mobile n
    | `JWT_SECRET` | Generate with `openssl rand -base64 32` |
    | `CORS_ORIGIN` | Your deployed frontend URL, e.g. `https://your-frontend.vercel.app` (comma-separate if you also want to allow `http://localhost:5173` for local testing against the prod API) |
    | `NODE_ENV` | `production` |
+   | `WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_API_VERSION`, `WHATSAPP_OTP_TEMPLATE_NAME`, `WHATSAPP_OTP_TEMPLATE_LANGUAGE` | See "WhatsApp OTP setup" above — required for self-registration and forgot-code to send real messages |
 3. In MongoDB Atlas → Network Access, allow Render's outbound IPs (or `0.0.0.0/0`).
 4. Deploy. Your API will be live at something like `https://hostel-dpqg.onrender.com` — note this URL, the frontend needs it.
 5. Run `npm run make-admin -- <mobile>` and `npm run seed` locally (or from any machine) pointed at the same `MONGODB_URI` — these are one-off maintenance scripts, not part of the deployed service.

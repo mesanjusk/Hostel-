@@ -7,6 +7,8 @@ import { AuthLayout } from "@/layouts/auth-layout";
 import { HOME_ROUTE } from "@/lib/nav-items";
 
 import LoginPage from "@/pages/login-page";
+import RegisterPage from "@/pages/register-page";
+import ForgotPasswordPage from "@/pages/forgot-password-page";
 import OnboardingPage from "@/pages/onboarding-page";
 import NotFound from "@/pages/not-found";
 import WelcomePage from "@/pages/welcome-page";
@@ -47,6 +49,22 @@ export default function App() {
           element={
             <AuthOnlyRoute>
               <LoginPage />
+            </AuthOnlyRoute>
+          }
+        />
+        <Route
+          path="/register"
+          element={
+            <AuthOnlyRoute>
+              <RegisterPage />
+            </AuthOnlyRoute>
+          }
+        />
+        <Route
+          path="/forgot-password"
+          element={
+            <AuthOnlyRoute>
+              <ForgotPasswordPage />
             </AuthOnlyRoute>
           }
         />
