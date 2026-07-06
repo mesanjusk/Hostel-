@@ -82,7 +82,7 @@ Open [http://localhost:5173](http://localhost:5173) and log in with the mobile n
 ### Backend → Render
 
 1. Push this repo to GitHub and create a new **Web Service** on [Render](https://dashboard.render.com/), pointing at this repo with **Root Directory** set to `backend`.
-   - Build command: `npm install && npm run build`
+   - Build command: `npm install --include=dev && npm run build` (the `--include=dev` is required because `NODE_ENV=production` below otherwise makes npm skip `devDependencies`, which include `typescript` and `@types/*`)
    - Start command: `npm start`
    - (A `backend/render.yaml` blueprint is included if you prefer Render's Blueprint deploy.)
 2. In the Render service's **Environment** tab, add:
