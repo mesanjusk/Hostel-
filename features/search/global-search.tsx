@@ -89,7 +89,7 @@ export function GlobalSearch() {
           value={query}
           onValueChange={setQuery}
         />
-        <CommandList>
+        <CommandList className="max-h-none flex-1">
           <CommandEmpty>No results found.</CommandEmpty>
           {Object.entries(grouped).map(([type, items]) => (
             <CommandGroup key={type} heading={TYPE_LABELS[type as SearchResult["type"]]}>

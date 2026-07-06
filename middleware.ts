@@ -52,7 +52,6 @@ export const config = {
     "/wishlist/:path*",
     "/shopping/:path*",
     "/guide/:path*",
-    "/search/:path*",
     "/profile/:path*",
     "/settings/:path*",
     "/admin/:path*",

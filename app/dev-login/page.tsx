@@ -20,7 +20,7 @@ function DevLoginInner() {
       return;
     }
 
-    signIn("whatsapp-ticket", { devSecret: secret, redirect: false }).then((result) => {
+    signIn("msg91-otp", { devSecret: secret, redirect: false }).then((result) => {
       if (result?.error) {
         setStatus("error");
         return;

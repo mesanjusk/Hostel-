@@ -18,10 +18,6 @@ export const mobileSchema = z
     return normalized;
   });
 
-export const createLoginTicketSchema = z.object({
-  mobile: mobileSchema,
-});
-
 export const onboardingSchema = z.object({
   name: z.string().trim().min(2, "Name is too short").max(80, "Name is too long"),
   college: z.string().trim().max(120).optional().or(z.literal("")),
@@ -30,4 +26,3 @@ export const onboardingSchema = z.object({
 });
 
 export type OnboardingInput = z.infer<typeof onboardingSchema>;
-export type CreateLoginTicketInput = z.infer<typeof createLoginTicketSchema>;

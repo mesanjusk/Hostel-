@@ -4,7 +4,7 @@ import Credentials from "next-auth/providers/credentials";
 import { authConfig } from "@/lib/auth.config";
 import { connectDB } from "@/lib/db";
 import { User } from "@/models/User";
-import { consumeLoginTicket } from "@/lib/login-ticket";
+import { verifyMsg91AccessToken } from "@/lib/msg91";
 import { getOrCreateDevTestUser, verifyDevLoginSecret } from "@/lib/dev-login";
 import { authenticateWithPin, RateLimitedError } from "@/lib/pin-login";
 
@@ -12,24 +12,17 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
   providers: [
     Credentials({
-      id: "whatsapp-ticket",
-      name: "WhatsApp",
+      id: "msg91-otp",
+      name: "Mobile OTP",
       credentials: {
-        token: { label: "Ticket", type: "text" },
+        accessToken: { label: "Access token", type: "text" },
         devSecret: { label: "Dev Secret", type: "text" },
       },
       async authorize(credentials) {
-        const receivedKeys = credentials ? Object.keys(credentials) : [];
-        const devSecretLen =
-          typeof credentials?.devSecret === "string" ? credentials.devSecret.length : -1;
-        console.log(
-          `[auth] authorize called, keys=${JSON.stringify(receivedKeys)} devSecretLen=${devSecretLen}`,
-        );
-
         try {
           // Secret-gated test login — completely inert unless DEV_LOGIN_SECRET is set in
           // the environment. Intended as a temporary way to exercise the app while the
-          // real WhatsApp webhook is being configured; remove the env var to disable.
+          // real MSG91 widget is being configured; remove the env var to disable.
           if (verifyDevLoginSecret(credentials?.devSecret)) {
             console.warn("[dev-login] Secret-gated test login used");
             const testUser = await getOrCreateDevTestUser();
@@ -42,21 +35,20 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             };
           }
 
-          const token = credentials?.token;
-          if (!token || typeof token !== "string") {
-            console.log("[auth] no usable token/devSecret in credentials, returning null");
+          const accessToken = credentials?.accessToken;
+          if (!accessToken || typeof accessToken !== "string") {
             return null;
           }
 
-          const result = await consumeLoginTicket(token);
-          if (!result) {
+          const mobile = await verifyMsg91AccessToken(accessToken);
+          if (!mobile) {
             return null;
           }
 
           await connectDB();
           const user = await User.findOneAndUpdate(
-            { mobile: result.mobile },
-            { $setOnInsert: { mobile: result.mobile, role: "student" } },
+            { mobile },
+            { $setOnInsert: { mobile, role: "student" } },
             { upsert: true, returnDocument: "after" },
           );
 

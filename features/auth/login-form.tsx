@@ -5,8 +5,7 @@ import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
-import { QRCodeSVG } from "qrcode.react";
-import { MessageCircle, Phone, ArrowLeft, Loader2, CheckCircle2, KeyRound } from "lucide-react";
+import { Phone, ArrowLeft, Loader2, CheckCircle2, KeyRound, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -15,102 +14,241 @@ import { Label } from "@/components/ui/label";
 import { BrandName } from "@/components/shared/brand-name";
 import { PinLoginForm } from "@/features/auth/pin-login-form";
 import { HOME_ROUTE } from "@/lib/nav-items";
+import { normalizeMobile } from "@/lib/phone";
 
-type Step = "mobile" | "waiting" | "verified";
-type Method = "whatsapp" | "code";
+type Step = "mobile" | "otp" | "verified";
+type Method = "otp" | "code";
 
-interface TicketState {
-  token: string;
-  deepLink: string;
-  expiresAt: string;
-}
+const MSG91_WIDGET_ID = process.env.NEXT_PUBLIC_MSG91_WIDGET_ID ?? "";
+const MSG91_TOKEN_AUTH = process.env.NEXT_PUBLIC_MSG91_TOKEN_AUTH ?? "";
 
-const POLL_INTERVAL_MS = 2000;
+// MSG91 serves the widget script from two mirrors; fall back to the second if the
+// first is unreachable (matches the loader snippet from the MSG91 widget dashboard).
+const MSG91_SCRIPT_URLS = [
+  "https://verify.msg91.com/otp-provider.js",
+  "https://verify.phone91.com/otp-provider.js",
+];
+
+// DOM id the widget renders its captcha step into, if the widget has one enabled
+// (Widget Settings in MSG91). Without a matching element present, a widget with
+// captcha enabled can hang indefinitely instead of exposing sendOtp/verifyOtp.
+const MSG91_CAPTCHA_ID = "msg91-captcha-box";
+
+type WidgetStatus = "loading" | "ready" | "error";
+
+const WIDGET_READY_TIMEOUT_MS = 12000;
+const WIDGET_POLL_INTERVAL_MS = 250;
 
 export function LoginForm() {
   const router = useRouter();
-  const [method, setMethod] = useState<Method>("whatsapp");
+  const [method, setMethod] = useState<Method>("otp");
   const [step, setStep] = useState<Step>("mobile");
   const [mobile, setMobile] = useState("");
-  const [ticket, setTicket] = useState<TicketState | null>(null);
+  const [otp, setOtp] = useState("");
+  const [reqId, setReqId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const hasWidgetConfig = Boolean(MSG91_WIDGET_ID && MSG91_TOKEN_AUTH);
+  const [widgetStatus, setWidgetStatus] = useState<WidgetStatus>(
+    hasWidgetConfig ? "loading" : "error",
+  );
+  const [widgetErrorReason, setWidgetErrorReason] = useState<string | null>(
+    hasWidgetConfig
+      ? null
+      : "OTP widget isn't configured (missing widget ID/token auth in this deployment).",
+  );
+  const widgetInitCalled = useRef(false);
+
+  function failWidget(reason: string) {
+    setWidgetStatus("error");
+    setWidgetErrorReason(reason);
+  }
 
   useEffect(() => {
+    if (!hasWidgetConfig) return;
+
+    let cancelled = false;
+    let pollTimer: ReturnType<typeof setInterval> | null = null;
+    let timeoutTimer: ReturnType<typeof setTimeout> | null = null;
+
+    function waitForMethods() {
+      // initSendOTP() fetches the widget's own config from MSG91 before exposing
+      // sendOtp/verifyOtp on window, so they aren't available synchronously — poll
+      // for them with a hard timeout rather than assuming they're ready right away.
+      pollTimer = setInterval(() => {
+        if (window.sendOtp) {
+          if (pollTimer) clearInterval(pollTimer);
+          if (timeoutTimer) clearTimeout(timeoutTimer);
+          if (!cancelled) setWidgetStatus("ready");
+        }
+      }, WIDGET_POLL_INTERVAL_MS);
+
+      timeoutTimer = setTimeout(() => {
+        if (pollTimer) clearInterval(pollTimer);
+        if (!cancelled && !window.sendOtp) {
+          failWidget(
+            "OTP widget script loaded but never became ready (double-check the Widget ID / Token Auth in MSG91).",
+          );
+        }
+      }, WIDGET_READY_TIMEOUT_MS);
+    }
+
+    function initWidget() {
+      if (widgetInitCalled.current || !window.initSendOTP) return;
+      widgetInitCalled.current = true;
+      window.initSendOTP({
+        widgetId: MSG91_WIDGET_ID,
+        tokenAuth: MSG91_TOKEN_AUTH,
+        exposeMethods: true,
+        captchaRenderId: MSG91_CAPTCHA_ID,
+        failure: (err) => {
+          if (!cancelled) {
+            failWidget(`MSG91 widget error: ${err?.message || "unknown error"}`);
+          }
+        },
+      });
+      waitForMethods();
+    }
+
+    if (window.sendOtp) {
+      setWidgetStatus("ready");
+      return;
+    }
+
+    if (window.initSendOTP) {
+      initWidget();
+      return () => {
+        cancelled = true;
+        if (pollTimer) clearInterval(pollTimer);
+        if (timeoutTimer) clearTimeout(timeoutTimer);
+      };
+    }
+
+    let urlIndex = 0;
+
+    function loadNext() {
+      const script = document.createElement("script");
+      script.src = MSG91_SCRIPT_URLS[urlIndex];
+      script.async = true;
+      script.onload = () => {
+        if (!cancelled) initWidget();
+      };
+      script.onerror = () => {
+        urlIndex += 1;
+        if (!cancelled && urlIndex < MSG91_SCRIPT_URLS.length) {
+          loadNext();
+        } else if (!cancelled) {
+          failWidget("Could not load the OTP script from MSG91 (network blocked, or an ad/script blocker).");
+        }
+      };
+      document.head.appendChild(script);
+    }
+
+    loadNext();
+
     return () => {
-      if (pollRef.current) clearInterval(pollRef.current);
+      cancelled = true;
+      if (pollTimer) clearInterval(pollTimer);
+      if (timeoutTimer) clearTimeout(timeoutTimer);
     };
-  }, []);
+  }, [hasWidgetConfig]);
 
   async function handleMobileSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    setIsSubmitting(true);
 
-    try {
-      const res = await fetch("/api/auth/login-ticket", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mobile }),
-      });
-      const data = await res.json();
-
-      if (!res.ok) {
-        setError(data.error ?? "Something went wrong");
-        return;
-      }
-
-      setTicket(data);
-      setStep("waiting");
-      startPolling(data.token);
-    } catch {
-      setError("Network error. Please try again.");
-    } finally {
-      setIsSubmitting(false);
+    const normalized = normalizeMobile(mobile);
+    if (!normalized) {
+      setError("Enter a valid 10-digit Indian mobile number");
+      return;
     }
+
+    if (widgetStatus !== "ready" || !window.sendOtp) {
+      setError(
+        widgetStatus === "error"
+          ? (widgetErrorReason ?? "OTP service is unavailable right now.") +
+              " You can use a login code instead."
+          : "OTP service is still loading. Please wait a moment and try again.",
+      );
+      return;
+    }
+
+    // Present only when the widget's captcha step is enabled; absent (undefined) means
+    // there's no captcha to solve, so treat that as verified.
+    if (window.isCaptchaVerified && !window.isCaptchaVerified()) {
+      setError("Please complete the verification above.");
+      return;
+    }
+
+    setIsSubmitting(true);
+    window.sendOtp(
+      normalized,
+      (data) => {
+        setIsSubmitting(false);
+        setReqId(data.message);
+        setStep("otp");
+      },
+      (err) => {
+        setIsSubmitting(false);
+        setError(err?.message || "Could not send OTP. Please try again.");
+      },
+    );
   }
 
-  function startPolling(token: string) {
-    if (pollRef.current) clearInterval(pollRef.current);
+  async function handleOtpSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
 
-    pollRef.current = setInterval(async () => {
-      try {
-        const res = await fetch(`/api/auth/login-ticket/${token}/status`);
-        const data = await res.json();
+    if (!window.verifyOtp) {
+      setError("OTP service isn't ready yet. Please try again in a moment.");
+      return;
+    }
 
-        if (data.status === "verified") {
-          if (pollRef.current) clearInterval(pollRef.current);
-          setStep("verified");
+    setIsSubmitting(true);
+    window.verifyOtp(
+      otp,
+      async (data) => {
+        setStep("verified");
 
-          const signInResult = await signIn("whatsapp-ticket", {
-            token,
-            redirect: false,
-          });
+        const signInResult = await signIn("msg91-otp", {
+          accessToken: data.message,
+          redirect: false,
+        });
 
-          if (signInResult?.error) {
-            toast.error("Could not complete sign-in. Please try again.");
-            setStep("waiting");
-            return;
-          }
+        setIsSubmitting(false);
 
-          router.push(HOME_ROUTE);
-          router.refresh();
-        } else if (data.status === "expired" || data.status === "not_found") {
-          if (pollRef.current) clearInterval(pollRef.current);
-          setError("This login link expired. Please try again.");
-          setStep("mobile");
+        if (signInResult?.error) {
+          toast.error("Could not complete sign-in. Please try again.");
+          setStep("otp");
+          return;
         }
-      } catch {
-        // transient network hiccup — keep polling
-      }
-    }, POLL_INTERVAL_MS);
+
+        router.push(HOME_ROUTE);
+        router.refresh();
+      },
+      (err) => {
+        setIsSubmitting(false);
+        setError(err?.message || "Incorrect code. Please try again.");
+      },
+      reqId ?? undefined,
+    );
+  }
+
+  function handleResend() {
+    if (!window.retryOtp) return;
+    setError(null);
+    window.retryOtp(
+      null,
+      (data) => setReqId(data.message),
+      (err) => setError(err?.message || "Could not resend OTP."),
+      reqId ?? undefined,
+    );
   }
 
   function handleBack() {
-    if (pollRef.current) clearInterval(pollRef.current);
     setStep("mobile");
-    setTicket(null);
+    setOtp("");
+    setReqId(null);
     setError(null);
   }
 
@@ -122,8 +260,8 @@ export function LoginForm() {
           <BrandName />
         </h1>
         <p className="text-muted-foreground text-sm">
-          {method === "whatsapp"
-            ? "No passwords. Log in instantly with WhatsApp."
+          {method === "otp"
+            ? "No passwords. Log in instantly with an OTP."
             : "Enter your mobile number and login code."}
         </p>
       </div>
@@ -140,11 +278,11 @@ export function LoginForm() {
             <PinLoginForm />
             <button
               type="button"
-              onClick={() => setMethod("whatsapp")}
+              onClick={() => setMethod("otp")}
               className="text-muted-foreground hover:text-foreground inline-flex items-center justify-center gap-1 text-sm transition-colors"
             >
               <ArrowLeft className="size-3.5" />
-              Use WhatsApp instead
+              Use OTP instead
             </button>
           </motion.div>
         ) : (
@@ -173,10 +311,24 @@ export function LoginForm() {
                   />
                 </div>
                 {error && <p className="text-destructive text-sm">{error}</p>}
+                {!error && widgetStatus === "loading" && (
+                  <p className="text-muted-foreground flex items-center gap-1.5 text-xs">
+                    <Loader2 className="size-3 animate-spin" />
+                    Preparing OTP service…
+                  </p>
+                )}
               </div>
-              <Button type="submit" size="lg" disabled={isSubmitting} className="mt-2">
+              {/* MSG91 renders its captcha step here if one is enabled on the widget;
+                  stays empty (and harmless) when captcha is disabled. */}
+              <div id={MSG91_CAPTCHA_ID} className="empty:hidden" />
+              <Button
+                type="submit"
+                size="lg"
+                disabled={isSubmitting || widgetStatus === "loading"}
+                className="mt-2"
+              >
                 {isSubmitting ? <Loader2 className="size-4 animate-spin" /> : null}
-                Continue with WhatsApp
+                Send OTP
               </Button>
               <button
                 type="button"
@@ -190,39 +342,54 @@ export function LoginForm() {
           )
         )}
 
-        {step === "waiting" && ticket && (
-          <motion.div
-            key="waiting"
+        {step === "otp" && (
+          <motion.form
+            key="otp"
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
+            onSubmit={handleOtpSubmit}
             className="flex flex-col items-center gap-5"
           >
-            <div className="rounded-2xl bg-white p-3 shadow-md">
-              <QRCodeSVG value={ticket.deepLink} size={168} />
-            </div>
+            <ShieldCheck className="text-primary size-10" />
             <p className="text-muted-foreground text-center text-sm">
-              Scan with your phone camera, or tap below on mobile
+              Enter the OTP sent to your mobile number
             </p>
-            <Button asChild size="lg" className="w-full">
-              <a href={ticket.deepLink} target="_blank" rel="noopener noreferrer">
-                <MessageCircle className="size-4" />
-                Open WhatsApp to Continue
-              </a>
-            </Button>
-            <div className="text-muted-foreground flex items-center gap-2 text-sm">
-              <Loader2 className="size-4 animate-spin" />
-              Waiting for confirmation on WhatsApp…
+            <div className="grid w-full gap-2">
+              <Label htmlFor="otp">OTP</Label>
+              <Input
+                id="otp"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                placeholder="••••••"
+                value={otp}
+                onChange={(e) => setOtp(e.target.value)}
+                required
+              />
+              {error && <p className="text-destructive text-sm">{error}</p>}
             </div>
-            <button
-              type="button"
-              onClick={handleBack}
-              className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-sm transition-colors"
-            >
-              <ArrowLeft className="size-3.5" />
-              Use a different number
-            </button>
-          </motion.div>
+            <Button type="submit" size="lg" disabled={isSubmitting} className="w-full">
+              {isSubmitting ? <Loader2 className="size-4 animate-spin" /> : null}
+              Verify OTP
+            </Button>
+            <div className="flex items-center gap-4 text-sm">
+              <button
+                type="button"
+                onClick={handleResend}
+                className="text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Resend OTP
+              </button>
+              <button
+                type="button"
+                onClick={handleBack}
+                className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 transition-colors"
+              >
+                <ArrowLeft className="size-3.5" />
+                Use a different number
+              </button>
+            </div>
+          </motion.form>
         )}
 
         {step === "verified" && (

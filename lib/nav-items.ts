@@ -9,7 +9,6 @@ import {
   Heart,
   ShoppingBag,
   BookOpen,
-  Search,
   UserRound,
   ShieldCheck,
   Settings,
@@ -33,7 +32,6 @@ export const PRIMARY_NAV_ITEMS: NavItem[] = [
   { href: "/wishlist", label: "Wishlist", icon: Heart },
   { href: "/shopping", label: "Shopping", icon: ShoppingBag },
   { href: "/guide/survival-guide", label: "Hostel Guide", icon: BookOpen },
-  { href: "/search", label: "Search", icon: Search },
 ];
 
 export const PROFILE_NAV_ITEM: NavItem = {
