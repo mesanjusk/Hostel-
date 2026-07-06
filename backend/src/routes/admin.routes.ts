@@ -27,7 +27,6 @@ import {
   productUpdateSchema,
   updateUserByAdminSchema,
 } from "@/validations/admin";
-import { toPlain } from "@/lib/serialize";
 
 export const adminRouter = Router();
 
@@ -42,7 +41,18 @@ adminRouter.get("/users", async (req, res) => {
   const page = Number(req.query.page ?? 1) || 1;
   const pageSize = Number(req.query.pageSize ?? 20) || 20;
   const { users, total } = await listUsers(page, pageSize);
-  res.json({ users: toPlain(users), total });
+  const sanitized = users.map((user) => ({
+    id: user._id.toString(),
+    name: user.name ?? null,
+    mobile: user.mobile,
+    college: user.college ?? null,
+    hostel: user.hostel ?? null,
+    roomNumber: user.roomNumber ?? null,
+    role: user.role,
+    hasPinSet: Boolean(user.loginPinHash),
+    createdAt: (user as unknown as { createdAt: Date }).createdAt.toISOString(),
+  }));
+  res.json({ users: sanitized, total });
 });
 
 adminRouter.post("/users", async (req, res) => {
