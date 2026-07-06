@@ -20,10 +20,12 @@ import {
   updateGuideArticle,
 } from "@/services/guideService";
 import { saveDashboardLayout } from "@/services/uiLayoutService";
+import { saveLandingDesign } from "@/services/landingDesignService";
 import {
   createUserByAdminSchema,
   guideArticleSchema,
   guideArticleUpdateSchema,
+  landingDesignSchema,
   productSchema,
   productUpdateSchema,
   uiLayoutSchema,
@@ -165,4 +167,14 @@ adminRouter.put("/layout", async (req, res) => {
   }
   const widgets = await saveDashboardLayout(parsed.data.widgets);
   res.json({ widgets });
+});
+
+adminRouter.put("/landing-design", async (req, res) => {
+  const parsed = landingDesignSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.issues[0]?.message ?? "Invalid input" });
+    return;
+  }
+  const elements = await saveLandingDesign(parsed.data.elements);
+  res.json({ elements });
 });

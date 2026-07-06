@@ -17,6 +17,7 @@ import { guideRouter } from "@/routes/guide.routes";
 import { dashboardRouter } from "@/routes/dashboard.routes";
 import { searchRouter } from "@/routes/search.routes";
 import { adminRouter } from "@/routes/admin.routes";
+import { landingRouter } from "@/routes/landing.routes";
 
 const app = express();
 
@@ -58,6 +59,7 @@ app.use("/api/guide", guideRouter);
 app.use("/api/dashboard", dashboardRouter);
 app.use("/api/search", searchRouter);
 app.use("/api/admin", adminRouter);
+app.use("/api/landing", landingRouter);
 
 app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error(err);

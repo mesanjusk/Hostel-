@@ -31,6 +31,7 @@ import AdminUsersPage from "@/pages/admin-users-page";
 import AdminProductsPage from "@/pages/admin-products-page";
 import AdminGuidePage from "@/pages/admin-guide-page";
 import AdminLayoutPage from "@/pages/admin-layout-page";
+import AdminHomeScreenPage from "@/pages/admin-home-screen-page";
 
 function RootRoute() {
   const { user, loading } = useAuth();
@@ -137,6 +138,14 @@ export default function App() {
           element={
             <AdminRoute>
               <AdminLayoutPage />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/admin/home-screen"
+          element={
+            <AdminRoute>
+              <AdminHomeScreenPage />
             </AdminRoute>
           }
         />

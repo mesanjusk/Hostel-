@@ -68,6 +68,30 @@ export const uiLayoutSchema = z.object({
     .min(1),
 });
 
+const elementLayoutOverrideSchema = z.object({
+  x: z.number().min(0).max(100).optional(),
+  y: z.number().min(0).max(100).optional(),
+  scale: z.number().min(0.2).max(4).optional(),
+  rotation: z.number().min(-180).max(180).optional(),
+  visible: z.boolean().optional(),
+});
+
+export const landingDesignSchema = z.object({
+  elements: z.array(
+    z.object({
+      id: z.string().trim().min(1),
+      lines: z.array(z.string()).optional(),
+      ctaLabel: z.string().optional(),
+      layouts: z
+        .object({
+          mobile: elementLayoutOverrideSchema.optional(),
+          desktop: elementLayoutOverrideSchema.optional(),
+        })
+        .optional(),
+    }),
+  ),
+});
+
 export type ProductInput = z.infer<typeof productSchema>;
 export type ProductUpdateInput = z.infer<typeof productUpdateSchema>;
 export type GuideArticleInput = z.infer<typeof guideArticleSchema>;
@@ -75,3 +99,4 @@ export type GuideArticleUpdateInput = z.infer<typeof guideArticleUpdateSchema>;
 export type CreateUserByAdminInput = z.infer<typeof createUserByAdminSchema>;
 export type UpdateUserByAdminInput = z.infer<typeof updateUserByAdminSchema>;
 export type UiLayoutInput = z.infer<typeof uiLayoutSchema>;
+export type LandingDesignInput = z.infer<typeof landingDesignSchema>;
