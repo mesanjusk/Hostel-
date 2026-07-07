@@ -9,8 +9,9 @@ const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000;
 export class RateLimitedError extends Error {}
 
 /**
- * Verifies an admin-issued mobile+PIN login. This never creates a user — the account must
- * already exist (admin-provisioned) with a PIN set.
+ * Verifies a mobile+login-code login. This never creates a user — the account must already
+ * exist, either admin-provisioned (7-digit code) or self-registered via WhatsApp OTP (the
+ * verified 6-digit code becomes the login code), so valid codes can be either length.
  *
  * Rate-limit state lives on the User document itself (a trimmed array of attempt timestamps)
  * rather than a dedicated collection.
@@ -46,7 +47,7 @@ export async function authenticateWithPin(rawMobile: string, pin: string) {
     return null;
   }
 
-  if (!/^\d{7}$/.test(pin)) {
+  if (!/^\d{6,7}$/.test(pin)) {
     await recordAttempt();
     return null;
   }
