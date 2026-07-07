@@ -24,10 +24,19 @@ const ElementOverrideSchema = new Schema(
   { _id: false },
 );
 
+const SectionBackgroundOverrideSchema = new Schema(
+  {
+    id: { type: String, required: true },
+    background: { type: String, required: true },
+  },
+  { _id: false },
+);
+
 const LandingDesignSchema = new Schema(
   {
     page: { type: String, required: true, unique: true, index: true },
     elements: { type: [ElementOverrideSchema], default: [] },
+    sectionBackgrounds: { type: [SectionBackgroundOverrideSchema], default: [] },
   },
   { timestamps: true },
 );

@@ -90,6 +90,14 @@ export const landingDesignSchema = z.object({
         .optional(),
     }),
   ),
+  sectionBackgrounds: z
+    .array(
+      z.object({
+        id: z.string().trim().min(1),
+        background: z.string().trim().min(1).max(500),
+      }),
+    )
+    .optional(),
 });
 
 export type ProductInput = z.infer<typeof productSchema>;

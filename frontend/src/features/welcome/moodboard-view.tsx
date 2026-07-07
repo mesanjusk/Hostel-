@@ -3,10 +3,10 @@ import { motion } from "framer-motion";
 
 import { HomeSectionCanvas } from "@/features/welcome/home-section-canvas";
 import { HOME_SECTIONS } from "@/features/welcome/home-sections";
-import { useHomeElements } from "@/features/welcome/use-home-elements";
+import { useHomeDesign } from "@/features/welcome/use-home-elements";
 
 export function MoodboardView() {
-  const elements = useHomeElements();
+  const { elements, sectionBackgrounds } = useHomeDesign();
 
   return (
     <div className="relative overflow-x-hidden bg-[#fdf6ee] text-[#3a2e2a]">
@@ -15,10 +15,20 @@ export function MoodboardView() {
       {HOME_SECTIONS.map((section) => (
         <div key={section.id} id={section.id === "mental-prep" ? "mental-prep" : undefined} className="relative">
           <div className="block sm:hidden">
-            <HomeSectionCanvas section={section} elements={elements} breakpoint="mobile" />
+            <HomeSectionCanvas
+              section={section}
+              elements={elements}
+              breakpoint="mobile"
+              background={sectionBackgrounds[section.id]}
+            />
           </div>
           <div className="hidden sm:block">
-            <HomeSectionCanvas section={section} elements={elements} breakpoint="desktop" />
+            <HomeSectionCanvas
+              section={section}
+              elements={elements}
+              breakpoint="desktop"
+              background={sectionBackgrounds[section.id]}
+            />
           </div>
         </div>
       ))}

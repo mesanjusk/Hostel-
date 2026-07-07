@@ -6,6 +6,6 @@ export const landingRouter = Router();
 
 // Public — the home screen is shown to signed-out visitors, so this must not require auth.
 landingRouter.get("/design", async (_req, res) => {
-  const elements = await getLandingDesign();
-  res.json({ elements });
+  const design = await getLandingDesign();
+  res.json(design);
 });

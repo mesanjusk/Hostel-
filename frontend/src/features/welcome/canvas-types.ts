@@ -59,3 +59,10 @@ export interface ElementOverride {
     desktop?: Partial<ElementLayout>;
   };
 }
+
+/** Admin-chosen background (any CSS `background` value) for one section, overriding its
+ * default. Same background is used at every breakpoint. */
+export interface SectionBackgroundOverride {
+  id: string;
+  background: string;
+}

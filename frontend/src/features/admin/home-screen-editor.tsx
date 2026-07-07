@@ -12,9 +12,27 @@ import { api, ApiError } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { HOME_SECTIONS, sectionIndex } from "@/features/welcome/home-sections";
 import { DEFAULT_HOME_ELEMENTS } from "@/features/welcome/home-elements-default";
-import { diffHomeElements, mergeHomeElements } from "@/features/welcome/home-elements-merge";
+import {
+  diffHomeElements,
+  diffSectionBackgrounds,
+  mergeHomeElements,
+  mergeSectionBackgrounds,
+} from "@/features/welcome/home-elements-merge";
 import { ElementBody } from "@/features/welcome/canvas-element-view";
-import type { Breakpoint, CanvasElement, ElementLayout, ElementOverride } from "@/features/welcome/canvas-types";
+import {
+  SECTION_BACKGROUND_PRESETS,
+  SECTION_BACKGROUND_PRESET_LABELS,
+  type SectionBackgroundPresetId,
+} from "@/features/welcome/section-background-presets";
+import type {
+  Breakpoint,
+  CanvasElement,
+  ElementLayout,
+  ElementOverride,
+  SectionBackgroundOverride,
+} from "@/features/welcome/canvas-types";
+
+const PRESET_IDS = Object.keys(SECTION_BACKGROUND_PRESETS) as SectionBackgroundPresetId[];
 
 const BREAKPOINTS: Breakpoint[] = ["mobile", "desktop"];
 
@@ -82,6 +100,9 @@ function EditableTarget({
 
 export function HomeScreenEditor() {
   const [elements, setElements] = useState<CanvasElement[]>(DEFAULT_HOME_ELEMENTS);
+  const [sectionBackgrounds, setSectionBackgrounds] = useState<Record<string, string>>(() =>
+    mergeSectionBackgrounds(null),
+  );
   const [breakpoint, setBreakpoint] = useState<Breakpoint>("mobile");
   const [sectionId, setSectionId] = useState(HOME_SECTIONS[0].id);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -111,8 +132,13 @@ export function HomeScreenEditor() {
 
   useEffect(() => {
     api
-      .get<{ elements: ElementOverride[] | null }>("/api/landing/design")
-      .then((res) => setElements(mergeHomeElements(res.elements)))
+      .get<{ elements: ElementOverride[] | null; sectionBackgrounds: SectionBackgroundOverride[] | null }>(
+        "/api/landing/design",
+      )
+      .then((res) => {
+        setElements(mergeHomeElements(res.elements));
+        setSectionBackgrounds(mergeSectionBackgrounds(res.sectionBackgrounds));
+      })
       .catch(() => toast.error("Failed to load the current design"));
   }, []);
 
@@ -168,11 +194,17 @@ export function HomeScreenEditor() {
     setIsDirty(true);
   }
 
+  function updateSectionBackground(id: string, background: string) {
+    setSectionBackgrounds((current) => ({ ...current, [id]: background }));
+    setIsDirty(true);
+  }
+
   async function handleSave() {
     setIsSaving(true);
     try {
       const overrides = diffHomeElements(elements);
-      await api.put("/api/admin/landing-design", { elements: overrides });
+      const backgroundOverrides = diffSectionBackgrounds(sectionBackgrounds);
+      await api.put("/api/admin/landing-design", { elements: overrides, sectionBackgrounds: backgroundOverrides });
       toast.success("Home screen saved");
       setIsDirty(false);
     } catch (error) {
@@ -224,6 +256,38 @@ export function HomeScreenEditor() {
               ))}
             </div>
 
+            <div className="flex flex-wrap items-center gap-2">
+              <Label className="text-xs">Section background</Label>
+              {PRESET_IDS.map((presetId) => (
+                <button
+                  key={presetId}
+                  type="button"
+                  onClick={() => updateSectionBackground(sectionId, SECTION_BACKGROUND_PRESETS[presetId])}
+                  className={cn(
+                    "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
+                    sectionBackgrounds[sectionId] === SECTION_BACKGROUND_PRESETS[presetId]
+                      ? "border-foreground bg-foreground text-background"
+                      : "border-border text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  {SECTION_BACKGROUND_PRESET_LABELS[presetId]}
+                </button>
+              ))}
+              <label className="text-muted-foreground flex items-center gap-1.5 text-xs">
+                Custom color
+                <input
+                  type="color"
+                  value={
+                    /^#[0-9a-f]{6}$/i.test(sectionBackgrounds[sectionId] ?? "")
+                      ? sectionBackgrounds[sectionId]
+                      : "#fdf6ee"
+                  }
+                  onChange={(e) => updateSectionBackground(sectionId, e.target.value)}
+                  className="border-border h-6 w-8 cursor-pointer rounded border"
+                />
+              </label>
+            </div>
+
             <p className="text-muted-foreground text-xs">
               Tap a card or sticker to select it, then drag to move, use the corner handle to resize, and the top
               handle to rotate. Edits apply to the {breakpoint} layout only.
@@ -233,7 +297,7 @@ export function HomeScreenEditor() {
               ref={containerRef}
               onClick={() => setSelectedId(null)}
               className="relative mx-auto w-full max-w-xl overflow-hidden rounded-xl border"
-              style={{ aspectRatio: `${canvas.width} / ${canvas.height}`, background: section.background }}
+              style={{ aspectRatio: `${canvas.width} / ${canvas.height}`, background: sectionBackgrounds[sectionId] }}
             >
               {sectionElements.map((el) => (
                 <EditableTarget

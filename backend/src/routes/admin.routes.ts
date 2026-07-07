@@ -175,6 +175,6 @@ adminRouter.put("/landing-design", async (req, res) => {
     res.status(400).json({ error: parsed.error.issues[0]?.message ?? "Invalid input" });
     return;
   }
-  const elements = await saveLandingDesign(parsed.data.elements);
-  res.json({ elements });
+  const design = await saveLandingDesign(parsed.data.elements, parsed.data.sectionBackgrounds ?? []);
+  res.json(design);
 });

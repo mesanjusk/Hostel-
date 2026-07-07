@@ -6,10 +6,12 @@ export function HomeSectionCanvas({
   section,
   elements,
   breakpoint,
+  background,
 }: {
   section: HomeSectionDef;
   elements: CanvasElement[];
   breakpoint: Breakpoint;
+  background?: string;
 }) {
   const { width, height } = section.canvas[breakpoint];
   const idx = sectionIndex(section.id);
@@ -18,7 +20,7 @@ export function HomeSectionCanvas({
   return (
     <div
       className="relative mx-auto w-full overflow-hidden"
-      style={{ aspectRatio: `${width} / ${height}`, background: section.background }}
+      style={{ aspectRatio: `${width} / ${height}`, background: background ?? section.background }}
     >
       {sectionElements.map((element) => (
         <CanvasElementView key={element.id} element={element} breakpoint={breakpoint} />

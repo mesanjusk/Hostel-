@@ -1,5 +1,6 @@
 import { DEFAULT_HOME_ELEMENTS } from "@/features/welcome/home-elements-default";
-import type { CanvasElement, ElementOverride } from "@/features/welcome/canvas-types";
+import { HOME_SECTIONS } from "@/features/welcome/home-sections";
+import type { CanvasElement, ElementOverride, SectionBackgroundOverride } from "@/features/welcome/canvas-types";
 
 /** Merges admin-saved overrides onto the default seed. Elements with no override render
  * exactly as they do today; unknown ids in the override list (e.g. from a stale save) are
@@ -62,5 +63,32 @@ export function diffHomeElements(edited: CanvasElement[]): ElementOverride[] {
     if (changed) overrides.push(override);
   }
 
+  return overrides;
+}
+
+/** Merges admin-saved section background overrides onto each section's default, keyed by
+ * section id. Sections with no override keep their default background. */
+export function mergeSectionBackgrounds(
+  overrides: SectionBackgroundOverride[] | null | undefined,
+): Record<string, string> {
+  const result: Record<string, string> = {};
+  for (const section of HOME_SECTIONS) {
+    result[section.id] = section.background ?? "";
+  }
+  for (const o of overrides ?? []) {
+    if (o.id in result) result[o.id] = o.background;
+  }
+  return result;
+}
+
+/** Extracts only the section backgrounds that differ from default. */
+export function diffSectionBackgrounds(edited: Record<string, string>): SectionBackgroundOverride[] {
+  const overrides: SectionBackgroundOverride[] = [];
+  for (const section of HOME_SECTIONS) {
+    const current = edited[section.id];
+    if (current !== undefined && current !== section.background) {
+      overrides.push({ id: section.id, background: current });
+    }
+  }
   return overrides;
 }
