@@ -25,7 +25,10 @@ const HOME_PAGE = "home";
 export async function getLandingDesign(): Promise<ElementOverride[] | null> {
   await connectDB();
   const doc = await LandingDesign.findOne({ page: HOME_PAGE }).lean();
-  return doc?.elements ?? null;
+  // Mongoose's inferred lean() type marks optional nested fields as `T | null` (from its
+  // own schema typing) rather than `T | undefined` as declared on ElementOverride — the
+  // shapes are runtime-compatible (both mean "absent"), so this cast just bridges that gap.
+  return (doc?.elements as unknown as ElementOverride[] | undefined) ?? null;
 }
 
 /** Admin-only: persists the drag/resize/rotate/hide/text overrides for the home screen. */
