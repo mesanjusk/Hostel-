@@ -36,6 +36,11 @@ const PRESET_IDS = Object.keys(SECTION_BACKGROUND_PRESETS) as SectionBackgroundP
 
 const BREAKPOINTS: Breakpoint[] = ["mobile", "desktop"];
 
+/** Real device widths (CSS px) the canvas renders at — not just an aspect ratio — so
+ * fixed-size cards/text actually look phone-sized vs desktop-sized, like a browser's
+ * device toolbar. The visible box is then scaled down to fit the editor panel. */
+const PREVIEW_WIDTH: Record<Breakpoint, number> = { mobile: 390, desktop: 1280 };
+
 function EditableTarget({
   element,
   breakpoint,
@@ -118,10 +123,11 @@ export function HomeScreenEditor() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [isDirty, setIsDirty] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
+  const [availableWidth, setAvailableWidth] = useState(0);
   const [, forceRerender] = useState(0);
 
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const panelRef = useRef<HTMLDivElement | null>(null);
   const elementRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 
   // Stable identity across renders — an inline arrow function here would make React treat
@@ -156,20 +162,19 @@ export function HomeScreenEditor() {
     setSelectedId(null);
   }, [sectionId, breakpoint]);
 
+  // Measures the editor panel (not the canvas itself, which now renders at a fixed real
+  // device width) to compute how much to zoom the canvas down to fit — the same idea as a
+  // browser's device toolbar.
   useEffect(() => {
-    function measure() {
-      if (containerRef.current) {
-        setContainerSize({ width: containerRef.current.offsetWidth, height: containerRef.current.offsetHeight });
-      }
-    }
-    measure();
-    const id = window.setTimeout(measure, 50);
-    window.addEventListener("resize", measure);
-    return () => {
-      window.removeEventListener("resize", measure);
-      window.clearTimeout(id);
-    };
-  }, [sectionId, breakpoint]);
+    const node = panelRef.current;
+    if (!node) return;
+    const observer = new ResizeObserver((entries) => {
+      const width = entries[0]?.contentRect.width;
+      if (width) setAvailableWidth(width);
+    });
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
 
   const section = HOME_SECTIONS.find((s) => s.id === sectionId)!;
   const idx = sectionIndex(sectionId);
@@ -252,26 +257,34 @@ export function HomeScreenEditor() {
   const canvas = section.canvas[breakpoint];
   const selectedNode = selected ? elementRefs.current.get(selected.id) : undefined;
 
+  const previewWidth = PREVIEW_WIDTH[breakpoint];
+  const previewHeight = previewWidth * (canvas.height / canvas.width);
+  const zoom = availableWidth > 0 ? Math.min(1, availableWidth / previewWidth) : 1;
+  const containerSize = { width: previewWidth, height: previewHeight };
+
   return (
     <div className="flex flex-col gap-4">
       <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
         <Card>
           <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
             <CardTitle>Home screen</CardTitle>
-            <div className="flex gap-1 rounded-full bg-muted p-1">
-              {BREAKPOINTS.map((bp) => (
-                <button
-                  key={bp}
-                  type="button"
-                  onClick={() => setBreakpoint(bp)}
-                  className={cn(
-                    "rounded-full px-3 py-1.5 text-sm font-medium capitalize transition-colors",
-                    breakpoint === bp ? "bg-card text-foreground shadow-sm" : "text-muted-foreground",
-                  )}
-                >
-                  {bp}
-                </button>
-              ))}
+            <div className="flex items-center gap-2">
+              <span className="text-muted-foreground text-xs tabular-nums">{Math.round(zoom * 100)}%</span>
+              <div className="flex gap-1 rounded-full bg-muted p-1">
+                {BREAKPOINTS.map((bp) => (
+                  <button
+                    key={bp}
+                    type="button"
+                    onClick={() => setBreakpoint(bp)}
+                    className={cn(
+                      "rounded-full px-3 py-1.5 text-sm font-medium capitalize transition-colors",
+                      breakpoint === bp ? "bg-card text-foreground shadow-sm" : "text-muted-foreground",
+                    )}
+                  >
+                    {bp}
+                  </button>
+                ))}
+              </div>
             </div>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
@@ -328,33 +341,53 @@ export function HomeScreenEditor() {
               handle to rotate. Edits apply to the {breakpoint} layout only.
             </p>
 
-            <div
-              ref={containerRef}
-              onClick={() => setSelectedId(null)}
-              className="relative mx-auto w-full max-w-xl overflow-hidden rounded-xl border"
-              style={{ aspectRatio: `${canvas.width} / ${canvas.height}`, background: sectionBackgrounds[sectionId] }}
-            >
-              {sectionElements.map((el) => (
-                <EditableTarget
-                  key={el.id}
-                  element={el}
-                  breakpoint={breakpoint}
-                  containerSize={containerSize}
-                  selected={el.id === selectedId}
-                  onSelect={() => setSelectedId(el.id)}
-                  registerRef={registerRef}
-                />
-              ))}
-              {selected && selectedNode && containerSize.width > 0 && (
-                <Moveable
-                  target={selectedNode}
-                  draggable
-                  scalable
-                  rotatable
-                  keepRatio
-                  throttleDrag={0}
-                  throttleScale={0}
-                  throttleRotate={0}
+            <div ref={panelRef} className="w-full">
+              {/* Reserves the zoomed-down footprint so the layout doesn't overflow or leave
+                  a blank gap — the canvas below renders at its real device width, then this
+                  wrapper's smaller box + the transform below shrink it to fit visually. */}
+              <div
+                className="mx-auto"
+                style={{ width: previewWidth * zoom, height: previewHeight * zoom }}
+              >
+                <div
+                  ref={containerRef}
+                  onClick={() => setSelectedId(null)}
+                  className={cn(
+                    "relative overflow-hidden bg-white",
+                    breakpoint === "mobile"
+                      ? "rounded-[2rem] border-[10px] border-neutral-800"
+                      : "rounded-lg border border-neutral-300",
+                  )}
+                  style={{
+                    width: previewWidth,
+                    height: previewHeight,
+                    transform: `scale(${zoom})`,
+                    transformOrigin: "top left",
+                    background: sectionBackgrounds[sectionId],
+                  }}
+                >
+                  {sectionElements.map((el) => (
+                    <EditableTarget
+                      key={el.id}
+                      element={el}
+                      breakpoint={breakpoint}
+                      containerSize={containerSize}
+                      selected={el.id === selectedId}
+                      onSelect={() => setSelectedId(el.id)}
+                      registerRef={registerRef}
+                    />
+                  ))}
+                  {selected && selectedNode && (
+                    <Moveable
+                      target={selectedNode}
+                      zoom={zoom}
+                      draggable
+                      scalable
+                      rotatable
+                      keepRatio
+                      throttleDrag={0}
+                      throttleScale={0}
+                      throttleRotate={0}
                   onDrag={({ target, left, top }) => {
                     (target as HTMLElement).style.left = `${left}px`;
                     (target as HTMLElement).style.top = `${top}px`;
@@ -387,8 +420,10 @@ export function HomeScreenEditor() {
                     const angle = Math.atan2(matrix.b, matrix.a) * (180 / Math.PI);
                     updateElementLayout(selected.id, { rotation: Math.round(angle) });
                   }}
-                />
-              )}
+                    />
+                  )}
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>
