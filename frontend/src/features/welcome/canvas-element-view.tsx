@@ -138,7 +138,24 @@ function CardContent({ element }: { element: CanvasElement }) {
   return (
     <>
       {hasArrow && <ScribbleArrow className="-top-6 left-1/2 -translate-x-1/2 rotate-90" />}
-      {element.emoji && <p className="text-2xl lg:text-3xl">{element.emoji}</p>}
+      {element.shape === "polaroid" ? (
+        (element.src || element.emoji) && (
+          <div className="mb-1 flex aspect-square items-center justify-center overflow-hidden rounded-sm bg-gradient-to-br from-[#fdf6ee] to-[#f3e6d5] text-5xl">
+            {element.src ? (
+              <img
+                src={element.src}
+                alt={element.alt ?? ""}
+                className="h-full w-full object-contain drop-shadow-[1px_4px_8px_rgba(58,46,42,0.25)]"
+                draggable={false}
+              />
+            ) : (
+              element.emoji
+            )}
+          </div>
+        )
+      ) : (
+        element.emoji && <p className="text-2xl lg:text-3xl">{element.emoji}</p>
+      )}
       {isHeroCard && element.lines && (
         <>
           <p className="text-sm font-semibold tracking-[0.3em] text-[#c96b9a] uppercase">{element.lines[0]}</p>
