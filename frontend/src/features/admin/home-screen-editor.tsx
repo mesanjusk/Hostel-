@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Moveable from "react-moveable";
 import { toast } from "sonner";
-import { ImagePlus, RotateCcw, StickyNote, Trash2 } from "lucide-react";
+import { Eye, ImagePlus, RotateCcw, StickyNote, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -54,6 +54,10 @@ function readFileAsDataUrl(file: File): Promise<string> {
     reader.onerror = () => reject(reader.error);
     reader.readAsDataURL(file);
   });
+}
+
+function elementLabel(e: CanvasElement): string {
+  return e.lines?.[0] || e.alt || e.emoji || (e.kind === "image" ? "Sticker" : "Card");
 }
 
 function EditableTarget({
@@ -195,6 +199,12 @@ export function HomeScreenEditor() {
   const section = HOME_SECTIONS.find((s) => s.id === sectionId)!;
   const idx = sectionIndex(sectionId);
   const sectionElements = useMemo(() => elements.filter((e) => e.section === idx), [elements, idx]);
+  // Hidden elements stop rendering in the canvas entirely, so there's no way to click them
+  // to select — this list is the only way back to re-show one without a full reset.
+  const hiddenSectionElements = useMemo(
+    () => sectionElements.filter((e) => !e.layouts[breakpoint].visible),
+    [sectionElements, breakpoint],
+  );
   const selected = elements.find((e) => e.id === selectedId) ?? null;
 
   function updateElementLayout(id: string, patch: Partial<ElementLayout>) {
@@ -432,6 +442,25 @@ export function HomeScreenEditor() {
               Tap a card or sticker to select it, then drag to move, use the corner handle to resize, and the top
               handle to rotate. Edits apply to the {breakpoint} layout only.
             </p>
+
+            {hiddenSectionElements.length > 0 && (
+              <div className="bg-muted flex flex-col gap-2 rounded-xl p-3">
+                <Label className="text-xs">Hidden on {breakpoint} — tap to show again</Label>
+                <div className="flex flex-wrap gap-2">
+                  {hiddenSectionElements.map((e) => (
+                    <button
+                      key={e.id}
+                      type="button"
+                      onClick={() => updateElementLayout(e.id, { visible: true })}
+                      className="border-border bg-card hover:border-foreground flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium"
+                    >
+                      <Eye className="size-3.5" />
+                      {elementLabel(e)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div ref={panelRef} className="w-full">
               {/* Reserves the zoomed-down footprint so the layout doesn't overflow or leave
