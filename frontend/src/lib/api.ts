@@ -37,7 +37,9 @@ async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> 
     headers.set("Authorization", `Bearer ${authToken}`);
   }
 
-  const res = await fetch(`${API_URL}${path}`, { ...options, headers });
+  // Every response here is dynamic/personalized/admin-configurable — never let the
+  // browser (or an intermediary) serve a stale cached copy after something changes.
+  const res = await fetch(`${API_URL}${path}`, { cache: "no-store", ...options, headers });
   const isJson = res.headers.get("content-type")?.includes("application/json");
   const data = isJson ? await res.json().catch(() => ({})) : {};
 
