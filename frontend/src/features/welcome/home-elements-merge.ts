@@ -47,7 +47,13 @@ export function mergeHomeElements(overrides: ElementOverride[] | null | undefine
     return {
       ...base,
       section: o.section ?? base.section,
-      lines: o.lines ?? base.lines,
+      // Treat a stored empty array the same as "not set" and fall back to the default text.
+      // A past backend bug (fixed, but already-saved data may still carry its effect) made
+      // Mongoose cast a missing `lines` key to `[]` instead of leaving it absent whenever an
+      // override touched any other field (e.g. just a drag/resize) — silently wiping text on
+      // untouched cards. `o.lines ?? base.lines` alone doesn't catch that, since `[]` isn't
+      // nullish.
+      lines: o.lines && o.lines.length > 0 ? o.lines : base.lines,
       ctaLabel: o.ctaLabel ?? base.ctaLabel,
       textColor: o.textColor ?? base.textColor,
       fontSize: o.fontSize ?? base.fontSize,

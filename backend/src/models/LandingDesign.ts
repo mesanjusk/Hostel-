@@ -20,7 +20,11 @@ const ElementOverrideSchema = new Schema(
     src: { type: String },
     alt: { type: String },
     emoji: { type: String },
-    lines: { type: [String] },
+    // `default: undefined` stops Mongoose's usual "arrays default to []" behavior — without
+    // it, saving an override that never touched `lines` (e.g. a pure drag/resize) would still
+    // come back from Mongo as `lines: []`, which then wins over `?? base.lines` in the merge
+    // logic on the frontend and wipes that card's text even though it was never edited.
+    lines: { type: [String], default: undefined },
     ctaLabel: { type: String },
     href: { type: String },
     background: { type: String },
