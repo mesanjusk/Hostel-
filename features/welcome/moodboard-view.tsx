@@ -52,7 +52,7 @@ export function MoodboardView() {
       <div className="grain-overlay pointer-events-none fixed inset-0 z-0" />
 
       {/* 1. HERO */}
-      <section className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-5 py-24 text-center">
+      <section className="relative flex min-h-dvh flex-col items-center justify-center overflow-hidden px-5 py-24 text-center">
         <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_25%_20%,#ffd6e8_0%,transparent_45%),radial-gradient(circle_at_75%_15%,#cfeaff_0%,transparent_45%),radial-gradient(circle_at_50%_85%,#e3d9ff_0%,transparent_50%)]" />
 
         <StickerField
@@ -91,7 +91,10 @@ export function MoodboardView() {
       </section>
 
       {/* 2. MENTAL PREP */}
-      <section id="mental-prep" className="relative px-5 py-24">
+      <section
+        id="mental-prep"
+        className="relative flex min-h-dvh flex-col items-center justify-center px-5 py-24"
+      >
         <SectionTitle emoji="💭">Mental Prep</SectionTitle>
         <StickerField
           stickers={[
@@ -133,7 +136,7 @@ export function MoodboardView() {
       </section>
 
       {/* 3. ROOM SETUP */}
-      <section className="relative px-5 py-24">
+      <section className="relative flex min-h-dvh flex-col items-center justify-center px-5 py-24">
         <SectionTitle emoji="🛏️">Room Setup</SectionTitle>
         <div className="mx-auto flex max-w-4xl flex-wrap items-start justify-center gap-8">
           <Polaroid emoji="🔌" caption="bed near plug ✔" rotate={-5} delay={0} />
@@ -155,7 +158,7 @@ export function MoodboardView() {
       </section>
 
       {/* 4. SURVIVAL HACKS */}
-      <section className="relative overflow-hidden px-5 py-28">
+      <section className="relative flex min-h-dvh flex-col items-center justify-center overflow-hidden px-5 py-24">
         <SectionTitle emoji="⚡">Survival Hacks</SectionTitle>
         <div className="relative mx-auto grid max-w-3xl grid-cols-2 gap-6 sm:grid-cols-3 lg:max-w-4xl lg:gap-8">
           <StickyNote color="yellow" rotate={7} delay={0} className="max-w-none">
@@ -185,7 +188,7 @@ export function MoodboardView() {
       </section>
 
       {/* 5. BATHROOM REALITY */}
-      <section className="relative px-5 py-24">
+      <section className="relative flex min-h-dvh flex-col items-center justify-center px-5 py-24">
         <SectionTitle emoji="🚿">Bathroom Reality</SectionTitle>
         <div className="mx-auto flex max-w-4xl flex-wrap items-start justify-center gap-8">
           <StickyNote color="blue" rotate={-4} delay={0}>
@@ -210,7 +213,7 @@ export function MoodboardView() {
       </section>
 
       {/* 6. FOOD SURVIVAL */}
-      <section className="relative px-5 py-24">
+      <section className="relative flex min-h-dvh flex-col items-center justify-center px-5 py-24">
         <SectionTitle emoji="🍜">Food Survival</SectionTitle>
         <div className="mx-auto flex max-w-4xl flex-wrap items-start justify-center gap-8">
           <Polaroid stickerSlug="midnight-maggi" caption="instant noodles" rotate={4} delay={0} />
@@ -232,7 +235,7 @@ export function MoodboardView() {
       </section>
 
       {/* 7. ROOMMATE VIBES */}
-      <section className="relative px-5 py-24">
+      <section className="relative flex min-h-dvh flex-col items-center justify-center px-5 py-24">
         <SectionTitle emoji="👯">Roommate Vibes</SectionTitle>
         <StickerField
           stickers={[
@@ -266,7 +269,7 @@ export function MoodboardView() {
       </section>
 
       {/* 8. UNDERRATED ESSENTIALS */}
-      <section className="relative px-5 py-24">
+      <section className="relative flex min-h-dvh flex-col items-center justify-center px-5 py-24">
         <SectionTitle emoji="🎒">Underrated Essentials</SectionTitle>
         <div className="mx-auto grid max-w-3xl grid-cols-2 gap-6 sm:grid-cols-5 lg:max-w-4xl lg:gap-8">
           {[
@@ -290,7 +293,7 @@ export function MoodboardView() {
       </section>
 
       {/* 9. FINAL — EMOTIONAL CLOSURE */}
-      <section className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-5 py-24 text-center">
+      <section className="relative flex min-h-dvh flex-col items-center justify-center overflow-hidden px-5 py-24 text-center">
         <div className="pointer-events-none absolute inset-0 -z-10 bg-[linear-gradient(180deg,#d9c8ff_0%,#b8ddff_45%,#ffc2dd_100%)]" />
         <StickerField
           stickers={[
