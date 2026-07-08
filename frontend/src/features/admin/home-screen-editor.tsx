@@ -43,6 +43,10 @@ const PREVIEW_WIDTH: Record<Breakpoint, number> = { mobile: 390, desktop: 1280 }
 
 const MAX_UPLOAD_BYTES = 2 * 1024 * 1024; // 2MB — uploaded images are stored inline as base64
 
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value));
+}
+
 function generateElementId(): string {
   return `custom-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
@@ -539,8 +543,8 @@ export function HomeScreenEditor() {
                     const h = el.offsetHeight;
                     const leftPx = parseFloat(el.style.left || "0");
                     const topPx = parseFloat(el.style.top || "0");
-                    const x = ((leftPx + w / 2) / containerSize.width) * 100;
-                    const y = ((topPx + h / 2) / containerSize.height) * 100;
+                    const x = clamp(((leftPx + w / 2) / containerSize.width) * 100, 0, 100);
+                    const y = clamp(((topPx + h / 2) / containerSize.height) * 100, 0, 100);
                     updateElementLayout(selected.id, { x, y });
                   }}
                   onScale={({ target, transform }) => {
@@ -550,7 +554,10 @@ export function HomeScreenEditor() {
                     const el = target as HTMLElement;
                     const matrix = new DOMMatrixReadOnly(getComputedStyle(el).transform);
                     const scale = Math.sqrt(matrix.a * matrix.a + matrix.b * matrix.b);
-                    updateElementLayout(selected.id, { scale: Math.round(scale * 100) / 100 });
+                    // The backend rejects the whole save if any one element's scale falls
+                    // outside [0.2, 4] — clamp here so a big resize drag can never produce an
+                    // out-of-range value that silently blocks saving everything else.
+                    updateElementLayout(selected.id, { scale: clamp(Math.round(scale * 100) / 100, 0.2, 4) });
                   }}
                   onRotate={({ target, transform }) => {
                     (target as HTMLElement).style.transform = transform;
