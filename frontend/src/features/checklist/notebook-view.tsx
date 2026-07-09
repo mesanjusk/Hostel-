@@ -153,13 +153,14 @@ export function NotebookView({
           <Progress value={overallPercent} className="mt-1.5 h-1.5" />
         </div>
         <div className="flex shrink-0 items-center gap-2">
-          <DownloadPdfButton groups={groups} overall={overall} />
+          <DownloadPdfButton groups={groups} overall={overall} iconOnly />
           <Link
             to="/checklist?view=list"
-            className="flex shrink-0 items-center gap-1.5 rounded-full border border-[#e9ddc9] bg-white px-3 py-1.5 text-xs font-medium text-[#8a7a6a] transition-colors hover:text-[#3a2e2a]"
+            aria-label="List view"
+            title="List view"
+            className="flex size-9 shrink-0 items-center justify-center rounded-full border border-[#e9ddc9] bg-white text-[#8a7a6a] transition-colors hover:text-[#3a2e2a]"
           >
             <Rows3 className="size-3.5" />
-            List view
           </Link>
         </div>
       </div>

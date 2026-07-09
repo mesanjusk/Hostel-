@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Download, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
+import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/auth-context";
 import type { ChecklistItemDTO } from "@/features/checklist/checklist-item-dto";
 
@@ -14,10 +15,12 @@ export function DownloadPdfButton({
   groups,
   overall,
   className,
+  iconOnly = false,
 }: {
   groups: CategoryGroup[];
   overall: { total: number; completed: number };
   className?: string;
+  iconOnly?: boolean;
 }) {
   const { user } = useAuth();
   const [isGenerating, setIsGenerating] = useState(false);
@@ -41,13 +44,18 @@ export function DownloadPdfButton({
       type="button"
       onClick={handleDownload}
       disabled={isGenerating || overall.total === 0}
+      aria-label="Download PDF"
+      title="Download PDF"
       className={
         className ??
-        "flex shrink-0 items-center gap-1.5 rounded-full border border-[#e9ddc9] bg-white px-3 py-1.5 text-xs font-medium text-[#8a7a6a] transition-colors hover:text-[#3a2e2a] disabled:pointer-events-none disabled:opacity-50"
+        cn(
+          "flex shrink-0 items-center justify-center border border-[#e9ddc9] bg-white text-[#8a7a6a] transition-colors hover:text-[#3a2e2a] disabled:pointer-events-none disabled:opacity-50",
+          iconOnly ? "size-9 rounded-full" : "gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium",
+        )
       }
     >
       {isGenerating ? <Loader2 className="size-3.5 animate-spin" /> : <Download className="size-3.5" />}
-      Download PDF
+      {!iconOnly && "Download PDF"}
     </button>
   );
 }

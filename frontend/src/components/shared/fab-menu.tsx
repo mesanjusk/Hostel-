@@ -153,8 +153,8 @@ export function FabMenu({ hiddenNavHrefs }: { hiddenNavHrefs?: Set<string> }) {
         whileTap={{ scale: 0.95 }}
         transition={{ type: "spring", stiffness: 400, damping: 22 }}
         className={cn(
-          "gradient-brand relative flex items-center justify-center gap-2 overflow-hidden rounded-full text-white shadow-[0_10px_28px_-8px_rgba(201,107,154,0.6)]",
-          size === "sm" ? "h-12 px-5 text-sm font-semibold" : "h-14 px-7 text-base font-semibold",
+          "gradient-brand relative flex items-center justify-center overflow-hidden rounded-full text-white shadow-[0_10px_28px_-8px_rgba(201,107,154,0.6)]",
+          size === "sm" ? "size-14" : "size-16",
         )}
       >
         {ripples.map((r) => (
@@ -170,9 +170,8 @@ export function FabMenu({ hiddenNavHrefs }: { hiddenNavHrefs?: Set<string> }) {
           animate={{ rotate: speedDialOpen ? 45 : 0 }}
           transition={{ duration: 0.2 }}
         >
-          <Plus className={size === "sm" ? "size-5" : "size-6"} />
+          <Plus className={size === "sm" ? "size-6" : "size-7"} />
         </motion.span>
-        <span className="whitespace-nowrap">Quick add</span>
       </motion.button>
     </div>
   );
