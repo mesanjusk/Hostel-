@@ -10,6 +10,22 @@ import { SlideContainer } from "@/components/shared/slide-container";
 export function MoodboardView() {
   const { elements, sectionBackgrounds, loading } = useHomeDesign();
   const [activeSection, setActiveSection] = useState<string>(HOME_SECTIONS[0].id);
+  const [isDesktop, setIsDesktop] = useState(false);
+
+  // On desktop, elements are inside the locked slideshow, so an in-page anchor (e.g. the
+  // hero card's "Open My Survival Board →" button, linking to #mental-prep) has nothing to
+  // natively scroll to — only the active slide is mounted. Intercept clicks on any same-page
+  // hash link here and drive the slideshow directly instead. Native anchor behavior is left
+  // alone on mobile, which isn't locked.
+  function handleContentClick(e: React.MouseEvent) {
+    if (!isDesktop) return;
+    const anchor = (e.target as HTMLElement).closest("a[href^='#']");
+    if (!anchor) return;
+    const id = anchor.getAttribute("href")!.slice(1);
+    if (!HOME_SECTIONS.some((s) => s.id === id)) return;
+    e.preventDefault();
+    setActiveSection(id);
+  }
 
   if (loading) {
     // Plain backdrop instead of the hardcoded defaults — avoids a flash of stale gradient/copy
@@ -18,10 +34,10 @@ export function MoodboardView() {
   }
 
   return (
-    <div className="relative overflow-x-hidden bg-[#fdf6ee] text-[#3a2e2a]">
+    <div className="relative overflow-x-hidden bg-[#fdf6ee] text-[#3a2e2a]" onClick={handleContentClick}>
       <div className="grain-overlay pointer-events-none fixed inset-0 z-0" />
 
-      <SlideContainer activeId={activeSection} onActiveChange={setActiveSection}>
+      <SlideContainer activeId={activeSection} onActiveChange={setActiveSection} onDesktopChange={setIsDesktop}>
         {HOME_SECTIONS.map((section) => (
           <div key={section.id} id={section.id} className="relative">
             <div className="block sm:hidden">
