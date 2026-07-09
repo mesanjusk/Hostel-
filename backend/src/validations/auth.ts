@@ -41,22 +41,37 @@ const otpCodeSchema = z
   .trim()
   .regex(/^\d{6}$/, "Enter the 6-digit code");
 
+// Optional custom login code a user can set instead of falling back to the WhatsApp OTP
+// itself — same shape the login screen already accepts (6 or 7 digits).
+const customPinSchema = z
+  .string()
+  .trim()
+  .regex(/^\d{6,7}$/, "Login code must be 6-7 digits")
+  .optional();
+
 export const otpRequestSchema = z.object({
+  mobile: mobileSchema,
+});
+
+export const checkMobileSchema = z.object({
   mobile: mobileSchema,
 });
 
 export const registerVerifySchema = z.object({
   mobile: mobileSchema,
   code: otpCodeSchema,
+  pin: customPinSchema,
 });
 
 export const resetPasswordSchema = z.object({
   mobile: mobileSchema,
   code: otpCodeSchema,
+  pin: customPinSchema,
 });
 
 export type LoginInput = z.infer<typeof loginSchema>;
 export type OnboardingInput = z.infer<typeof onboardingSchema>;
 export type OtpRequestInput = z.infer<typeof otpRequestSchema>;
+export type CheckMobileInput = z.infer<typeof checkMobileSchema>;
 export type RegisterVerifyInput = z.infer<typeof registerVerifySchema>;
 export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;

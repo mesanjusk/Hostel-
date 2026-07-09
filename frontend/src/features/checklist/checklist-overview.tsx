@@ -18,6 +18,7 @@ import { getCategoryIcon } from "@/lib/checklist-icons";
 import { api, ApiError } from "@/lib/api";
 import { emitRefresh } from "@/lib/refresh-bus";
 import { CategoryView } from "@/features/checklist/category-view";
+import { DownloadPdfButton } from "@/features/checklist/download-pdf-button";
 import type { ChecklistCategory } from "@/types";
 import type { ChecklistItemDTO } from "@/features/checklist/checklist-item-dto";
 
@@ -78,7 +79,12 @@ export function ChecklistOverview({
   return (
     <div>
       {!bulkEditMode && (
-        <div className="mb-4 flex justify-end">
+        <div className="mb-4 flex items-center justify-end gap-3">
+          <DownloadPdfButton
+            groups={groups}
+            overall={overall}
+            className="text-muted-foreground hover:text-foreground flex items-center gap-1.5 text-sm font-medium"
+          />
           <Link
             to="/checklist"
             className="text-muted-foreground hover:text-foreground flex items-center gap-1.5 text-sm font-medium"

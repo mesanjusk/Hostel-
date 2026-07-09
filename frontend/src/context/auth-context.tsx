@@ -26,10 +26,11 @@ interface AuthContextValue {
   completeOnboarding: (input: OnboardingInput) => Promise<void>;
   refreshUser: () => Promise<void>;
   setUser: (user: UserDTO) => void;
+  checkMobile: (mobile: string) => Promise<boolean>;
   requestRegisterOtp: (mobile: string) => Promise<OtpRequestResult>;
-  registerWithOtp: (mobile: string, code: string) => Promise<void>;
+  registerWithOtp: (mobile: string, code: string, pin?: string) => Promise<void>;
   requestResetOtp: (mobile: string) => Promise<OtpRequestResult>;
-  resetWithOtp: (mobile: string, code: string) => Promise<void>;
+  resetWithOtp: (mobile: string, code: string, pin?: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -95,14 +96,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(user);
   }, []);
 
+  const checkMobile = useCallback(async (mobile: string) => {
+    const { exists } = await api.post<{ exists: boolean }>("/api/auth/check-mobile", { mobile });
+    return exists;
+  }, []);
+
   const requestRegisterOtp = useCallback(async (mobile: string) => {
     return api.post<OtpRequestResult>("/api/auth/register/request-otp", { mobile });
   }, []);
 
-  const registerWithOtp = useCallback(async (mobile: string, code: string) => {
+  const registerWithOtp = useCallback(async (mobile: string, code: string, pin?: string) => {
     const { token, user } = await api.post<{ token: string; user: UserDTO }>(
       "/api/auth/register/verify",
-      { mobile, code },
+      { mobile, code, pin },
     );
     setAuthToken(token);
     setUser(user);
@@ -112,10 +118,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return api.post<OtpRequestResult>("/api/auth/forgot-password/request-otp", { mobile });
   }, []);
 
-  const resetWithOtp = useCallback(async (mobile: string, code: string) => {
+  const resetWithOtp = useCallback(async (mobile: string, code: string, pin?: string) => {
     const { token, user } = await api.post<{ token: string; user: UserDTO }>(
       "/api/auth/forgot-password/reset",
-      { mobile, code },
+      { mobile, code, pin },
     );
     setAuthToken(token);
     setUser(user);
@@ -131,6 +137,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         completeOnboarding,
         refreshUser,
         setUser,
+        checkMobile,
         requestRegisterOtp,
         registerWithOtp,
         requestResetOtp,

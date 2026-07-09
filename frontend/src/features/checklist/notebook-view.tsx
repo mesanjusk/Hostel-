@@ -6,6 +6,7 @@ import { ChevronLeft, ChevronRight, Rows3 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import { NotebookPage } from "@/features/checklist/notebook-page";
+import { DownloadPdfButton } from "@/features/checklist/download-pdf-button";
 import type { ChecklistItemDTO } from "@/features/checklist/checklist-item-dto";
 
 /** Curated for a plain notebook margin doodle feel — no event-specific stickers. */
@@ -151,13 +152,16 @@ export function NotebookView({
           </p>
           <Progress value={overallPercent} className="mt-1.5 h-1.5" />
         </div>
-        <Link
-          to="/checklist?view=list"
-          className="flex shrink-0 items-center gap-1.5 rounded-full border border-[#e9ddc9] bg-white px-3 py-1.5 text-xs font-medium text-[#8a7a6a] transition-colors hover:text-[#3a2e2a]"
-        >
-          <Rows3 className="size-3.5" />
-          List view
-        </Link>
+        <div className="flex shrink-0 items-center gap-2">
+          <DownloadPdfButton groups={groups} overall={overall} />
+          <Link
+            to="/checklist?view=list"
+            className="flex shrink-0 items-center gap-1.5 rounded-full border border-[#e9ddc9] bg-white px-3 py-1.5 text-xs font-medium text-[#8a7a6a] transition-colors hover:text-[#3a2e2a]"
+          >
+            <Rows3 className="size-3.5" />
+            List view
+          </Link>
+        </div>
       </div>
 
       <div className="relative mx-auto w-full max-w-md lg:max-w-4xl xl:max-w-5xl">

@@ -8,8 +8,14 @@ import { useHomeDesign } from "@/features/welcome/use-home-elements";
 import { SlideContainer } from "@/components/shared/slide-container";
 
 export function MoodboardView() {
-  const { elements, sectionBackgrounds } = useHomeDesign();
+  const { elements, sectionBackgrounds, loading } = useHomeDesign();
   const [activeSection, setActiveSection] = useState<string>(HOME_SECTIONS[0].id);
+
+  if (loading) {
+    // Plain backdrop instead of the hardcoded defaults — avoids a flash of stale gradient/copy
+    // before the admin's real saved design (fetched above) swaps in a moment later.
+    return <div className="fixed inset-0 bg-[#fdf6ee]" />;
+  }
 
   return (
     <div className="relative overflow-x-hidden bg-[#fdf6ee] text-[#3a2e2a]">

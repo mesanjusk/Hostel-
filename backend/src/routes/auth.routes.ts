@@ -1,6 +1,7 @@
 import { Router } from "express";
 
 import {
+  checkMobileSchema,
   loginSchema,
   onboardingSchema,
   otpRequestSchema,
@@ -42,6 +43,21 @@ authRouter.post("/login", async (req, res) => {
   }
 });
 
+// Lets the unified mobile-number entry screen route to the right next step (enter your
+// login code vs. verify a WhatsApp OTP) without the visitor having to pick "log in" or
+// "register" themselves. Only reveals existence, which the register/reset flows already
+// leak via their own error messages.
+authRouter.post("/check-mobile", async (req, res) => {
+  const parsed = checkMobileSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.issues[0]?.message ?? "Invalid input" });
+    return;
+  }
+
+  const existing = await getUserByMobile(parsed.data.mobile);
+  res.json({ exists: Boolean(existing) });
+});
+
 authRouter.post("/register/request-otp", async (req, res) => {
   const parsed = otpRequestSchema.safeParse(req.body);
   if (!parsed.success) {
@@ -80,7 +96,7 @@ authRouter.post("/register/verify", async (req, res) => {
     return;
   }
 
-  const result = await registerUserWithOtp(parsed.data.mobile, parsed.data.code);
+  const result = await registerUserWithOtp(parsed.data.mobile, parsed.data.code, parsed.data.pin);
   if (!result.success) {
     res.status(400).json({ error: result.error });
     return;
@@ -130,7 +146,7 @@ authRouter.post("/forgot-password/reset", async (req, res) => {
     return;
   }
 
-  const result = await resetPinWithOtp(parsed.data.mobile, parsed.data.code);
+  const result = await resetPinWithOtp(parsed.data.mobile, parsed.data.code, parsed.data.pin);
   if (!result.success) {
     res.status(400).json({ error: result.error });
     return;

@@ -13,10 +13,10 @@ const PAGE_SIZE = 20;
 
 export default function AdminUsersPage() {
   const { user: currentUser } = useAuth();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const page = Math.max(1, Number(searchParams.get("page")) || 1);
   const [users, setUsers] = useState<AdminUserDTO[]>([]);
-  const [total, setTotal] = useState(0);
+  const [total, setTotal] = useState<number | null>(null);
 
   async function fetchData() {
     try {
@@ -36,12 +36,27 @@ export default function AdminUsersPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page]);
 
-  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const totalPages = Math.max(1, Math.ceil((total ?? 0) / PAGE_SIZE));
+
+  // A stale/bookmarked `?page=` beyond the real page count (e.g. after users were deleted,
+  // or the list simply shrank) would otherwise render an empty table and misleadingly claim
+  // "No students yet" even though plenty of users exist — snap back to the last valid page.
+  useEffect(() => {
+    if (total !== null && total > 0 && page > totalPages) {
+      setSearchParams(totalPages > 1 ? { page: String(totalPages) } : {}, { replace: true });
+    }
+  }, [total, page, totalPages, setSearchParams]);
 
   return (
     <div>
       <AdminTabs />
-      <UsersView users={users} page={page} totalPages={totalPages} currentUserId={currentUser?.id ?? null} />
+      <UsersView
+        users={users}
+        page={page}
+        totalPages={totalPages}
+        totalUsers={total ?? 0}
+        currentUserId={currentUser?.id ?? null}
+      />
     </div>
   );
 }

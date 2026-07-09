@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { format } from "date-fns";
 import { KeyRound, Users } from "lucide-react";
@@ -28,14 +28,24 @@ export function UsersView({
   users: initialUsers,
   page,
   totalPages,
+  totalUsers,
   currentUserId,
 }: {
   users: AdminUserDTO[];
   page: number;
   totalPages: number;
+  totalUsers: number;
   currentUserId: string | null;
 }) {
   const [users, setUsers] = useState(initialUsers);
+
+  // `initialUsers` starts as [] while the parent's fetch is still in flight, then arrives
+  // with the real data (and again on every page change / refresh) — without this sync,
+  // useState's initializer only fires once and the table would keep showing that first,
+  // empty snapshot forever regardless of how many users actually exist.
+  useEffect(() => {
+    setUsers(initialUsers);
+  }, [initialUsers]);
 
   async function handleDelete(id: string) {
     setUsers((prev) => prev.filter((u) => u.id !== id));
@@ -52,11 +62,19 @@ export function UsersView({
       <PageHeader title="Users" description="Everyone with access to Pack with Me" action={<UserFormDialog />} />
 
       {users.length === 0 ? (
-        <EmptyState
-          icon={Users}
-          title="No students yet"
-          description="Users appear here after their first login, or once you add one."
-        />
+        totalUsers > 0 ? (
+          <EmptyState
+            icon={Users}
+            title="No users on this page"
+            description={`There ${totalUsers === 1 ? "is" : "are"} ${totalUsers} user${totalUsers === 1 ? "" : "s"} in total — try an earlier page.`}
+          />
+        ) : (
+          <EmptyState
+            icon={Users}
+            title="No students yet"
+            description="Users appear here after their first login, or once you add one."
+          />
+        )
       ) : (
         <Card className="p-0">
           <Table>
