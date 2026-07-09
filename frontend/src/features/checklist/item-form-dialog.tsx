@@ -6,7 +6,6 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
   DialogContent,
@@ -36,10 +35,8 @@ import { emitRefresh } from "@/lib/refresh-bus";
 import { CategorySelect } from "@/features/checklist/category-select";
 import { PhotoUploadField } from "@/features/checklist/photo-upload-field";
 import { BagSelect } from "@/features/bags/bag-select";
-import { CHECKLIST_PRIORITIES, STORE_OPTIONS, type ChecklistCategory } from "@/types";
+import { CHECKLIST_PRIORITIES, type ChecklistCategory } from "@/types";
 import type { ChecklistItemDTO } from "@/features/checklist/checklist-item-dto";
-
-const NONE_STORE = "none";
 
 interface ItemFormDialogProps {
   /** The user's full category list, for the category picker. */
@@ -176,20 +173,6 @@ export function ItemFormDialog({
 
             <FormField
               control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Description</FormLabel>
-                  <FormControl>
-                    <Textarea rows={3} placeholder="Optional details…" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
               name="priority"
               render={({ field }) => (
                 <FormItem>
@@ -208,123 +191,6 @@ export function ItemFormDialog({
                       ))}
                     </SelectContent>
                   </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-              <FormField
-                control={form.control}
-                name="price"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Price</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        min={0}
-                        placeholder="₹"
-                        value={field.value ?? ""}
-                        onChange={(e) => field.onChange(e.target.value === "" ? null : e.target.value)}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="priceRangeMin"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Min range</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        min={0}
-                        placeholder="₹"
-                        value={field.value ?? ""}
-                        onChange={(e) => field.onChange(e.target.value === "" ? null : e.target.value)}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="priceRangeMax"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Max range</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        min={0}
-                        placeholder="₹"
-                        value={field.value ?? ""}
-                        onChange={(e) => field.onChange(e.target.value === "" ? null : e.target.value)}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            <FormField
-              control={form.control}
-              name="recommendedBrand"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Recommended brand</FormLabel>
-                  <FormControl>
-                    <Input placeholder="e.g. Bombay Dyeing" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="recommendedStore"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Recommended store</FormLabel>
-                  <Select
-                    value={field.value ?? NONE_STORE}
-                    onValueChange={(value) => field.onChange(value === NONE_STORE ? null : value)}
-                  >
-                    <FormControl>
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Select store" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value={NONE_STORE}>None</SelectItem>
-                      {STORE_OPTIONS.map((store) => (
-                        <SelectItem key={store} value={store}>
-                          {store}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="purchaseLink"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Purchase link</FormLabel>
-                  <FormControl>
-                    <Input type="url" placeholder="https://…" {...field} />
-                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
@@ -351,55 +217,6 @@ export function ItemFormDialog({
                 <FormItem>
                   <FormLabel>Bag (optional)</FormLabel>
                   <BagSelect value={field.value ?? null} onChange={field.onChange} />
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="notes"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Notes (optional)</FormLabel>
-                  <FormControl>
-                    <Textarea rows={2} placeholder="Any extra notes…" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="studentRating"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Student rating (0-5)</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="number"
-                      min={0}
-                      max={5}
-                      step={0.5}
-                      value={field.value ?? ""}
-                      onChange={(e) => field.onChange(e.target.value === "" ? null : e.target.value)}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="importance"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Why it matters</FormLabel>
-                  <FormControl>
-                    <Textarea rows={2} placeholder="Short note on why this matters…" {...field} />
-                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
