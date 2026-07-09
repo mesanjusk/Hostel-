@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence, LayoutGroup } from "framer-motion";
-import { Check, Copy, ListChecks, Luggage, Pencil, Plus, Trash2 } from "lucide-react";
+import { Check, Copy, ListChecks, Pencil, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -43,78 +43,65 @@ function ItemRowMenu({
   onDelete: () => void;
 }) {
   return (
-    <div
-      data-no-flip
-      className="flex shrink-0 items-center gap-0.5 opacity-70 transition-opacity group-hover:opacity-100"
-    >
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="size-7 text-[#8a7a6a] hover:text-[#3a2e2a]"
-            aria-label="Edit item"
-          >
-            <Pencil className="size-3.5" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuItem onClick={onRename}>
-            <Pencil className="size-4" />
-            Edit name
-          </DropdownMenuItem>
-          <ItemFormDialog
-            categories={allCategories}
-            category={category}
-            item={item}
-            trigger={
-              <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                <ListChecks className="size-4" />
-                Edit complete details
-              </DropdownMenuItem>
-            }
-          />
-          <DropdownMenuItem onClick={onDuplicate}>
-            <Copy className="size-4" />
-            Duplicate
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-
+    <div data-no-flip className="flex shrink-0 items-center gap-1.5">
       <AddToBagPopover
         itemId={item.id}
         bagId={item.bagId}
-        trigger={
-          <Button
-            variant="ghost"
-            size="icon"
-            className={
-              item.bagId
-                ? "text-primary size-7"
-                : "size-7 text-[#8a7a6a] hover:text-[#3a2e2a]"
-            }
-            aria-label="Add to bag"
-          >
-            <Luggage className="size-3.5" />
-          </Button>
-        }
+        bagName={item.bagName}
+        bagColor={item.bagColor}
       />
 
-      <ConfirmDialog
-        trigger={
-          <Button
-            variant="ghost"
-            size="icon"
-            className="text-destructive hover:text-destructive size-7"
-            aria-label="Delete item"
-          >
-            <Trash2 className="size-3.5" />
-          </Button>
-        }
-        title="Delete this item?"
-        description="This can't be undone."
-        onConfirm={onDelete}
-      />
+      <div className="flex shrink-0 items-center gap-0.5 opacity-60 transition-opacity group-hover:opacity-100">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-7 text-[#8a7a6a] hover:text-[#3a2e2a]"
+              aria-label="Edit item"
+            >
+              <Pencil className="size-3.5" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={onRename}>
+              <Pencil className="size-4" />
+              Edit name
+            </DropdownMenuItem>
+            <ItemFormDialog
+              categories={allCategories}
+              category={category}
+              item={item}
+              trigger={
+                <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                  <ListChecks className="size-4" />
+                  Edit complete details
+                </DropdownMenuItem>
+              }
+            />
+            <DropdownMenuItem onClick={onDuplicate}>
+              <Copy className="size-4" />
+              Duplicate
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        <ConfirmDialog
+          trigger={
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-destructive hover:text-destructive size-7"
+              aria-label="Delete item"
+            >
+              <Trash2 className="size-3.5" />
+            </Button>
+          }
+          title="Delete this item?"
+          description="This can't be undone."
+          onConfirm={onDelete}
+        />
+      </div>
     </div>
   );
 }

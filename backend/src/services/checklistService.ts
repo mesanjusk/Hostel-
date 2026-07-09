@@ -52,25 +52,30 @@ export async function listItemsByCategory(userId: string, category: ChecklistCat
 }
 
 /** All items for a user, grouped by category — for the expandable accordion overview.
- * Attaches a `bagName` alongside each item's `bagId` for display purposes only; the
- * bag assignment itself still lives solely on the checklist item. */
+ * Attaches `bagName`/`bagColor` alongside each item's `bagId` for display purposes only
+ * (e.g. so the checklist row can render the assigned bag's color without a second
+ * round-trip); the bag assignment itself still lives solely on the checklist item. */
 export async function getAllItemsByCategory(userId: string) {
   await connectDB();
   const [categories, items, bags] = await Promise.all([
     listCategories(userId),
     ChecklistItem.find({ userId }).sort({ createdAt: -1 }).lean(),
-    Bag.find({ userId }).select("name").lean(),
+    Bag.find({ userId }).select("name color").lean(),
   ]);
 
-  const bagNameById = new Map(bags.map((b) => [String(b._id), b.name]));
-  const itemsWithBagName = items.map((item) => ({
-    ...item,
-    bagName: item.bagId ? (bagNameById.get(String(item.bagId)) ?? null) : null,
-  }));
+  const bagById = new Map(bags.map((b) => [String(b._id), b]));
+  const itemsWithBagInfo = items.map((item) => {
+    const bag = item.bagId ? bagById.get(String(item.bagId)) : undefined;
+    return {
+      ...item,
+      bagName: bag?.name ?? null,
+      bagColor: bag?.color ?? null,
+    };
+  });
 
   return categories.map(({ name: category }) => ({
     category,
-    items: itemsWithBagName.filter((i) => i.category === category),
+    items: itemsWithBagInfo.filter((i) => i.category === category),
   }));
 }
 

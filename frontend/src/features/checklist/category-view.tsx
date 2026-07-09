@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowLeft, Check, Copy, ListChecks, Luggage, Pencil, Search, Trash2, X } from "lucide-react";
+import { ArrowLeft, Check, Copy, ListChecks, Pencil, Search, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -311,74 +311,65 @@ export function CategoryView({
                       <p className={item.completed ? "text-muted-foreground truncate line-through" : "truncate font-medium"}>
                         {item.item}
                       </p>
-                      <div className="text-muted-foreground flex items-center gap-2 text-xs">
-                        {item.price != null && <span>₹{item.price}</span>}
-                        {item.bagName && <span>🎒 {item.bagName}</span>}
-                      </div>
+                      {item.price != null && <p className="text-muted-foreground text-xs">₹{item.price}</p>}
                     </div>
                   </button>
 
                   {!selectMode && (
-                    <div className="flex shrink-0 items-center gap-1">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="size-8" aria-label="Edit item">
-                            <Pencil className="size-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => setRenameItem(item)}>
-                            <Pencil className="size-4" />
-                            Edit name
-                          </DropdownMenuItem>
-                          <ItemFormDialog
-                            categories={allCategories}
-                            category={category}
-                            item={item}
-                            trigger={
-                              <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                                <ListChecks className="size-4" />
-                                Edit complete details
-                              </DropdownMenuItem>
-                            }
-                          />
-                          <DropdownMenuItem onClick={() => handleDuplicate(item.id)}>
-                            <Copy className="size-4" />
-                            Duplicate
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-
+                    <div className="flex shrink-0 items-center gap-2">
                       <AddToBagPopover
                         itemId={item.id}
                         bagId={item.bagId}
-                        trigger={
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className={item.bagId ? "text-primary size-8" : "size-8"}
-                            aria-label="Add to bag"
-                          >
-                            <Luggage className="size-4" />
-                          </Button>
-                        }
+                        bagName={item.bagName}
+                        bagColor={item.bagColor}
                       />
 
-                      <ConfirmDialog
-                        trigger={
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="text-destructive hover:text-destructive size-8"
-                            aria-label="Delete item"
-                          >
-                            <Trash2 className="size-4" />
-                          </Button>
-                        }
-                        title="Delete this item?"
-                        description="This can't be undone."
-                        onConfirm={() => handleDelete(item.id)}
-                      />
+                      <div className="flex shrink-0 items-center gap-1 opacity-60 transition-opacity hover:opacity-100">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="size-8" aria-label="Edit item">
+                              <Pencil className="size-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => setRenameItem(item)}>
+                              <Pencil className="size-4" />
+                              Edit name
+                            </DropdownMenuItem>
+                            <ItemFormDialog
+                              categories={allCategories}
+                              category={category}
+                              item={item}
+                              trigger={
+                                <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                                  <ListChecks className="size-4" />
+                                  Edit complete details
+                                </DropdownMenuItem>
+                              }
+                            />
+                            <DropdownMenuItem onClick={() => handleDuplicate(item.id)}>
+                              <Copy className="size-4" />
+                              Duplicate
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+
+                        <ConfirmDialog
+                          trigger={
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="text-destructive hover:text-destructive size-8"
+                              aria-label="Delete item"
+                            >
+                              <Trash2 className="size-4" />
+                            </Button>
+                          }
+                          title="Delete this item?"
+                          description="This can't be undone."
+                          onConfirm={() => handleDelete(item.id)}
+                        />
+                      </div>
                     </div>
                   )}
                 </motion.div>
