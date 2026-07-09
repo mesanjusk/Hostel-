@@ -41,10 +41,22 @@ export function LoginForm() {
   }
 
   return (
-    <div className="glass relative w-full max-w-md overflow-hidden rounded-3xl p-8 shadow-2xl">
-      <div className="mb-8 flex flex-col items-center gap-3 text-center">
-        <img src="/logo.png" alt="" width={64} height={64} />
-        <h1 className="text-2xl">
+    <motion.div
+      initial={{ opacity: 0, y: 16, scale: 0.98 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+      className="glass relative w-full max-w-md overflow-hidden rounded-[28px] p-8 shadow-[0_30px_70px_-25px_rgba(58,46,42,0.4)] sm:p-10"
+    >
+      <div
+        aria-hidden
+        className="gradient-brand absolute inset-x-0 -top-24 mx-auto size-48 rounded-full opacity-20 blur-3xl"
+      />
+
+      <div className="relative mb-8 flex flex-col items-center gap-3 text-center">
+        <div className="gradient-brand flex size-16 items-center justify-center rounded-2xl shadow-lg shadow-primary/25">
+          <img src="/logo.png" alt="" width={40} height={40} />
+        </div>
+        <h1 className="font-display text-2xl font-bold">
           <BrandName />
         </h1>
         <p className="text-muted-foreground text-sm">
@@ -53,10 +65,11 @@ export function LoginForm() {
       </div>
 
       <motion.form
-        initial={{ opacity: 0, x: 20 }}
-        animate={{ opacity: 1, x: 0 }}
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
         onSubmit={handleSubmit}
-        className="flex flex-col gap-4"
+        className="relative flex flex-col gap-5"
       >
         <div className="grid gap-2">
           <Label htmlFor="mobile">Mobile number</Label>
@@ -67,7 +80,7 @@ export function LoginForm() {
               inputMode="numeric"
               autoComplete="tel"
               placeholder="98765 43210"
-              className="pl-11"
+              className="h-12 pl-11 text-base"
               value={mobile}
               onChange={(e) => setMobile(e.target.value)}
               required
@@ -83,22 +96,31 @@ export function LoginForm() {
               inputMode="numeric"
               autoComplete="one-time-code"
               placeholder="Your login code"
-              className="pl-11 tracking-widest"
+              className="h-12 pl-11 text-base tracking-widest"
               maxLength={7}
               value={pin}
               onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))}
               required
             />
           </div>
-          {error && <p className="text-destructive text-sm">{error}</p>}
+          {error && (
+            <motion.p
+              initial={{ opacity: 0, y: -4 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="text-destructive text-sm"
+              role="alert"
+            >
+              {error}
+            </motion.p>
+          )}
         </div>
-        <Button type="submit" size="lg" disabled={isSubmitting} className="mt-2">
+        <Button type="submit" size="lg" disabled={isSubmitting} className="mt-2 h-12 text-base">
           {isSubmitting ? <Loader2 className="size-4 animate-spin" /> : null}
           Log in
         </Button>
       </motion.form>
 
-      <div className="text-muted-foreground mt-6 flex flex-col items-center gap-1 text-center text-sm">
+      <div className="text-muted-foreground relative mt-7 flex flex-col items-center gap-1.5 text-center text-sm">
         <p>
           New here?{" "}
           <Link to="/register" className="text-foreground font-medium underline underline-offset-4">
@@ -111,6 +133,6 @@ export function LoginForm() {
           </Link>
         </p>
       </div>
-    </div>
+    </motion.div>
   );
 }

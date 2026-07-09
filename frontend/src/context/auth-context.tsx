@@ -1,6 +1,8 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
+import { toast } from "sonner";
 
 import { api, ApiError, setAuthToken, getAuthToken } from "@/lib/api";
+import { subscribeUnauthorized } from "@/lib/auth-events";
 import type { CollegeCategory, Gender, UserDTO } from "@/types";
 
 interface OnboardingInput {
@@ -55,6 +57,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     refreshUser().finally(() => setLoading(false));
   }, [refreshUser]);
+
+  useEffect(() => {
+    // The API client emits this when a request comes back 401 for a token we did send —
+    // i.e. the session died server-side (expired/rotated), not a bad login attempt.
+    return subscribeUnauthorized(() => {
+      setAuthToken(null);
+      setUser((prev) => {
+        if (prev) {
+          toast.error("Your session has expired. Please log in again.");
+        }
+        return null;
+      });
+    });
+  }, []);
 
   const login = useCallback(async (mobile: string, pin: string) => {
     const { token, user } = await api.post<{ token: string; user: UserDTO }>("/api/auth/login", {

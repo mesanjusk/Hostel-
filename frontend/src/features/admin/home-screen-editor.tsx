@@ -116,7 +116,6 @@ function EditableTarget({
     node.style.top = `${topPx}px`;
     node.style.transform = `rotate(${layout.rotation}deg) scale(${layout.scale})`;
     node.style.zIndex = String(layout.zIndex);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     layout.x,
     layout.y,

@@ -103,12 +103,13 @@ export function Polaroid({
     >
       <div className="flex aspect-square items-center justify-center rounded-sm bg-gradient-to-br from-[#fdf6ee] to-[#f3e6d5] p-6 text-6xl lg:text-7xl">
         {stickerSlug ? (
-          // eslint-disable-next-line @next/next/no-img-element -- decorative sticker, variable aspect ratio
           <img
             src={`/stickers/${stickerSlug}.png`}
             alt={caption}
             className="h-full w-full object-contain drop-shadow-[1px_4px_8px_rgba(58,46,42,0.25)]"
             draggable={false}
+            loading="lazy"
+            decoding="async"
           />
         ) : (
           emoji
@@ -184,8 +185,14 @@ export function ImageSticker({
           ["--bob-rotate" as string]: `${bobRotate}deg`,
         }}
       >
-        {/* eslint-disable-next-line @next/next/no-img-element -- decorative, variable aspect ratio, no next/image sizing needed */}
-        <img src={src} alt={alt} className="h-full w-full object-contain" draggable={false} />
+        <img
+          src={src}
+          alt={alt}
+          className="h-full w-full object-contain"
+          draggable={false}
+          loading="lazy"
+          decoding="async"
+        />
       </span>
     </span>
   );

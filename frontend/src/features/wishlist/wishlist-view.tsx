@@ -110,7 +110,6 @@ export function WishlistView() {
   useEffect(() => {
     fetchData();
     return subscribeRefresh(fetchData);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function togglePurchased(item: WishlistItemDTO) {

@@ -9,6 +9,7 @@ import { SuitcaseFill, PiggyBankFill } from "@/components/shared/liquid-fill-ico
 import { StatCard } from "@/components/shared/stat-card";
 import { EmptyState } from "@/components/shared/empty-state";
 import { SuccessLottie } from "@/components/shared/success-lottie";
+import { SiteFooter } from "@/components/shared/site-footer";
 import { ExpenseMiniChart } from "@/features/dashboard/expense-mini-chart";
 import { getCategoryIcon } from "@/lib/checklist-icons";
 import { mergeDashboardLayout, STAT_CARD_IDS, type WidgetConfig } from "@/features/dashboard/widget-registry";
@@ -241,6 +242,8 @@ export function DashboardView({
           const Widget = WIDGET_COMPONENTS[w.id];
           return <Widget key={w.id} data={data} />;
         })}
+
+      <SiteFooter />
     </div>
   );
 }

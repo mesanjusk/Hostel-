@@ -72,7 +72,6 @@ export function BudgetView() {
   useEffect(() => {
     fetchData();
     return subscribeRefresh(fetchData);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const filteredEntries = useMemo(() => {

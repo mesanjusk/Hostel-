@@ -29,7 +29,6 @@ export default function DashboardPage() {
   useEffect(() => {
     fetchData();
     return subscribeRefresh(fetchData);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (!data) return null;

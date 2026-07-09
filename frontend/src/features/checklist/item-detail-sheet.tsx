@@ -40,7 +40,13 @@ export function ItemDetailSheet({ item, open, onOpenChange }: ItemDetailSheetPro
         <div className="flex flex-col gap-5">
           {item.imageUrl ? (
             <div className="relative h-48 w-full overflow-hidden rounded-xl">
-              <img src={item.imageUrl} alt={item.item} className="h-full w-full object-cover" />
+              <img
+                src={item.imageUrl}
+                alt={item.item}
+                className="h-full w-full object-cover"
+                loading="lazy"
+                decoding="async"
+              />
             </div>
           ) : (
             <div className="bg-muted flex h-48 w-full items-center justify-center rounded-xl">

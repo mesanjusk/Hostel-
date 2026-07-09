@@ -36,11 +36,33 @@ const SPEED_DIAL_ITEMS: { key: DialogKey; label: string; icon: typeof ListChecks
   { key: "category", label: "New category", icon: FolderPlus },
 ];
 
+interface Ripple {
+  id: number;
+  x: number;
+  y: number;
+  size: number;
+}
+
 export function FabMenu({ hiddenNavHrefs }: { hiddenNavHrefs?: Set<string> }) {
   const [speedDialOpen, setSpeedDialOpen] = useState(false);
   const [activeDialog, setActiveDialog] = useState<DialogKey | null>(null);
   const [categories, setCategories] = useState<string[] | null>(null);
   const [loadingKey, setLoadingKey] = useState<DialogKey | null>(null);
+  const [ripples, setRipples] = useState<Ripple[]>([]);
+
+  function spawnRipple(e: React.PointerEvent<HTMLButtonElement>) {
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const size = Math.max(rect.width, rect.height) * 1.4;
+    setRipples((prev) => [
+      ...prev,
+      { id: Date.now() + Math.random(), x: e.clientX - rect.left - size / 2, y: e.clientY - rect.top - size / 2, size },
+    ]);
+  }
+
+  function clearRipple(id: number) {
+    setRipples((prev) => prev.filter((r) => r.id !== id));
+  }
   const speedDialItems = SPEED_DIAL_ITEMS.filter(
     (item) => !item.navHref || !hiddenNavHrefs?.has(item.navHref),
   );
@@ -110,19 +132,49 @@ export function FabMenu({ hiddenNavHrefs }: { hiddenNavHrefs?: Set<string> }) {
   );
 
   const toggleButton = (size: "sm" | "lg") => (
-    <button
-      type="button"
-      aria-label={speedDialOpen ? "Close quick add" : "Quick add"}
-      onClick={() => setSpeedDialOpen((v) => !v)}
-      className={cn(
-        "gradient-brand flex items-center justify-center rounded-full text-white shadow-lg shadow-primary/30 transition-transform active:scale-95",
-        size === "sm" ? "size-12 -translate-y-2" : "size-14",
+    <div className={cn("relative", size === "sm" && "-translate-y-2")}>
+      {/* Slow, elegant "breathing" glow to draw the eye without flashing — pauses while open. */}
+      {!speedDialOpen && (
+        <motion.span
+          aria-hidden
+          className="pointer-events-none absolute -inset-2.5 rounded-full blur-lg"
+          style={{ background: "var(--gradient-brand)" }}
+          animate={{ opacity: [0.35, 0.7, 0.35], scale: [0.96, 1.05, 0.96] }}
+          transition={{ duration: 2.6, repeat: Infinity, ease: "easeInOut" }}
+        />
       )}
-    >
-      <motion.span animate={{ rotate: speedDialOpen ? 45 : 0 }} transition={{ duration: 0.2 }}>
-        <Plus className={size === "sm" ? "size-5" : "size-6"} />
-      </motion.span>
-    </button>
+
+      <motion.button
+        type="button"
+        aria-label={speedDialOpen ? "Close quick add" : "Quick add"}
+        onPointerDown={spawnRipple}
+        onClick={() => setSpeedDialOpen((v) => !v)}
+        whileHover={{ scale: 1.04 }}
+        whileTap={{ scale: 0.95 }}
+        transition={{ type: "spring", stiffness: 400, damping: 22 }}
+        className={cn(
+          "gradient-brand relative flex items-center justify-center gap-2 overflow-hidden rounded-full text-white shadow-[0_10px_28px_-8px_rgba(201,107,154,0.6)]",
+          size === "sm" ? "h-12 px-5 text-sm font-semibold" : "h-14 px-7 text-base font-semibold",
+        )}
+      >
+        {ripples.map((r) => (
+          <span
+            key={r.id}
+            onAnimationEnd={() => clearRipple(r.id)}
+            className="animate-fab-ripple pointer-events-none absolute rounded-full bg-white/40"
+            style={{ left: r.x, top: r.y, width: r.size, height: r.size }}
+          />
+        ))}
+        <motion.span
+          className="flex shrink-0 items-center justify-center"
+          animate={{ rotate: speedDialOpen ? 45 : 0 }}
+          transition={{ duration: 0.2 }}
+        >
+          <Plus className={size === "sm" ? "size-5" : "size-6"} />
+        </motion.span>
+        <span className="whitespace-nowrap">Quick add</span>
+      </motion.button>
+    </div>
   );
 
   return (

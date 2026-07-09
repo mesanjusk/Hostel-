@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 
 import { useAuth } from "@/context/auth-context";
@@ -5,35 +6,36 @@ import { ProtectedRoute, AdminRoute, AuthOnlyRoute } from "@/components/protecte
 import { DashboardLayout } from "@/layouts/dashboard-layout";
 import { AuthLayout } from "@/layouts/auth-layout";
 import { ScrollToTop } from "@/components/shared/scroll-to-top";
+import { RouteFallback } from "@/components/shared/route-fallback";
 import { HOME_ROUTE } from "@/lib/nav-items";
 
-import LoginPage from "@/pages/login-page";
-import RegisterPage from "@/pages/register-page";
-import ForgotPasswordPage from "@/pages/forgot-password-page";
-import OnboardingPage from "@/pages/onboarding-page";
-import NotFound from "@/pages/not-found";
-import WelcomePage from "@/pages/welcome-page";
-import DashboardPage from "@/pages/dashboard-page";
-import ChecklistPage from "@/pages/checklist-page";
-import ChecklistCategoryPage from "@/pages/checklist-category-page";
-import BudgetPage from "@/pages/budget-page";
-import NotesPage from "@/pages/notes-page";
-import DocumentsPage from "@/pages/documents-page";
-import ContactsPage from "@/pages/contacts-page";
-import WishlistPage from "@/pages/wishlist-page";
-import ShoppingPage from "@/pages/shopping-page";
-import GuidePage from "@/pages/guide-page";
-import GuideArticlePage from "@/pages/guide-article-page";
-import SurvivalGuidePage from "@/pages/survival-guide-page";
-import ProfilePage from "@/pages/profile-page";
-import SettingsPage from "@/pages/settings-page";
-import AdminPage from "@/pages/admin-page";
-import AdminUsersPage from "@/pages/admin-users-page";
-import AdminProductsPage from "@/pages/admin-products-page";
-import AdminGuidePage from "@/pages/admin-guide-page";
-import AdminLayoutPage from "@/pages/admin-layout-page";
-import AdminNavPage from "@/pages/admin-nav-page";
-import AdminHomeScreenPage from "@/pages/admin-home-screen-page";
+const LoginPage = lazy(() => import("@/pages/login-page"));
+const RegisterPage = lazy(() => import("@/pages/register-page"));
+const ForgotPasswordPage = lazy(() => import("@/pages/forgot-password-page"));
+const OnboardingPage = lazy(() => import("@/pages/onboarding-page"));
+const NotFound = lazy(() => import("@/pages/not-found"));
+const WelcomePage = lazy(() => import("@/pages/welcome-page"));
+const DashboardPage = lazy(() => import("@/pages/dashboard-page"));
+const ChecklistPage = lazy(() => import("@/pages/checklist-page"));
+const ChecklistCategoryPage = lazy(() => import("@/pages/checklist-category-page"));
+const BudgetPage = lazy(() => import("@/pages/budget-page"));
+const NotesPage = lazy(() => import("@/pages/notes-page"));
+const DocumentsPage = lazy(() => import("@/pages/documents-page"));
+const ContactsPage = lazy(() => import("@/pages/contacts-page"));
+const WishlistPage = lazy(() => import("@/pages/wishlist-page"));
+const ShoppingPage = lazy(() => import("@/pages/shopping-page"));
+const GuidePage = lazy(() => import("@/pages/guide-page"));
+const GuideArticlePage = lazy(() => import("@/pages/guide-article-page"));
+const SurvivalGuidePage = lazy(() => import("@/pages/survival-guide-page"));
+const ProfilePage = lazy(() => import("@/pages/profile-page"));
+const SettingsPage = lazy(() => import("@/pages/settings-page"));
+const AdminPage = lazy(() => import("@/pages/admin-page"));
+const AdminUsersPage = lazy(() => import("@/pages/admin-users-page"));
+const AdminProductsPage = lazy(() => import("@/pages/admin-products-page"));
+const AdminGuidePage = lazy(() => import("@/pages/admin-guide-page"));
+const AdminLayoutPage = lazy(() => import("@/pages/admin-layout-page"));
+const AdminNavPage = lazy(() => import("@/pages/admin-nav-page"));
+const AdminHomeScreenPage = lazy(() => import("@/pages/admin-home-screen-page"));
 
 function RootRoute() {
   const { user, loading } = useAuth();
@@ -46,125 +48,127 @@ export default function App() {
   return (
     <>
       <ScrollToTop />
-      <Routes>
-        <Route path="/" element={<RootRoute />} />
+      <Suspense fallback={<RouteFallback />}>
+        <Routes>
+          <Route path="/" element={<RootRoute />} />
 
-        <Route element={<AuthLayout />}>
+          <Route element={<AuthLayout />}>
+            <Route
+              path="/login"
+              element={
+                <AuthOnlyRoute>
+                  <LoginPage />
+                </AuthOnlyRoute>
+              }
+            />
+            <Route
+              path="/register"
+              element={
+                <AuthOnlyRoute>
+                  <RegisterPage />
+                </AuthOnlyRoute>
+              }
+            />
+            <Route
+              path="/forgot-password"
+              element={
+                <AuthOnlyRoute>
+                  <ForgotPasswordPage />
+                </AuthOnlyRoute>
+              }
+            />
+            <Route
+              path="/onboarding"
+              element={
+                <ProtectedRoute>
+                  <OnboardingPage />
+                </ProtectedRoute>
+              }
+            />
+          </Route>
+
           <Route
-            path="/login"
-            element={
-              <AuthOnlyRoute>
-                <LoginPage />
-              </AuthOnlyRoute>
-            }
-          />
-          <Route
-            path="/register"
-            element={
-              <AuthOnlyRoute>
-                <RegisterPage />
-              </AuthOnlyRoute>
-            }
-          />
-          <Route
-            path="/forgot-password"
-            element={
-              <AuthOnlyRoute>
-                <ForgotPasswordPage />
-              </AuthOnlyRoute>
-            }
-          />
-          <Route
-            path="/onboarding"
             element={
               <ProtectedRoute>
-                <OnboardingPage />
+                <DashboardLayout />
               </ProtectedRoute>
             }
-          />
-        </Route>
+          >
+            <Route path="/dashboard" element={<DashboardPage />} />
+            <Route path="/checklist" element={<ChecklistPage />} />
+            <Route path="/checklist/:category" element={<ChecklistCategoryPage />} />
+            <Route path="/budget" element={<BudgetPage />} />
+            <Route path="/notes" element={<NotesPage />} />
+            <Route path="/documents" element={<DocumentsPage />} />
+            <Route path="/contacts" element={<ContactsPage />} />
+            <Route path="/wishlist" element={<WishlistPage />} />
+            <Route path="/shopping" element={<ShoppingPage />} />
+            <Route path="/guide" element={<GuidePage />} />
+            <Route path="/guide/survival-guide" element={<SurvivalGuidePage />} />
+            <Route path="/guide/:slug" element={<GuideArticlePage />} />
+            <Route path="/profile" element={<ProfilePage />} />
+            <Route path="/settings" element={<SettingsPage />} />
+            <Route
+              path="/admin"
+              element={
+                <AdminRoute>
+                  <AdminPage />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/admin/users"
+              element={
+                <AdminRoute>
+                  <AdminUsersPage />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/admin/products"
+              element={
+                <AdminRoute>
+                  <AdminProductsPage />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/admin/guide"
+              element={
+                <AdminRoute>
+                  <AdminGuidePage />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/admin/layout"
+              element={
+                <AdminRoute>
+                  <AdminLayoutPage />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/admin/nav"
+              element={
+                <AdminRoute>
+                  <AdminNavPage />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/admin/home-screen"
+              element={
+                <AdminRoute>
+                  <AdminHomeScreenPage />
+                </AdminRoute>
+              }
+            />
+          </Route>
 
-        <Route
-          element={
-            <ProtectedRoute>
-              <DashboardLayout />
-            </ProtectedRoute>
-          }
-        >
-          <Route path="/dashboard" element={<DashboardPage />} />
-          <Route path="/checklist" element={<ChecklistPage />} />
-          <Route path="/checklist/:category" element={<ChecklistCategoryPage />} />
-          <Route path="/budget" element={<BudgetPage />} />
-          <Route path="/notes" element={<NotesPage />} />
-          <Route path="/documents" element={<DocumentsPage />} />
-          <Route path="/contacts" element={<ContactsPage />} />
-          <Route path="/wishlist" element={<WishlistPage />} />
-          <Route path="/shopping" element={<ShoppingPage />} />
-          <Route path="/guide" element={<GuidePage />} />
-          <Route path="/guide/survival-guide" element={<SurvivalGuidePage />} />
-          <Route path="/guide/:slug" element={<GuideArticlePage />} />
-          <Route path="/profile" element={<ProfilePage />} />
-          <Route path="/settings" element={<SettingsPage />} />
-          <Route
-            path="/admin"
-            element={
-              <AdminRoute>
-                <AdminPage />
-              </AdminRoute>
-            }
-          />
-          <Route
-            path="/admin/users"
-            element={
-              <AdminRoute>
-                <AdminUsersPage />
-              </AdminRoute>
-            }
-          />
-          <Route
-            path="/admin/products"
-            element={
-              <AdminRoute>
-                <AdminProductsPage />
-              </AdminRoute>
-            }
-          />
-          <Route
-            path="/admin/guide"
-            element={
-              <AdminRoute>
-                <AdminGuidePage />
-              </AdminRoute>
-            }
-          />
-          <Route
-            path="/admin/layout"
-            element={
-              <AdminRoute>
-                <AdminLayoutPage />
-              </AdminRoute>
-            }
-          />
-          <Route
-            path="/admin/nav"
-            element={
-              <AdminRoute>
-                <AdminNavPage />
-              </AdminRoute>
-            }
-          />
-          <Route
-            path="/admin/home-screen"
-            element={
-              <AdminRoute>
-                <AdminHomeScreenPage />
-              </AdminRoute>
-            }
-          />
-        </Route>
-
-        <Route path="*" element={<NotFound />} />
-      </Routes>
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </Suspense>
     </>
   );
 }

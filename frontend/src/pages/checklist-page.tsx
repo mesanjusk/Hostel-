@@ -43,7 +43,6 @@ export default function ChecklistPage() {
   useEffect(() => {
     fetchData();
     return subscribeRefresh(fetchData);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (loading) return null;

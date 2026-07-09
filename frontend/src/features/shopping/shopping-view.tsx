@@ -83,7 +83,13 @@ export function ShoppingView({ products }: { products: ProductDTO[] }) {
                 <Card className="h-full gap-3 overflow-hidden p-0">
                   <div className="bg-muted relative flex aspect-video items-center justify-center">
                     {product.imageUrl ? (
-                      <img src={product.imageUrl} alt={product.name} className="size-full object-cover" />
+                      <img
+                        src={product.imageUrl}
+                        alt={product.name}
+                        className="size-full object-cover"
+                        loading="lazy"
+                        decoding="async"
+                      />
                     ) : (
                       <ShoppingBag className="text-muted-foreground size-10" />
                     )}

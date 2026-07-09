@@ -37,7 +37,6 @@ export function DocumentsView() {
   useEffect(() => {
     fetchData();
     return subscribeRefresh(fetchData);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function handleDelete(id: string) {

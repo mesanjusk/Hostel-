@@ -1,6 +1,7 @@
 import "dotenv/config";
 import cors from "cors";
 import express from "express";
+import helmet from "helmet";
 
 import { connectDB } from "@/db";
 import { authRouter } from "@/routes/auth.routes";
@@ -21,6 +22,15 @@ import { landingRouter } from "@/routes/landing.routes";
 import { navRouter } from "@/routes/nav.routes";
 
 const app = express();
+
+// JSON API only — disable the HTML-oriented CSP directives and keep resources fetchable
+// cross-origin (the frontend runs on a separate origin and relies on the `cors` config below).
+app.use(
+  helmet({
+    contentSecurityPolicy: false,
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+  }),
+);
 
 const allowedOrigins = (process.env.CORS_ORIGIN ?? "")
   .split(",")
