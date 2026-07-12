@@ -2,14 +2,37 @@ import crypto from "crypto";
 
 import { Router, type Request } from "express";
 
-import { connectDB } from "@/db";
-import { User } from "@/models/User";
-
 export const whatsappRouter = Router();
 
-/** Entry keywords that identify an incoming message as belonging to this app
- * (Metabsp fans the same WhatsApp number out to unrelated projects). */
-const ENTRY_KEYWORDS = ["PACK", "START", "CHECKLIST", "HELP"];
+/** The one entry keyword this app owns on the shared WhatsApp number.
+ * Metabsp fans the same number out to unrelated projects, so we respond ONLY
+ * when a message starts with this keyword or the sender already has an active
+ * session that was opened by it. Generic words (HI, HELLO, START, MENU, HELP,
+ * STOP, YES, NO, OK...) are banned as entry triggers across all projects —
+ * they may only be meaningful inside an active session. */
+const ENTRY_KEYWORD = "HOSTEL";
+const EXIT_KEYWORD = "EXIT";
+const SESSION_TTL_MS = 30 * 60 * 1000;
+
+/** In-memory session + dedupe state.
+ *
+ * Deliberately NOT persisted: the Atlas cluster is at its collection cap (see
+ * the note on User.loginAttempts), and until the keyword handlers are wired up
+ * the only cost of losing this state on restart is that a sender re-types
+ * HOSTEL. Revisit if/when real conversation flows land here. */
+const activeSessions = new Map<string, number>(); // phone -> lastActivity epoch ms
+const processedMessageIds = new Map<string, number>(); // messageId -> firstSeen epoch ms
+const DEDUPE_TTL_MS = 24 * 60 * 60 * 1000;
+
+function pruneExpired(): void {
+  const now = Date.now();
+  for (const [phone, lastActivity] of activeSessions) {
+    if (now - lastActivity >= SESSION_TTL_MS) activeSessions.delete(phone);
+  }
+  for (const [messageId, firstSeen] of processedMessageIds) {
+    if (now - firstSeen >= DEDUPE_TTL_MS) processedMessageIds.delete(messageId);
+  }
+}
 
 interface MetabspPayload {
   fromMe?: boolean;
@@ -44,19 +67,18 @@ function verifySignature(req: Request): boolean {
   return crypto.timingSafeEqual(expectedBuffer, actualBuffer);
 }
 
-async function isRelevantMessage(from: string, text: string): Promise<boolean> {
-  const upperText = text.trim().toUpperCase();
-  if (ENTRY_KEYWORDS.some((keyword) => upperText === keyword || upperText.startsWith(`${keyword} `))) {
-    return true;
-  }
+/** Returns the text after the entry keyword ("" for a bare keyword), or null
+ * when the message does not start with it. */
+function matchEntryKeyword(text: string): string | null {
+  const upper = text.trim().toUpperCase();
+  if (upper === ENTRY_KEYWORD) return "";
+  if (upper.startsWith(`${ENTRY_KEYWORD} `)) return text.trim().slice(ENTRY_KEYWORD.length).trim();
+  return null;
+}
 
-  if (!from) {
-    return false;
-  }
-
-  await connectDB();
-  const existingUser = await User.findOne({ mobile: from }).select("_id").lean();
-  return existingUser !== null;
+function hasActiveSession(phone: string): boolean {
+  const lastActivity = activeSessions.get(phone);
+  return typeof lastActivity === "number" && Date.now() - lastActivity < SESSION_TTL_MS;
 }
 
 async function processMetabspMessage(payload: MetabspPayload): Promise<void> {
@@ -68,18 +90,44 @@ async function processMetabspMessage(payload: MetabspPayload): Promise<void> {
       return;
     }
 
+    pruneExpired();
+
+    // Dedupe: skip a messageId we've already processed (Metabsp/Meta retry
+    // deliveries on slow responses).
+    const messageId = String(payload.messageId ?? "");
+    if (messageId) {
+      if (processedMessageIds.has(messageId)) {
+        return;
+      }
+      processedMessageIds.set(messageId, Date.now());
+    }
+
     const from = String(payload.from ?? "").replace(/\D/g, "");
     const text = String(payload.text ?? payload.message ?? "");
-
-    const relevant = await isRelevantMessage(from, text);
-    if (!relevant) {
+    if (!from) {
       return;
     }
 
-    // TODO: wire up actual message-handling behavior per entry keyword once confirmed.
+    // Keyword gate: the entry keyword opens (or refreshes) a session; anything
+    // else is only ours while the sender's session is alive. No known-user
+    // fallback — being registered in this app must not claim the conversation.
+    const keywordRemainder = matchEntryKeyword(text);
+    if (keywordRemainder === null && !hasActiveSession(from)) {
+      return;
+    }
+
+    if (text.trim().toUpperCase() === EXIT_KEYWORD) {
+      activeSessions.delete(from);
+      return;
+    }
+
+    activeSessions.set(from, Date.now());
+
+    // TODO: wire up actual message-handling behavior (in-session commands like
+    // PACK/CHECKLIST/HELP) now that the gate guarantees this message is ours.
     console.log("Metabsp WhatsApp message for pack-with-me:", {
       from,
-      text,
+      text: keywordRemainder !== null && keywordRemainder !== "" ? keywordRemainder : text,
       messageId: payload.messageId,
     });
   } catch (error) {
