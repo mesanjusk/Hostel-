@@ -33,7 +33,6 @@ const SurvivalGuidePage = lazy(() => import("@/pages/survival-guide-page"));
 const ProfilePage = lazy(() => import("@/pages/profile-page"));
 const SettingsPage = lazy(() => import("@/pages/settings-page"));
 const AdminPage = lazy(() => import("@/pages/admin-page"));
-const AdminAnalyticsProPage = lazy(() => import("@/pages/admin-analytics-pro-page"));
 const AdminUsersPage = lazy(() => import("@/pages/admin-users-page"));
 const AdminProductsPage = lazy(() => import("@/pages/admin-products-page"));
 const AdminGuidePage = lazy(() => import("@/pages/admin-guide-page"));
@@ -138,14 +137,7 @@ export default function App() {
                 </AdminRoute>
               }
             />
-            <Route
-              path="/admin/analytics-pro"
-              element={
-                <AdminRoute>
-                  <AdminAnalyticsProPage />
-                </AdminRoute>
-              }
-            />
+            <Route path="/admin/analytics-pro" element={<Navigate to="/admin" replace />} />
             <Route
               path="/admin/users"
               element={

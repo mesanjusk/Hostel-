@@ -2,6 +2,7 @@ import { useState } from "react";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DateRangeFilter, presetRange } from "@/features/admin-analytics/date-range-filter";
+import { SummaryTab } from "@/features/admin-analytics/summary-tab";
 import { OverviewTab } from "@/features/admin-analytics/overview-tab";
 import { AudienceTab } from "@/features/admin-analytics/audience-tab";
 import { EngagementTab } from "@/features/admin-analytics/engagement-tab";
@@ -13,6 +14,7 @@ import { BusinessTab } from "@/features/admin-analytics/business-tab";
 import { RealtimeTab } from "@/features/admin-analytics/realtime-tab";
 
 const SUB_TABS = [
+  { value: "summary", label: "Summary" },
   { value: "overview", label: "Overview" },
   { value: "audience", label: "Audience" },
   { value: "engagement", label: "Engagement" },
@@ -26,7 +28,7 @@ const SUB_TABS = [
 
 export function AdminAnalyticsDashboardView() {
   const [range, setRange] = useState(presetRange(30));
-  const [tab, setTab] = useState("overview");
+  const [tab, setTab] = useState("summary");
 
   return (
     <Tabs value={tab} onValueChange={setTab} className="flex flex-col gap-6">
@@ -38,9 +40,12 @@ export function AdminAnalyticsDashboardView() {
             </TabsTrigger>
           ))}
         </TabsList>
-        {tab !== "retention" && tab !== "realtime" && <DateRangeFilter value={range} onChange={setRange} />}
+        {tab !== "summary" && tab !== "retention" && tab !== "realtime" && <DateRangeFilter value={range} onChange={setRange} />}
       </div>
 
+      <TabsContent value="summary">
+        <SummaryTab />
+      </TabsContent>
       <TabsContent value="overview">
         <OverviewTab range={range} />
       </TabsContent>
