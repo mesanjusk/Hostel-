@@ -1,6 +1,5 @@
 import { connectDB } from "@/db";
 import { ChecklistItem } from "@/models/ChecklistItem";
-import { listNormalizedChecklistItems, userUsesNormalizedChecklist } from "@/services/checklistService";
 import { Bag } from "@/models/Bag";
 import { BudgetEntry } from "@/models/BudgetEntry";
 import { Note } from "@/models/Note";
@@ -30,11 +29,7 @@ export async function globalSearch(userId: string, query: string): Promise<Searc
   const regex = new RegExp(escapeRegex(query.trim()), "i");
 
   const [checklist, bags, budget, notes, documents, contacts, wishlist, guide] = await Promise.all([
-    userUsesNormalizedChecklist(userId).then(async (normalized) =>
-      normalized
-        ? (await listNormalizedChecklistItems(userId)).filter((item) => regex.test(item.item)).slice(0, 5)
-        : ChecklistItem.find({ userId, item: regex }).limit(5).lean(),
-    ),
+    ChecklistItem.find({ userId, item: regex }).limit(5).lean(),
     Bag.find({ userId, name: regex }).limit(5).lean(),
     BudgetEntry.find({ userId, title: regex }).limit(5).lean(),
     Note.find({ userId, $or: [{ title: regex }, { content: regex }] }).limit(5).lean(),
@@ -58,7 +53,7 @@ export async function globalSearch(userId: string, query: string): Promise<Searc
       const bagName = c.bagId ? bagNameById.get(String(c.bagId)) : undefined;
       return {
         type: "checklist" as const,
-        id: String(c._id),
+        id: c._id.toString(),
         title: c.item,
         subtitle: [c.category, bagName ?? "No bag", c.completed ? "Packed" : "Unpacked"].join(" · "),
         href: `/checklist/${encodeURIComponent(c.category)}`,
@@ -94,7 +89,7 @@ export async function globalSearch(userId: string, query: string): Promise<Searc
     })),
     ...contacts.map((c) => ({
       type: "contact" as const,
-      id: String(c._id),
+      id: c._id.toString(),
       title: c.name,
       subtitle: c.relation,
       href: "/contacts",

@@ -23,7 +23,6 @@ import { saveDashboardLayout, saveNavLayout } from "@/services/uiLayoutService";
 import { saveLandingDesign } from "@/services/landingDesignService";
 import { createCity, deleteCity, listCities, updateCity } from "@/services/cityService";
 import { createPlace, deletePlace, listPlaces, updatePlace } from "@/services/placeService";
-import { z } from "zod";
 import {
   adminDeleteDirectoryContact,
   listReportedContacts,
@@ -44,74 +43,9 @@ import {
   updateUserByAdminSchema,
 } from "@/validations/admin";
 
-import {
-  createDefaultChecklistItem,
-  deleteDefaultChecklistItem,
-  getChecklistAdminDashboard,
-  getSuggestedItems,
-  listAdminChecklistItems,
-  listEducationOptions,
-  updateDefaultChecklistItem,
-} from "@/services/checklistMasterService";
-
-const defaultChecklistItemAdminSchema = z.object({
-  category: z.string().trim().min(1).max(60),
-  title: z.string().trim().min(1).max(120),
-  description: z.string().trim().max(500).optional().or(z.literal("")),
-  image: z.string().optional().nullable(),
-  priority: z.enum(["low", "medium", "high"]).default("medium"),
-  importance: z.string().trim().max(200).optional().or(z.literal("")),
-  estimatedPrice: z.coerce.number().min(0).optional().nullable(),
-  recommendedBrand: z.string().trim().max(80).optional().nullable(),
-  recommendedStore: z.string().optional().nullable(),
-  purchaseLink: z.string().optional().nullable(),
-  sortOrder: z.coerce.number().optional(),
-  applicableCollegeCategories: z.array(z.string()).optional(),
-  applicableCourses: z.array(z.string()).optional(),
-  isForAllCollegeCategories: z.boolean().default(true),
-  isForAllCourses: z.boolean().default(true),
-  active: z.boolean().default(true),
-});
-
 export const adminRouter = Router();
 
 adminRouter.use(requireAuth, requireAdmin);
-
-adminRouter.get("/checklist-dashboard", async (_req, res) => {
-  res.json({ dashboard: await getChecklistAdminDashboard() });
-});
-
-adminRouter.get("/education-options", async (_req, res) => {
-  res.json(await listEducationOptions());
-});
-
-adminRouter.get("/default-checklist-items", async (req, res) => {
-  const page = Number(req.query.page ?? 1);
-  const search = String(req.query.search ?? "");
-  res.json(await listAdminChecklistItems({ page, search }));
-});
-
-adminRouter.post("/default-checklist-items", async (req, res) => {
-  const parsed = defaultChecklistItemAdminSchema.safeParse(req.body);
-  if (!parsed.success) { res.status(400).json({ error: parsed.error.issues[0]?.message ?? "Invalid input" }); return; }
-  const result = await createDefaultChecklistItem(parsed.data, req.user!._id.toString());
-  if (!result.success) { res.status(409).json({ error: result.error }); return; }
-  res.status(201).json({ item: result.item });
-});
-
-adminRouter.patch("/default-checklist-items/:id", async (req, res) => {
-  const parsed = defaultChecklistItemAdminSchema.partial().safeParse(req.body);
-  if (!parsed.success) { res.status(400).json({ error: parsed.error.issues[0]?.message ?? "Invalid input" }); return; }
-  res.json({ item: await updateDefaultChecklistItem(req.params.id, parsed.data, req.user!._id.toString()) });
-});
-
-adminRouter.delete("/default-checklist-items/:id", async (req, res) => {
-  res.json({ item: await deleteDefaultChecklistItem(req.params.id) });
-});
-
-adminRouter.get("/suggested-checklist-items", async (_req, res) => {
-  res.json({ suggestions: await getSuggestedItems() });
-});
 
 adminRouter.get("/analytics", async (_req, res) => {
   const analytics = await getAdminAnalytics();

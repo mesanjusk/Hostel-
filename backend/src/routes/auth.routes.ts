@@ -16,7 +16,6 @@ import { signAuthToken } from "@/lib/jwt";
 import { serializeUser } from "@/lib/serialize";
 import { requireAuth } from "@/middleware/auth";
 import { logEventAsync } from "@/services/eventService";
-import { listEducationOptions } from "@/services/checklistMasterService";
 
 export const authRouter = Router();
 
@@ -190,10 +189,6 @@ authRouter.post("/forgot-password/reset", async (req, res) => {
   logEventAsync({ eventName: "login_success", userId: result.user._id.toString(), ...ctx, metadata: { via: "reset" } });
   const token = signAuthToken(result.user._id.toString());
   res.json({ token, user: serializeUser(result.user) });
-});
-
-authRouter.get("/education-options", async (_req, res) => {
-  res.json(await listEducationOptions());
 });
 
 authRouter.get("/me", requireAuth, (req, res) => {
