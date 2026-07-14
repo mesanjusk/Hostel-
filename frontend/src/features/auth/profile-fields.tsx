@@ -1,47 +1,35 @@
+import { useEffect, useMemo, useState } from "react";
 import type { UseFormReturn } from "react-hook-form";
 import { School } from "lucide-react";
 
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { cn } from "@/lib/utils";
-import { COLLEGE_CATEGORY_OPTIONS, GENDER_OPTIONS } from "@/types";
+import { api } from "@/lib/api";
 import type { ProfileFieldsInput } from "@/features/auth/profile-fields-schema";
 
-/** Gender + college name + college category — shared by the onboarding form and the
- * profile-edit form so both stay in sync and short/quick to fill. */
+type EducationCategory = { _id: string; name: string };
+type EducationCourse = { _id: string; collegeCategoryId: string; name: string };
+
 export function ProfileFields({ form }: { form: UseFormReturn<ProfileFieldsInput> }) {
+  const [categories, setCategories] = useState<EducationCategory[]>([]);
+  const [courses, setCourses] = useState<EducationCourse[]>([]);
+  const selectedCategoryId = form.watch("collegeCategoryId");
+
+  useEffect(() => {
+    api.get<{ categories: EducationCategory[]; courses: EducationCourse[] }>("/api/auth/education-options").then((data) => {
+      setCategories(data.categories);
+      setCourses(data.courses);
+    });
+  }, []);
+
+  const filteredCourses = useMemo(
+    () => courses.filter((course) => !selectedCategoryId || course.collegeCategoryId === selectedCategoryId),
+    [courses, selectedCategoryId],
+  );
+
   return (
     <>
-      <FormField
-        control={form.control}
-        name="gender"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Gender</FormLabel>
-            <FormControl>
-              <div className="flex gap-2">
-                {GENDER_OPTIONS.map((g) => (
-                  <button
-                    key={g}
-                    type="button"
-                    onClick={() => field.onChange(g)}
-                    className={cn(
-                      "flex-1 rounded-full border px-4 py-2.5 text-sm font-medium transition-colors",
-                      field.value === g
-                        ? "border-primary bg-primary text-primary-foreground"
-                        : "border-input text-muted-foreground hover:border-primary/50 bg-transparent",
-                    )}
-                  >
-                    {g}
-                  </button>
-                ))}
-              </div>
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
       <FormField
         control={form.control}
         name="college"
@@ -60,22 +48,46 @@ export function ProfileFields({ form }: { form: UseFormReturn<ProfileFieldsInput
       />
       <FormField
         control={form.control}
-        name="collegeCategory"
+        name="collegeCategoryId"
         render={({ field }) => (
           <FormItem>
             <FormLabel>College category</FormLabel>
             <FormControl>
-              <Select value={field.value} onValueChange={field.onChange}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select a category" />
-                </SelectTrigger>
-                <SelectContent>
-                  {COLLEGE_CATEGORY_OPTIONS.map((c) => (
-                    <SelectItem key={c} value={c}>
-                      {c}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
+              <Select
+                value={field.value}
+                onValueChange={(value) => {
+                  const category = categories.find((c) => c._id === value);
+                  field.onChange(value);
+                  form.setValue("collegeCategory", category?.name ?? "");
+                  form.setValue("course", "");
+                  form.setValue("courseId", undefined);
+                }}
+              >
+                <SelectTrigger className="w-full"><SelectValue placeholder="Select a category" /></SelectTrigger>
+                <SelectContent>{categories.map((c) => <SelectItem key={c._id} value={c._id}>{c.name}</SelectItem>)}</SelectContent>
+              </Select>
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+      <FormField
+        control={form.control}
+        name="courseId"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Course</FormLabel>
+            <FormControl>
+              <Select
+                value={field.value}
+                onValueChange={(value) => {
+                  const course = courses.find((c) => c._id === value);
+                  field.onChange(value);
+                  form.setValue("course", course?.name ?? "");
+                }}
+              >
+                <SelectTrigger className="w-full"><SelectValue placeholder="Select a course" /></SelectTrigger>
+                <SelectContent>{filteredCourses.map((c) => <SelectItem key={c._id} value={c._id}>{c.name}</SelectItem>)}</SelectContent>
               </Select>
             </FormControl>
             <FormMessage />

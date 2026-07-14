@@ -11,7 +11,7 @@ export const COLLEGE_CATEGORY_OPTIONS = [
   "Arts",
   "Other",
 ] as const;
-export type CollegeCategory = (typeof COLLEGE_CATEGORY_OPTIONS)[number];
+export type CollegeCategory = string;
 
 export interface UserDTO {
   id: string;
@@ -21,6 +21,9 @@ export interface UserDTO {
   gender: Gender | null;
   college: string | null;
   collegeCategory: CollegeCategory | null;
+  collegeCategoryId?: string | null;
+  course?: string | null;
+  courseId?: string | null;
   role: UserRole;
   theme: "light" | "dark" | "system";
   needsOnboarding: boolean;

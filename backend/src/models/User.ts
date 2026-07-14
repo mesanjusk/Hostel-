@@ -1,6 +1,6 @@
 import { Schema, model, models, type InferSchemaType, type Model } from "mongoose";
 
-import { COLLEGE_CATEGORY_OPTIONS, GENDER_OPTIONS } from "@/types";
+import { GENDER_OPTIONS } from "@/types";
 
 const UserSchema = new Schema(
   {
@@ -9,7 +9,10 @@ const UserSchema = new Schema(
     avatar: { type: String, default: null },
     gender: { type: String, enum: GENDER_OPTIONS, default: null },
     college: { type: String, default: null, trim: true, maxlength: 120 },
-    collegeCategory: { type: String, enum: COLLEGE_CATEGORY_OPTIONS, default: null },
+    collegeCategory: { type: String, default: null, trim: true, maxlength: 80 },
+    collegeCategoryId: { type: Schema.Types.ObjectId, ref: "CollegeCategory", default: null, index: true },
+    course: { type: String, default: null, trim: true, maxlength: 100 },
+    courseId: { type: Schema.Types.ObjectId, ref: "Course", default: null, index: true },
     role: { type: String, enum: ["student", "admin"], default: "student" },
     theme: { type: String, enum: ["light", "dark", "system"], default: "system" },
     notificationsEnabled: { type: Boolean, default: true },

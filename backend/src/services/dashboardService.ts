@@ -1,7 +1,7 @@
 import { connectDB } from "@/db";
 import { ChecklistItem } from "@/models/ChecklistItem";
 import { Note } from "@/models/Note";
-import { getCategorySummaries, getOverallProgress } from "@/services/checklistService";
+import { getCategorySummaries, getOverallProgress, listNormalizedChecklistItems, userUsesNormalizedChecklist } from "@/services/checklistService";
 import { getBudgetSummary } from "@/services/budgetService";
 import { WishlistItem } from "@/models/WishlistItem";
 import { BudgetEntry } from "@/models/BudgetEntry";
@@ -30,18 +30,21 @@ export async function getDashboardData(userId: string) {
     getOverallProgress(userId),
     getBudgetSummary(userId),
     WishlistItem.countDocuments({ userId, purchased: false }),
-    ChecklistItem.find({ userId, completed: false })
-      .sort({ priority: -1, createdAt: -1 })
-      .limit(5)
-      .lean(),
-    ChecklistItem.find({ userId }).sort({ updatedAt: -1 }).limit(5).lean(),
+    userUsesNormalizedChecklist(userId).then(async (normalized) =>
+      normalized
+        ? listNormalizedChecklistItems(userId, { incompleteOnly: true, limit: 5 })
+        : await ChecklistItem.find({ userId, completed: false }).sort({ priority: -1, createdAt: -1 }).limit(5).lean(),
+    ),
+    userUsesNormalizedChecklist(userId).then(async (normalized) =>
+      normalized ? listNormalizedChecklistItems(userId, { limit: 5 }) : await ChecklistItem.find({ userId }).sort({ updatedAt: -1 }).limit(5).lean(),
+    ),
     BudgetEntry.find({ userId }).sort({ updatedAt: -1 }).limit(5).lean(),
     Note.find({ userId }).sort({ updatedAt: -1 }).limit(5).lean(),
   ]);
 
   const activity: ActivityEntry[] = [
     ...recentChecklist.map((c) => ({
-      id: c._id.toString(),
+      id: String(c._id),
       type: "checklist" as const,
       label: `${c.completed ? "Completed" : "Added"} "${c.item}" in ${c.category}`,
       timestamp: c.updatedAt as Date,

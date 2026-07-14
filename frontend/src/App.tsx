@@ -43,6 +43,8 @@ const AdminHomeScreenPage = lazy(() => import("@/pages/admin-home-screen-page"))
 const AdminCitiesPage = lazy(() => import("@/pages/admin-cities-page"));
 const AdminPlacesPage = lazy(() => import("@/pages/admin-places-page"));
 const AdminContactsPage = lazy(() => import("@/pages/admin-contacts-page"));
+const AdminDefaultChecklistPage = lazy(() => import("@/pages/admin-default-checklist-page"));
+const AdminSuggestedItemsPage = lazy(() => import("@/pages/admin-suggested-items-page"));
 const DiscoverPage = lazy(() => import("@/pages/discover-page"));
 const BookingsPage = lazy(() => import("@/pages/bookings-page"));
 const ExplorePage = lazy(() => import("@/pages/explore-page"));
@@ -210,6 +212,22 @@ export default function App() {
               element={
                 <AdminRoute>
                   <AdminContactsPage />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/admin/default-checklist"
+              element={
+                <AdminRoute>
+                  <AdminDefaultChecklistPage />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/admin/suggested-items"
+              element={
+                <AdminRoute>
+                  <AdminSuggestedItemsPage />
                 </AdminRoute>
               }
             />

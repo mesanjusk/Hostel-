@@ -11,6 +11,8 @@ const TABS = [
   { href: "/admin/cities", label: "Cities" },
   { href: "/admin/places", label: "Places" },
   { href: "/admin/reported-contacts", label: "Reported Contacts" },
+  { href: "/admin/default-checklist", label: "Default Checklist" },
+  { href: "/admin/suggested-items", label: "Suggested Items" },
   { href: "/admin/layout", label: "Dashboard Layout" },
   { href: "/admin/nav", label: "Nav Items" },
   { href: "/admin/home-screen", label: "Home Screen" },

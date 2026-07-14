@@ -1,12 +1,11 @@
 import { z } from "zod";
 
 import { normalizeMobile } from "@/lib/phone";
-import { COLLEGE_CATEGORY_OPTIONS, GENDER_OPTIONS } from "@/types";
+import { GENDER_OPTIONS } from "@/types";
 
 export const genderSchema = z.enum(GENDER_OPTIONS, { message: "Select a gender" });
-export const collegeCategorySchema = z.enum(COLLEGE_CATEGORY_OPTIONS, {
-  message: "Select a college category",
-});
+export const collegeCategorySchema = z.string().trim().min(1, "Select a college category").max(80);
+export const courseSchema = z.string().trim().min(1, "Select a course").max(100);
 
 export const mobileSchema = z
   .string()
@@ -31,9 +30,12 @@ export const loginSchema = z.object({
 
 export const onboardingSchema = z.object({
   name: z.string().trim().min(2, "Name is too short").max(80, "Name is too long"),
-  gender: genderSchema,
+  gender: genderSchema.optional().nullable(),
   college: z.string().trim().min(1, "Enter your college name").max(120, "College name is too long"),
   collegeCategory: collegeCategorySchema,
+  collegeCategoryId: z.string().trim().min(1).optional(),
+  course: courseSchema,
+  courseId: z.string().trim().min(1).optional(),
 });
 
 const otpCodeSchema = z

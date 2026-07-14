@@ -3,13 +3,16 @@ import { toast } from "sonner";
 
 import { api, ApiError, setAuthToken, getAuthToken } from "@/lib/api";
 import { subscribeUnauthorized } from "@/lib/auth-events";
-import type { CollegeCategory, Gender, UserDTO } from "@/types";
+import type { UserDTO } from "@/types";
 
 interface OnboardingInput {
   name: string;
-  gender: Gender;
+  gender?: string | null;
   college: string;
-  collegeCategory: CollegeCategory;
+  collegeCategory: string;
+  collegeCategoryId?: string;
+  course: string;
+  courseId?: string;
 }
 
 interface OtpRequestResult {

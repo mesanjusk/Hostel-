@@ -29,7 +29,7 @@ export function OnboardingForm() {
 
   const form = useForm<ProfileFieldsInput>({
     resolver: zodResolver(profileFieldsSchema),
-    defaultValues: { name: "", gender: undefined, college: "", collegeCategory: undefined },
+    defaultValues: { name: "", gender: null, college: "", collegeCategory: "", collegeCategoryId: undefined, course: "", courseId: undefined },
   });
 
   async function onSubmit(values: ProfileFieldsInput) {
@@ -54,7 +54,7 @@ export function OnboardingForm() {
       <div className="mb-6 text-center">
         <h1 className="font-display text-2xl font-bold">Let&apos;s set you up</h1>
         <p className="text-muted-foreground mt-1 text-sm">
-          Just a couple of details to personalize your dashboard
+          Just the essentials to personalize your checklist
         </p>
       </div>
 

@@ -28,9 +28,12 @@ export async function completeOnboarding(userId: string, input: OnboardingInput)
     userId,
     {
       name: input.name,
-      gender: input.gender,
+      gender: input.gender ?? null,
       college: input.college,
       collegeCategory: input.collegeCategory,
+      collegeCategoryId: input.collegeCategoryId ?? null,
+      course: input.course,
+      courseId: input.courseId ?? null,
     },
     { returnDocument: "after" },
   ).lean();
@@ -42,9 +45,12 @@ export async function updateProfile(userId: string, input: ProfileUpdateInput) {
     userId,
     {
       name: input.name,
-      gender: input.gender,
+      gender: input.gender ?? null,
       college: input.college,
       collegeCategory: input.collegeCategory,
+      collegeCategoryId: input.collegeCategoryId ?? null,
+      course: input.course,
+      courseId: input.courseId ?? null,
     },
     { returnDocument: "after" },
   ).lean();

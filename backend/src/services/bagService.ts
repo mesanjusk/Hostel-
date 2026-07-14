@@ -1,6 +1,8 @@
 import { connectDB } from "@/db";
 import { Bag } from "@/models/Bag";
 import { ChecklistItem } from "@/models/ChecklistItem";
+import { UserChecklist } from "@/models/UserChecklist";
+import { listNormalizedChecklistItems, userUsesNormalizedChecklist } from "@/services/checklistService";
 import { BAG_COLOR_PRESETS } from "@/types";
 
 function normalize(name: string) {
@@ -23,9 +25,12 @@ export async function listBagsWithCounts(userId: string) {
   await connectDB();
   await ensureDefaultBag(userId);
 
+  const normalized = await userUsesNormalizedChecklist(userId);
   const [bags, items] = await Promise.all([
     Bag.find({ userId }).sort({ createdAt: 1 }).lean(),
-    ChecklistItem.find({ userId, bagId: { $ne: null } }).select("bagId completed").lean(),
+    normalized
+      ? UserChecklist.find({ userId, deleted: false, bagId: { $ne: null } }).select("bagId checked").lean()
+      : ChecklistItem.find({ userId, bagId: { $ne: null } }).select("bagId completed").lean(),
   ]);
 
   return bags.map((bag) => {
@@ -35,7 +40,7 @@ export async function listBagsWithCounts(userId: string) {
       name: bag.name,
       color: bag.color ?? BAG_COLOR_PRESETS[0],
       total: assigned.length,
-      completed: assigned.filter((i) => i.completed).length,
+      completed: assigned.filter((i) => normalized ? Boolean("checked" in i && i.checked) : Boolean("completed" in i && i.completed)).length,
     };
   });
 }
@@ -46,7 +51,9 @@ export async function getBagWithItems(userId: string, id: string) {
   const bag = await Bag.findOne({ _id: id, userId }).lean();
   if (!bag) return null;
 
-  const items = await ChecklistItem.find({ userId, bagId: id }).sort({ createdAt: -1 }).lean();
+  const items = (await userUsesNormalizedChecklist(userId))
+    ? await listNormalizedChecklistItems(userId, { bagId: id })
+    : await ChecklistItem.find({ userId, bagId: id }).sort({ createdAt: -1 }).lean();
   return { bag, items };
 }
 
@@ -105,7 +112,11 @@ export async function deleteBag(userId: string, id: string) {
     return { success: false as const, error: "Bag not found" };
   }
 
-  await ChecklistItem.updateMany({ userId, bagId: id }, { bagId: null });
+  if (await userUsesNormalizedChecklist(userId)) {
+    await UserChecklist.updateMany({ userId, bagId: id }, { bagId: null });
+  } else {
+    await ChecklistItem.updateMany({ userId, bagId: id }, { bagId: null });
+  }
   await Bag.deleteOne({ _id: id, userId });
   return { success: true as const };
 }
