@@ -7,6 +7,7 @@ import type { ChecklistItemInput, ChecklistItemUpdateInput } from "@/validations
 import { DEFAULT_CHECKLIST_TEMPLATE } from "@/lib/defaultChecklistTemplate";
 import { areNearDuplicateNames } from "@/lib/textSimilarity";
 import { listCategories } from "@/services/categoryService";
+import * as userChecklistService from "@/services/userChecklistService";
 
 // "Fashion Design Tools" is only relevant to Designing students — see categoryService.
 const DESIGN_ONLY_CATEGORY = "Fashion Design Tools";
@@ -19,8 +20,25 @@ async function getTemplateForUser(userId: string) {
   return DEFAULT_CHECKLIST_TEMPLATE.filter((item) => item.category !== DESIGN_ONLY_CATEGORY);
 }
 
+/** Every read/write entry point below is a thin router: users who were generated against the
+ * new DB-driven catalog (they have UserChecklist rows) are served entirely from there; every
+ * other user — the 200+ pre-migration accounts — keeps using the legacy ChecklistItem path
+ * completely unchanged. The frontend hits the same endpoints and gets the same DTO shape
+ * either way; only this file knows the difference. See services/userChecklistService.ts for
+ * the new-architecture implementation and scripts/migrateChecklistToV2.ts for the one-time,
+ * opt-in migration of legacy users into the new shape. */
+
 export async function getCategorySummaries(userId: string) {
   await connectDB();
+
+  if (await userChecklistService.hasUserChecklist(userId)) {
+    const [categories, items] = await Promise.all([listCategories(userId), userChecklistService.listItemsForUser(userId)]);
+    return categories.map(({ name: category }) => {
+      const inCategory = items.filter((i) => i.category === category);
+      return { category, total: inCategory.length, completed: inCategory.filter((i) => i.completed).length };
+    });
+  }
+
   const [categories, items] = await Promise.all([
     listCategories(userId),
     ChecklistItem.find({ userId }).select("category completed").lean(),
@@ -39,6 +57,11 @@ export async function getCategorySummaries(userId: string) {
 
 export async function getOverallProgress(userId: string) {
   await connectDB();
+
+  if (await userChecklistService.hasUserChecklist(userId)) {
+    return userChecklistService.getOverallProgress(userId);
+  }
+
   const [total, completed] = await Promise.all([
     ChecklistItem.countDocuments({ userId }),
     ChecklistItem.countDocuments({ userId, completed: true }),
@@ -48,6 +71,12 @@ export async function getOverallProgress(userId: string) {
 
 export async function listItemsByCategory(userId: string, category: ChecklistCategory) {
   await connectDB();
+
+  if (await userChecklistService.hasUserChecklist(userId)) {
+    const items = await userChecklistService.listItemsForUser(userId);
+    return items.filter((i) => i.category === category);
+  }
+
   return ChecklistItem.find({ userId, category }).sort({ createdAt: -1 }).lean();
 }
 
@@ -57,9 +86,11 @@ export async function listItemsByCategory(userId: string, category: ChecklistCat
  * round-trip); the bag assignment itself still lives solely on the checklist item. */
 export async function getAllItemsByCategory(userId: string) {
   await connectDB();
+
+  const isV2 = await userChecklistService.hasUserChecklist(userId);
   const [categories, items, bags] = await Promise.all([
     listCategories(userId),
-    ChecklistItem.find({ userId }).sort({ createdAt: -1 }).lean(),
+    isV2 ? userChecklistService.listItemsForUser(userId) : ChecklistItem.find({ userId }).sort({ createdAt: -1 }).lean(),
     Bag.find({ userId }).select("name color").lean(),
   ]);
 
@@ -121,6 +152,19 @@ export async function addMissingTemplateItems(userId: string) {
 
 export async function createChecklistItem(userId: string, input: ChecklistItemInput) {
   await connectDB();
+
+  if (await userChecklistService.hasUserChecklist(userId)) {
+    // Custom items only carry a name/category/notes/bag — see UserChecklist's schema comment.
+    // Any other field on the legacy create form (price, brand, priority, ...) is accepted but
+    // not persisted for v2 users, since that metadata is admin-managed master data now.
+    return userChecklistService.createCustomItem(userId, {
+      category: input.category,
+      item: input.item,
+      notes: input.notes,
+      bagId: input.bagId ?? null,
+    });
+  }
+
   return ChecklistItem.create({ userId, ...input });
 }
 
@@ -132,6 +176,10 @@ export async function createChecklistItems(
   priority: ChecklistPriority,
 ) {
   await connectDB();
+
+  if (await userChecklistService.hasUserChecklist(userId)) {
+    return userChecklistService.createCustomItems(userId, category, names);
+  }
 
   const existing = await ChecklistItem.find({ userId, category }).select("item").lean();
   const existingNames = existing.map((i) => i.item);
@@ -161,11 +209,21 @@ export async function createChecklistItems(
 export async function updateChecklistItem(userId: string, input: ChecklistItemUpdateInput) {
   await connectDB();
   const { id, ...rest } = input;
+
+  if (await userChecklistService.hasUserChecklist(userId)) {
+    return userChecklistService.updateItem(userId, id, rest);
+  }
+
   return ChecklistItem.findOneAndUpdate({ _id: id, userId }, rest, { returnDocument: "after" }).lean();
 }
 
 export async function renameChecklistItem(userId: string, id: string, item: string) {
   await connectDB();
+
+  if (await userChecklistService.hasUserChecklist(userId)) {
+    return userChecklistService.renameItem(userId, id, item);
+  }
+
   return ChecklistItem.findOneAndUpdate({ _id: id, userId }, { item }, { returnDocument: "after" }).lean();
 }
 
@@ -213,6 +271,12 @@ export async function mergeDuplicateItems(userId: string) {
 
 export async function deleteChecklistItem(userId: string, id: string) {
   await connectDB();
+
+  if (await userChecklistService.hasUserChecklist(userId)) {
+    await userChecklistService.deleteItem(userId, id);
+    return { acknowledged: true };
+  }
+
   return ChecklistItem.deleteOne({ _id: id, userId });
 }
 
@@ -222,6 +286,11 @@ export async function bulkUpdateItems(
   action: "complete" | "incomplete" | "delete" | "duplicate",
 ) {
   await connectDB();
+
+  if (await userChecklistService.hasUserChecklist(userId)) {
+    await userChecklistService.bulkUpdateItems(userId, ids, action);
+    return { acknowledged: true };
+  }
 
   if (action === "delete") {
     return ChecklistItem.deleteMany({ _id: { $in: ids }, userId });

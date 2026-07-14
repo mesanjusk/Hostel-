@@ -10,7 +10,7 @@ import {
 } from "@/validations/auth";
 import { authenticateWithPin, RateLimitedError } from "@/services/authService";
 import { completeOnboarding, getUserByMobile, registerUserWithOtp, resetPinWithOtp } from "@/services/userService";
-import { seedDefaultChecklistIfEmpty } from "@/services/checklistService";
+import { generateUserChecklist } from "@/services/userChecklistService";
 import { requestOtp, verifyOtp, OtpCooldownError } from "@/services/otpService";
 import { signAuthToken } from "@/lib/jwt";
 import { serializeUser } from "@/lib/serialize";
@@ -203,7 +203,11 @@ authRouter.post("/onboarding", requireAuth, async (req, res) => {
   }
 
   const updated = await completeOnboarding(req.user!._id.toString(), parsed.data);
-  await seedDefaultChecklistIfEmpty(req.user!._id.toString());
+  // Every completion of this endpoint is a brand-new signup (existing users already have
+  // `name` set and never hit /onboarding again) — so unconditionally using the DB-driven
+  // generator here is exactly Phase 4 of the migration: only new registrations use the new
+  // architecture, with zero risk to the 200+ pre-migration accounts.
+  await generateUserChecklist(req.user!._id.toString());
 
   const token = signAuthToken(req.user!._id.toString());
   res.json({ token, user: { ...serializeUser(req.user!), ...updated, needsOnboarding: false } });

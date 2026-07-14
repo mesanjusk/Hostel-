@@ -21,6 +21,8 @@ export interface UserDTO {
   gender: Gender | null;
   college: string | null;
   collegeCategory: CollegeCategory | null;
+  collegeCategoryId: string | null;
+  courseId: string | null;
   role: UserRole;
   theme: "light" | "dark" | "system";
   needsOnboarding: boolean;

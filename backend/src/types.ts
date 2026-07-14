@@ -21,6 +21,8 @@ export interface UserDTO {
   gender: Gender | null;
   college: string | null;
   collegeCategory: CollegeCategory | null;
+  collegeCategoryId: string | null;
+  courseId: string | null;
   role: UserRole;
   theme: "light" | "dark" | "system";
   needsOnboarding: boolean;
@@ -49,6 +51,18 @@ export type ChecklistCategory = string;
 
 export const CHECKLIST_PRIORITIES = ["low", "medium", "high"] as const;
 export type ChecklistPriority = (typeof CHECKLIST_PRIORITIES)[number];
+
+/** Best-effort mapping from an admin-created CollegeCategory name to the legacy fixed enum,
+ * so old code paths (categoryService's Designing-only folder, admin filters) keep working for
+ * new signups too. Anything unmatched falls back to "Other", mirroring the legacy semantics. */
+export const LEGACY_COLLEGE_CATEGORY_MAP: Record<string, CollegeCategory> = {
+  design: "Designing",
+  designing: "Designing",
+  engineering: "Engineering",
+  medical: "Medical",
+  commerce: "Commerce",
+  arts: "Arts",
+};
 
 export const BUDGET_ENTRY_TYPES = ["planned", "expense"] as const;
 export type BudgetEntryType = (typeof BUDGET_ENTRY_TYPES)[number];

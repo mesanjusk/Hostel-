@@ -38,7 +38,8 @@ export function ProfileView() {
       name: user?.name ?? "",
       gender: user?.gender ?? undefined,
       college: user?.college ?? "",
-      collegeCategory: user?.collegeCategory ?? undefined,
+      collegeCategoryId: user?.collegeCategoryId ?? "",
+      courseId: user?.courseId ?? "",
     },
   });
 

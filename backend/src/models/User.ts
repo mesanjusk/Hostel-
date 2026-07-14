@@ -9,7 +9,15 @@ const UserSchema = new Schema(
     avatar: { type: String, default: null },
     gender: { type: String, enum: GENDER_OPTIONS, default: null },
     college: { type: String, default: null, trim: true, maxlength: 120 },
+    /** Legacy fixed-enum field — kept for existing users and old code paths (categoryService's
+     * Designing-only checklist folder, admin filters). New signups are classified via
+     * collegeCategoryId/courseId instead; see userService.LEGACY_COLLEGE_CATEGORY_MAP for the
+     * best-effort mapping kept in sync between the two. */
     collegeCategory: { type: String, enum: COLLEGE_CATEGORY_OPTIONS, default: null },
+    /** DB-driven taxonomy (see CollegeCategory/Course models) — what the checklist generation
+     * algorithm and admin-managed DefaultChecklistItem targeting actually use. */
+    collegeCategoryId: { type: Schema.Types.ObjectId, ref: "CollegeCategory", default: null, index: true },
+    courseId: { type: Schema.Types.ObjectId, ref: "Course", default: null, index: true },
     role: { type: String, enum: ["student", "admin"], default: "student" },
     theme: { type: String, enum: ["light", "dark", "system"], default: "system" },
     notificationsEnabled: { type: Boolean, default: true },

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Users, UserCheck, ListChecks, TrendingUp, ShoppingBag, BookOpen } from "lucide-react";
+import { Users, UserCheck, ListChecks, TrendingUp, ShoppingBag, BookOpen, GraduationCap, BookMarked, Lightbulb } from "lucide-react";
 import { toast } from "sonner";
 
 import { StatCard } from "@/components/shared/stat-card";
@@ -21,14 +21,36 @@ interface AdminAnalytics {
   totalGuideArticles: number;
 }
 
+interface ChecklistDashboardStats {
+  totalCategories: number;
+  totalCourses: number;
+  totalDefaultItems: number;
+  activeDefaultItems: number;
+  completionRate: number;
+  recentlyAdded: { _id: string; title: string; category: string }[];
+  recentlyUpdated: { _id: string; title: string; category: string }[];
+}
+
 export default function AdminPage() {
   const [analytics, setAnalytics] = useState<AdminAnalytics | null>(null);
+  const [checklistStats, setChecklistStats] = useState<ChecklistDashboardStats | null>(null);
+  const [suggestedCount, setSuggestedCount] = useState<number | null>(null);
 
   useEffect(() => {
     api
       .get<{ analytics: AdminAnalytics }>("/api/admin/analytics")
       .then(({ analytics }) => setAnalytics(analytics))
       .catch((error) => toast.error(error instanceof ApiError ? error.message : "Failed to load analytics"));
+
+    api
+      .get<{ stats: ChecklistDashboardStats }>("/api/admin/checklist-dashboard")
+      .then(({ stats }) => setChecklistStats(stats))
+      .catch(() => {});
+
+    api
+      .get<{ suggestions: unknown[] }>("/api/admin/suggested-items")
+      .then(({ suggestions }) => setSuggestedCount(suggestions.length))
+      .catch(() => {});
   }, []);
 
   return (
@@ -84,6 +106,72 @@ export default function AdminPage() {
               })}
             </CardContent>
           </Card>
+
+          {checklistStats && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Checklist catalog</CardTitle>
+              </CardHeader>
+              <CardContent className="flex flex-col gap-4">
+                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                  <StatCard
+                    icon={<GraduationCap className="size-5" />}
+                    label="College categories"
+                    value={String(checklistStats.totalCategories)}
+                    tone="primary"
+                  />
+                  <StatCard
+                    icon={<BookMarked className="size-5" />}
+                    label="Courses"
+                    value={String(checklistStats.totalCourses)}
+                    tone="success"
+                  />
+                  <StatCard
+                    icon={<ListChecks className="size-5" />}
+                    label="Default checklist items"
+                    value={String(checklistStats.totalDefaultItems)}
+                    hint={`${checklistStats.activeDefaultItems} active`}
+                    tone="warning"
+                  />
+                  <StatCard
+                    icon={<TrendingUp className="size-5" />}
+                    label="DB-driven completion rate"
+                    value={`${checklistStats.completionRate}%`}
+                    tone="accent"
+                  />
+                  <StatCard
+                    icon={<Lightbulb className="size-5" />}
+                    label="Suggested items pending"
+                    value={suggestedCount === null ? "…" : String(suggestedCount)}
+                    tone="primary"
+                  />
+                </div>
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <p className="text-muted-foreground mb-2 text-sm font-medium">Recently added</p>
+                    <ul className="flex flex-col gap-1">
+                      {checklistStats.recentlyAdded.map((item) => (
+                        <li key={item._id} className="text-sm">
+                          {item.title} <span className="text-muted-foreground">· {item.category}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground mb-2 text-sm font-medium">Recently updated</p>
+                    <ul className="flex flex-col gap-1">
+                      {checklistStats.recentlyUpdated.map((item) => (
+                        <li key={item._id} className="text-sm">
+                          {item.title} <span className="text-muted-foreground">· {item.category}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
       )}
     </div>

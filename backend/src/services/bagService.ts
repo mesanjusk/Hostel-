@@ -2,6 +2,7 @@ import { connectDB } from "@/db";
 import { Bag } from "@/models/Bag";
 import { ChecklistItem } from "@/models/ChecklistItem";
 import { BAG_COLOR_PRESETS } from "@/types";
+import { hasUserChecklist, listItemsForUser } from "@/services/userChecklistService";
 
 function normalize(name: string) {
   return name.trim().toLowerCase();
@@ -19,14 +20,18 @@ async function ensureDefaultBag(userId: string) {
 /** Bags tab overview: every bag a user has, with packed/total counts of the checklist
  * items currently assigned to it. Bags never store items themselves — only the
  * ChecklistItem.bagId reference is the source of truth. */
+async function getBagAssignedItems(userId: string) {
+  if (await hasUserChecklist(userId)) {
+    return listItemsForUser(userId).then((items) => items.filter((i) => i.bagId));
+  }
+  return ChecklistItem.find({ userId, bagId: { $ne: null } }).lean();
+}
+
 export async function listBagsWithCounts(userId: string) {
   await connectDB();
   await ensureDefaultBag(userId);
 
-  const [bags, items] = await Promise.all([
-    Bag.find({ userId }).sort({ createdAt: 1 }).lean(),
-    ChecklistItem.find({ userId, bagId: { $ne: null } }).select("bagId completed").lean(),
-  ]);
+  const [bags, items] = await Promise.all([Bag.find({ userId }).sort({ createdAt: 1 }).lean(), getBagAssignedItems(userId)]);
 
   return bags.map((bag) => {
     const assigned = items.filter((i) => String(i.bagId) === String(bag._id));
@@ -46,7 +51,7 @@ export async function getBagWithItems(userId: string, id: string) {
   const bag = await Bag.findOne({ _id: id, userId }).lean();
   if (!bag) return null;
 
-  const items = await ChecklistItem.find({ userId, bagId: id }).sort({ createdAt: -1 }).lean();
+  const items = (await getBagAssignedItems(userId)).filter((i) => String(i.bagId) === id);
   return { bag, items };
 }
 

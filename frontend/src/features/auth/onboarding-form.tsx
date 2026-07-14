@@ -29,7 +29,7 @@ export function OnboardingForm() {
 
   const form = useForm<ProfileFieldsInput>({
     resolver: zodResolver(profileFieldsSchema),
-    defaultValues: { name: "", gender: undefined, college: "", collegeCategory: undefined },
+    defaultValues: { name: "", gender: undefined, college: "", collegeCategoryId: "", courseId: "" },
   });
 
   async function onSubmit(values: ProfileFieldsInput) {

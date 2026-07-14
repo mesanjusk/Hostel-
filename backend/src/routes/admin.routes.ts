@@ -42,6 +42,44 @@ import {
   uiLayoutSchema,
   updateUserByAdminSchema,
 } from "@/validations/admin";
+import {
+  createCollegeCategory,
+  deleteCollegeCategory,
+  listAllCollegeCategories,
+  updateCollegeCategory,
+} from "@/services/collegeCategoryService";
+import { createCourse, deleteCourse, listAllCourses, updateCourse } from "@/services/courseService";
+import {
+  createChecklistTemplate,
+  listChecklistTemplates,
+  updateChecklistTemplate,
+} from "@/services/checklistTemplateService";
+import {
+  bulkDeleteDefaultChecklistItems,
+  bulkImportDefaultChecklistItems,
+  bulkSetActive,
+  createDefaultChecklistItem,
+  deleteDefaultChecklistItem,
+  listDefaultChecklistItemsForAdmin,
+  listDistinctCategories,
+  updateDefaultChecklistItem,
+} from "@/services/defaultChecklistItemService";
+import { addSuggestedItemToDefault, listSuggestedItems } from "@/services/suggestedItemsService";
+import { getChecklistDashboardStats, getDefaultItemAnalytics } from "@/services/checklistAnalyticsService";
+import {
+  addSuggestedToDefaultSchema,
+  bulkIdsSchema,
+  bulkImportDefaultItemsSchema,
+  bulkSetActiveSchema,
+  checklistTemplateSchema,
+  checklistTemplateUpdateSchema,
+  collegeCategorySchema,
+  collegeCategoryUpdateSchema,
+  courseSchema,
+  courseUpdateSchema,
+  defaultChecklistItemSchema,
+  defaultChecklistItemUpdateSchema,
+} from "@/validations/checklistAdmin";
 
 export const adminRouter = Router();
 
@@ -278,4 +316,257 @@ adminRouter.post("/directory-contacts/:id/verify", async (req, res) => {
 adminRouter.delete("/directory-contacts/:id", async (req, res) => {
   await adminDeleteDirectoryContact(req.params.id);
   res.json({ success: true });
+});
+
+// --- College categories ---
+
+adminRouter.get("/college-categories", async (req, res) => {
+  const search = typeof req.query.search === "string" ? req.query.search : undefined;
+  res.json({ collegeCategories: await listAllCollegeCategories(search) });
+});
+
+adminRouter.post("/college-categories", async (req, res) => {
+  const parsed = collegeCategorySchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.issues[0]?.message ?? "Invalid input" });
+    return;
+  }
+  const result = await createCollegeCategory(parsed.data);
+  if (!result.success) {
+    res.status(400).json({ error: result.error });
+    return;
+  }
+  res.json({ category: result.category });
+});
+
+adminRouter.patch("/college-categories/:id", async (req, res) => {
+  const parsed = collegeCategoryUpdateSchema.safeParse({ ...req.body, id: req.params.id });
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.issues[0]?.message ?? "Invalid input" });
+    return;
+  }
+  const { id, ...rest } = parsed.data;
+  const result = await updateCollegeCategory(id, rest);
+  if (!result.success) {
+    res.status(400).json({ error: result.error });
+    return;
+  }
+  res.json({ category: result.category });
+});
+
+adminRouter.delete("/college-categories/:id", async (req, res) => {
+  const result = await deleteCollegeCategory(req.params.id);
+  if (!result.success) {
+    res.status(400).json({ error: result.error });
+    return;
+  }
+  res.json({ success: true });
+});
+
+// --- Courses ---
+
+adminRouter.get("/courses", async (req, res) => {
+  const collegeCategoryId = typeof req.query.collegeCategoryId === "string" ? req.query.collegeCategoryId : undefined;
+  const search = typeof req.query.search === "string" ? req.query.search : undefined;
+  res.json({ courses: await listAllCourses({ collegeCategoryId, search }) });
+});
+
+adminRouter.post("/courses", async (req, res) => {
+  const parsed = courseSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.issues[0]?.message ?? "Invalid input" });
+    return;
+  }
+  const result = await createCourse(parsed.data);
+  if (!result.success) {
+    res.status(400).json({ error: result.error });
+    return;
+  }
+  res.json({ course: result.course });
+});
+
+adminRouter.patch("/courses/:id", async (req, res) => {
+  const parsed = courseUpdateSchema.safeParse({ ...req.body, id: req.params.id });
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.issues[0]?.message ?? "Invalid input" });
+    return;
+  }
+  const { id, ...rest } = parsed.data;
+  const result = await updateCourse(id, rest);
+  if (!result.success) {
+    res.status(400).json({ error: result.error });
+    return;
+  }
+  res.json({ course: result.course });
+});
+
+adminRouter.delete("/courses/:id", async (req, res) => {
+  const result = await deleteCourse(req.params.id);
+  if (!result.success) {
+    res.status(400).json({ error: result.error });
+    return;
+  }
+  res.json({ success: true });
+});
+
+// --- Checklist templates ---
+
+adminRouter.get("/checklist-templates", async (_req, res) => {
+  res.json({ templates: await listChecklistTemplates() });
+});
+
+adminRouter.post("/checklist-templates", async (req, res) => {
+  const parsed = checklistTemplateSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.issues[0]?.message ?? "Invalid input" });
+    return;
+  }
+  const result = await createChecklistTemplate(parsed.data);
+  res.json({ template: result.template });
+});
+
+adminRouter.patch("/checklist-templates/:id", async (req, res) => {
+  const parsed = checklistTemplateUpdateSchema.safeParse({ ...req.body, id: req.params.id });
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.issues[0]?.message ?? "Invalid input" });
+    return;
+  }
+  const { id, ...rest } = parsed.data;
+  const result = await updateChecklistTemplate(id, rest);
+  if (!result.success) {
+    res.status(400).json({ error: result.error });
+    return;
+  }
+  res.json({ template: result.template });
+});
+
+// --- Default checklist items (master data) ---
+
+adminRouter.get("/default-checklist-items", async (req, res) => {
+  const { search, category, collegeCategoryId, courseId, active, page, pageSize } = req.query;
+  const result = await listDefaultChecklistItemsForAdmin({
+    search: typeof search === "string" ? search : undefined,
+    category: typeof category === "string" ? category : undefined,
+    collegeCategoryId: typeof collegeCategoryId === "string" ? collegeCategoryId : undefined,
+    courseId: typeof courseId === "string" ? courseId : undefined,
+    active: active === "true" ? true : active === "false" ? false : undefined,
+    page: page ? Number(page) : undefined,
+    pageSize: pageSize ? Number(pageSize) : undefined,
+  });
+
+  const analytics = await getDefaultItemAnalytics(result.items.map((i) => String(i._id)));
+  const items = result.items.map((item) => ({ ...item, analytics: analytics.get(String(item._id)) ?? null }));
+
+  res.json({ ...result, items });
+});
+
+adminRouter.get("/default-checklist-items/categories", async (_req, res) => {
+  res.json({ categories: await listDistinctCategories() });
+});
+
+adminRouter.post("/default-checklist-items", async (req, res) => {
+  const parsed = defaultChecklistItemSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.issues[0]?.message ?? "Invalid input" });
+    return;
+  }
+  const result = await createDefaultChecklistItem(parsed.data, req.user!._id.toString());
+  if (!result.success) {
+    res.status(400).json({ error: result.error });
+    return;
+  }
+  res.json({ item: result.item });
+});
+
+adminRouter.patch("/default-checklist-items/:id", async (req, res) => {
+  const parsed = defaultChecklistItemUpdateSchema.safeParse({ ...req.body, id: req.params.id });
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.issues[0]?.message ?? "Invalid input" });
+    return;
+  }
+  const { id, ...rest } = parsed.data;
+  const result = await updateDefaultChecklistItem(id, rest, req.user!._id.toString());
+  if (!result.success) {
+    res.status(400).json({ error: result.error });
+    return;
+  }
+  res.json({ item: result.item });
+});
+
+adminRouter.delete("/default-checklist-items/:id", async (req, res) => {
+  await deleteDefaultChecklistItem(req.params.id);
+  res.json({ success: true });
+});
+
+adminRouter.post("/default-checklist-items/bulk-delete", async (req, res) => {
+  const parsed = bulkIdsSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.issues[0]?.message ?? "Invalid input" });
+    return;
+  }
+  const result = await bulkDeleteDefaultChecklistItems(parsed.data.ids);
+  res.json({ success: true, ...result });
+});
+
+adminRouter.post("/default-checklist-items/bulk-set-active", async (req, res) => {
+  const parsed = bulkSetActiveSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.issues[0]?.message ?? "Invalid input" });
+    return;
+  }
+  const result = await bulkSetActive(parsed.data.ids, parsed.data.active);
+  res.json({ success: true, ...result });
+});
+
+adminRouter.post("/default-checklist-items/bulk-import", async (req, res) => {
+  const parsed = bulkImportDefaultItemsSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.issues[0]?.message ?? "Invalid input" });
+    return;
+  }
+
+  // Resolve any `collegeCategoryNames` in each row to ids (best-effort — unmatched names are
+  // dropped, the row still imports as "all categories" if none match).
+  const allCategories = await listAllCollegeCategories();
+  const idByName = new Map(allCategories.map((c) => [c.name.trim().toLowerCase(), String(c._id)]));
+
+  const rows = parsed.data.rows.map((row) => {
+    const ids = (row.collegeCategoryNames ?? [])
+      .map((name) => idByName.get(name.trim().toLowerCase()))
+      .filter((id): id is string => Boolean(id));
+    return {
+      ...row,
+      applicableCollegeCategories: ids,
+      isForAllCollegeCategories: ids.length === 0,
+    };
+  });
+
+  const result = await bulkImportDefaultChecklistItems(rows, req.user!._id.toString());
+  res.json({ success: true, ...result });
+});
+
+// --- Suggested items (user-created items not yet in the master catalog) ---
+
+adminRouter.get("/suggested-items", async (_req, res) => {
+  res.json({ suggestions: await listSuggestedItems() });
+});
+
+adminRouter.post("/suggested-items/add-to-default", async (req, res) => {
+  const parsed = addSuggestedToDefaultSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.issues[0]?.message ?? "Invalid input" });
+    return;
+  }
+  const result = await addSuggestedItemToDefault(parsed.data, req.user!._id.toString());
+  if (!result.success) {
+    res.status(400).json({ error: result.error });
+    return;
+  }
+  res.json({ item: result.item });
+});
+
+// --- Checklist dashboard ---
+
+adminRouter.get("/checklist-dashboard", async (_req, res) => {
+  res.json({ stats: await getChecklistDashboardStats() });
 });

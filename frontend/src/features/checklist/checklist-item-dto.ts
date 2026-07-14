@@ -20,6 +20,11 @@ export interface ChecklistItemDTO {
   purchaseLink: string | null;
   studentRating: number | null;
   importance: string;
+  /** Only present for DB-driven (post-migration) accounts — see backend
+   * services/userChecklistService.ts. Absent/undefined for legacy accounts. */
+  quantity?: number;
+  isCustomItem?: boolean;
+  defaultChecklistItemId?: string | null;
 }
 
 /** Raw shape returned by the API (Mongo doc with `_id`). */
@@ -43,6 +48,9 @@ export interface ChecklistItemRaw {
   purchaseLink?: string | null;
   studentRating?: number | null;
   importance?: string;
+  quantity?: number;
+  isCustomItem?: boolean;
+  defaultChecklistItemId?: string | null;
 }
 
 export function toChecklistItemDTO(raw: ChecklistItemRaw): ChecklistItemDTO {
@@ -66,5 +74,8 @@ export function toChecklistItemDTO(raw: ChecklistItemRaw): ChecklistItemDTO {
     purchaseLink: raw.purchaseLink ?? null,
     studentRating: raw.studentRating ?? null,
     importance: raw.importance ?? "",
+    quantity: raw.quantity,
+    isCustomItem: raw.isCustomItem,
+    defaultChecklistItemId: raw.defaultChecklistItemId,
   };
 }

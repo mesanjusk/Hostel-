@@ -4,9 +4,16 @@ import { normalizeMobile } from "@/lib/phone";
 import { COLLEGE_CATEGORY_OPTIONS, GENDER_OPTIONS } from "@/types";
 
 export const genderSchema = z.enum(GENDER_OPTIONS, { message: "Select a gender" });
+/** Legacy fixed-enum validator — still used by the admin users list filter. New onboarding
+ * and profile-edit flows use collegeCategoryId/courseId (see collegeCategoryIdSchema below)
+ * against the DB-driven CollegeCategory/Course catalog instead. */
 export const collegeCategorySchema = z.enum(COLLEGE_CATEGORY_OPTIONS, {
   message: "Select a college category",
 });
+
+const objectIdSchema = z.string().trim().regex(/^[a-f0-9]{24}$/i, "Invalid id");
+export const collegeCategoryIdSchema = objectIdSchema;
+export const courseIdSchema = objectIdSchema;
 
 export const mobileSchema = z
   .string()
@@ -33,7 +40,8 @@ export const onboardingSchema = z.object({
   name: z.string().trim().min(2, "Name is too short").max(80, "Name is too long"),
   gender: genderSchema,
   college: z.string().trim().min(1, "Enter your college name").max(120, "College name is too long"),
-  collegeCategory: collegeCategorySchema,
+  collegeCategoryId: collegeCategoryIdSchema,
+  courseId: courseIdSchema,
 });
 
 const otpCodeSchema = z

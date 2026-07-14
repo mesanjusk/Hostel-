@@ -2,6 +2,7 @@ import { connectDB } from "@/db";
 import { AnalyticsEvent } from "@/models/AnalyticsEvent";
 import { User } from "@/models/User";
 import { ChecklistItem } from "@/models/ChecklistItem";
+import { UserChecklist } from "@/models/UserChecklist";
 import type { DateRange } from "@/lib/dateRange";
 import { startOfDay } from "@/lib/dateRange";
 
@@ -14,15 +15,25 @@ export async function getBusinessAnalytics(range: DateRange) {
   const match = { timestamp: { $gte: range.start, $lte: range.end } };
   const today = startOfDay(new Date());
 
-  const [registeredUsers, newUsersToday, totalVisitors, registeredVisitorIds, loginSuccessUserIds, activatedUserIds] =
-    await Promise.all([
-      User.countDocuments(),
-      User.countDocuments({ createdAt: { $gte: today } }),
-      AnalyticsEvent.distinct("visitorId", match),
-      AnalyticsEvent.distinct("visitorId", { ...match, eventName: "registration_success" }),
-      AnalyticsEvent.distinct("userId", { ...match, eventName: "login_success", userId: { $ne: null } }),
-      ChecklistItem.distinct("userId", { createdAt: { $gte: range.start, $lte: range.end } }),
-    ]);
+  const [
+    registeredUsers,
+    newUsersToday,
+    totalVisitors,
+    registeredVisitorIds,
+    loginSuccessUserIds,
+    legacyActivatedUserIds,
+    v2ActivatedUserIds,
+  ] = await Promise.all([
+    User.countDocuments(),
+    User.countDocuments({ createdAt: { $gte: today } }),
+    AnalyticsEvent.distinct("visitorId", match),
+    AnalyticsEvent.distinct("visitorId", { ...match, eventName: "registration_success" }),
+    AnalyticsEvent.distinct("userId", { ...match, eventName: "login_success", userId: { $ne: null } }),
+    ChecklistItem.distinct("userId", { createdAt: { $gte: range.start, $lte: range.end } }),
+    // DB-driven (post-migration) users get their checklist auto-generated at onboarding —
+    // same "added a checklist" activation signal as the legacy ChecklistItem row above.
+    UserChecklist.distinct("userId", { createdAt: { $gte: range.start, $lte: range.end } }),
+  ]);
 
   const activeUserIds = await AnalyticsEvent.distinct("userId", { ...match, userId: { $ne: null } });
   const inactiveUsers = Math.max(0, registeredUsers - activeUserIds.length);
@@ -33,7 +44,7 @@ export async function getBusinessAnalytics(range: DateRange) {
   const registrationToLoginRate =
     registeredVisitorIds.length === 0 ? 0 : Math.round((loginSuccessUserIds.length / registeredVisitorIds.length) * 1000) / 10;
 
-  const activatedSet = new Set(activatedUserIds.map(String));
+  const activatedSet = new Set([...legacyActivatedUserIds, ...v2ActivatedUserIds].map(String));
   const loginToActivationRate =
     loginSuccessUserIds.length === 0
       ? 0

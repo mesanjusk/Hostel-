@@ -1,5 +1,6 @@
 import { connectDB } from "@/db";
 import { ChecklistItem } from "@/models/ChecklistItem";
+import { hasUserChecklist, listItemsForUser } from "@/services/userChecklistService";
 import { Bag } from "@/models/Bag";
 import { BudgetEntry } from "@/models/BudgetEntry";
 import { Note } from "@/models/Note";
@@ -28,8 +29,16 @@ export async function globalSearch(userId: string, query: string): Promise<Searc
 
   const regex = new RegExp(escapeRegex(query.trim()), "i");
 
+  const searchChecklist = async () => {
+    if (await hasUserChecklist(userId)) {
+      const items = await listItemsForUser(userId);
+      return items.filter((i) => regex.test(i.item)).slice(0, 5);
+    }
+    return ChecklistItem.find({ userId, item: regex }).limit(5).lean();
+  };
+
   const [checklist, bags, budget, notes, documents, contacts, wishlist, guide] = await Promise.all([
-    ChecklistItem.find({ userId, item: regex }).limit(5).lean(),
+    searchChecklist(),
     Bag.find({ userId, name: regex }).limit(5).lean(),
     BudgetEntry.find({ userId, title: regex }).limit(5).lean(),
     Note.find({ userId, $or: [{ title: regex }, { content: regex }] }).limit(5).lean(),

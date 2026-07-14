@@ -1,16 +1,18 @@
 import { connectDB } from "@/db";
 import { User } from "@/models/User";
 import { ChecklistItem } from "@/models/ChecklistItem";
+import { UserChecklist } from "@/models/UserChecklist";
 import { Category } from "@/models/Category";
 import { BudgetEntry } from "@/models/BudgetEntry";
 import { Note } from "@/models/Note";
 import { DocumentItem } from "@/models/DocumentItem";
 import { EmergencyContact } from "@/models/EmergencyContact";
 import { WishlistItem } from "@/models/WishlistItem";
+import { CollegeCategory } from "@/models/CollegeCategory";
 import { generatePin, hashPin } from "@/lib/pin";
 import type { OnboardingInput } from "@/validations/auth";
 import type { ProfileUpdateInput } from "@/validations/profile";
-import type { UserRole } from "@/types";
+import { LEGACY_COLLEGE_CATEGORY_MAP, type UserRole } from "@/types";
 
 export async function getUserByMobile(mobile: string) {
   await connectDB();
@@ -22,15 +24,27 @@ export async function getUserById(id: string) {
   return User.findById(id).lean();
 }
 
+/** Best-effort mapping of a DB-driven CollegeCategory to the legacy fixed enum, so old code
+ * paths (categoryService's Designing-only folder, admin filters) keep working for new signups
+ * too. Falls back to "Other", mirroring the legacy semantics. */
+async function resolveLegacyCollegeCategory(collegeCategoryId: string) {
+  const category = await CollegeCategory.findById(collegeCategoryId).select("slug name").lean();
+  if (!category) return null;
+  return LEGACY_COLLEGE_CATEGORY_MAP[category.slug] ?? LEGACY_COLLEGE_CATEGORY_MAP[category.name.toLowerCase()] ?? "Other";
+}
+
 export async function completeOnboarding(userId: string, input: OnboardingInput) {
   await connectDB();
+  const collegeCategory = await resolveLegacyCollegeCategory(input.collegeCategoryId);
   return User.findByIdAndUpdate(
     userId,
     {
       name: input.name,
       gender: input.gender,
       college: input.college,
-      collegeCategory: input.collegeCategory,
+      collegeCategoryId: input.collegeCategoryId,
+      courseId: input.courseId,
+      collegeCategory,
     },
     { returnDocument: "after" },
   ).lean();
@@ -38,13 +52,16 @@ export async function completeOnboarding(userId: string, input: OnboardingInput)
 
 export async function updateProfile(userId: string, input: ProfileUpdateInput) {
   await connectDB();
+  const collegeCategory = await resolveLegacyCollegeCategory(input.collegeCategoryId);
   return User.findByIdAndUpdate(
     userId,
     {
       name: input.name,
       gender: input.gender,
       college: input.college,
-      collegeCategory: input.collegeCategory,
+      collegeCategoryId: input.collegeCategoryId,
+      courseId: input.courseId,
+      collegeCategory,
     },
     { returnDocument: "after" },
   ).lean();
@@ -165,6 +182,7 @@ export async function deleteUserByAdmin(userId: string) {
 
   await Promise.all([
     ChecklistItem.deleteMany({ userId }),
+    UserChecklist.deleteMany({ userId }),
     Category.deleteMany({ userId }),
     BudgetEntry.deleteMany({ userId }),
     Note.deleteMany({ userId }),

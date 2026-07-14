@@ -30,6 +30,8 @@ import { directoryContactsRouter } from "@/routes/directoryContacts.routes";
 import { bookingsRouter } from "@/routes/bookings.routes";
 import { placesRouter } from "@/routes/places.routes";
 import { citiesRouter } from "@/routes/cities.routes";
+import { collegeCategoriesRouter } from "@/routes/collegeCategories.routes";
+import { coursesRouter } from "@/routes/courses.routes";
 
 const app = express();
 
@@ -105,6 +107,8 @@ app.use("/api/directory-contacts", directoryContactsRouter);
 app.use("/api/bookings", bookingsRouter);
 app.use("/api/places", placesRouter);
 app.use("/api/cities", citiesRouter);
+app.use("/api/college-categories", collegeCategoriesRouter);
+app.use("/api/courses", coursesRouter);
 
 app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error(err);
