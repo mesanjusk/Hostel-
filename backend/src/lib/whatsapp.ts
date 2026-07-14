@@ -54,3 +54,32 @@ export async function sendWhatsAppOtp(mobile: string, code: string): Promise<voi
     throw new Error(message);
   }
 }
+
+/**
+ * Sends a free-form WhatsApp text reply. Only valid within the 24h customer-service window
+ * that opens when the recipient messages in first (e.g. replying to a /wa-login registration
+ * message) — unlike sendWhatsAppOtp, this does not use an approved template.
+ */
+export async function sendWhatsAppText(mobile: string, text: string): Promise<void> {
+  const { accessToken, phoneNumberId, apiVersion } = getConfig();
+
+  const res = await fetch(`${GRAPH_BASE}/${apiVersion}/${phoneNumberId}/messages`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      messaging_product: "whatsapp",
+      to: mobile,
+      type: "text",
+      text: { body: text },
+    }),
+  });
+
+  if (!res.ok) {
+    const body = (await res.json().catch(() => null)) as { error?: { message?: string } } | null;
+    const message = body?.error?.message || `WhatsApp send failed with status ${res.status}`;
+    throw new Error(message);
+  }
+}

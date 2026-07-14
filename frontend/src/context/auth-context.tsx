@@ -28,6 +28,7 @@ interface AuthContextValue {
   refreshUser: () => Promise<void>;
   setUser: (user: UserDTO) => void;
   checkMobile: (mobile: string) => Promise<boolean>;
+  loginWithToken: (token: string, user: UserDTO) => void;
   requestRegisterOtp: (mobile: string) => Promise<OtpRequestResult>;
   registerWithOtp: (mobile: string, code: string, pin?: string) => Promise<void>;
   requestResetOtp: (mobile: string) => Promise<OtpRequestResult>;
@@ -102,6 +103,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return exists;
   }, []);
 
+  // Used by the /wa-login flow once the backend confirms the WhatsApp registration message
+  // arrived — the token/user are already issued server-side, this just adopts the session.
+  const loginWithToken = useCallback((token: string, user: UserDTO) => {
+    setAuthToken(token);
+    setUser(user);
+  }, []);
+
   const requestRegisterOtp = useCallback(async (mobile: string) => {
     return api.post<OtpRequestResult>("/api/auth/register/request-otp", { mobile });
   }, []);
@@ -139,6 +147,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         refreshUser,
         setUser,
         checkMobile,
+        loginWithToken,
         requestRegisterOtp,
         registerWithOtp,
         requestResetOtp,

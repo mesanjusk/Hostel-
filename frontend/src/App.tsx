@@ -12,6 +12,7 @@ import { useAnalyticsPageViews } from "@/lib/analytics/use-page-view-tracking";
 
 const LoginPage = lazy(() => import("@/pages/login-page"));
 const RegisterPage = lazy(() => import("@/pages/register-page"));
+const WaLoginPage = lazy(() => import("@/pages/wa-login-page"));
 const ForgotPasswordPage = lazy(() => import("@/pages/forgot-password-page"));
 const OnboardingPage = lazy(() => import("@/pages/onboarding-page"));
 const NotFound = lazy(() => import("@/pages/not-found"));
@@ -90,6 +91,14 @@ export default function App() {
               element={
                 <AuthOnlyRoute>
                   <ForgotPasswordPage />
+                </AuthOnlyRoute>
+              }
+            />
+            <Route
+              path="/wa-login"
+              element={
+                <AuthOnlyRoute>
+                  <WaLoginPage />
                 </AuthOnlyRoute>
               }
             />

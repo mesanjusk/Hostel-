@@ -2,6 +2,9 @@ import crypto from "crypto";
 
 import { Router, type Request } from "express";
 
+import { completeRegistrationFromWhatsApp } from "@/services/waRegisterService";
+import { sendWhatsAppText } from "@/lib/whatsapp";
+
 export const whatsappRouter = Router();
 
 /** The one entry keyword this app owns on the shared WhatsApp number.
@@ -67,6 +70,23 @@ function verifySignature(req: Request): boolean {
   return crypto.timingSafeEqual(expectedBuffer, actualBuffer);
 }
 
+/** Matches the /wa-login self-registration message, e.g.
+ * "Register me as 9876543210, my PIN is 1234". Distinct enough a phrase (not a banned
+ * generic single word) that it's safe to handle ahead of the HOSTEL keyword gate below,
+ * independent of any active pack-with-me session. */
+const REGISTER_MESSAGE_REGEX = /register me as\s*[:\-]?\s*(\+?\d{10,13})\s*,?\s*(?:and\s*)?my pin is\s*[:\-]?\s*(\d{4})/i;
+
+/** Best-effort extraction of the sender's WhatsApp profile display name. Metabsp's exact
+ * field for this hasn't been confirmed against a live payload yet — this tries the likely
+ * candidates and falls back to null (registration still succeeds; only the onboarding-page
+ * name prefill is affected). Check the payload log below once a real message comes through
+ * and adjust the field name here if needed. */
+function extractProfileName(payload: MetabspPayload): string | null {
+  const candidate =
+    payload.senderName ?? payload.pushName ?? payload.profileName ?? payload.contactName ?? payload.name;
+  return typeof candidate === "string" && candidate.trim() ? candidate.trim() : null;
+}
+
 /** Returns the text after the entry keyword ("" for a bare keyword), or null
  * when the message does not start with it. */
 function matchEntryKeyword(text: string): string | null {
@@ -105,6 +125,28 @@ async function processMetabspMessage(payload: MetabspPayload): Promise<void> {
     const from = String(payload.from ?? "").replace(/\D/g, "");
     const text = String(payload.text ?? payload.message ?? "");
     if (!from) {
+      return;
+    }
+
+    // /wa-login self-registration: handled independently of the HOSTEL keyword gate and
+    // any active session below — it's a one-shot handshake with the web form, not a
+    // pack-with-me conversation.
+    const registerMatch = text.match(REGISTER_MESSAGE_REGEX);
+    if (registerMatch) {
+      const [, typedMobile, pin] = registerMatch;
+      const profileName = extractProfileName(payload);
+      console.log("wa-login registration attempt:", { from, typedMobile, payloadKeys: Object.keys(payload) });
+      const registered = await completeRegistrationFromWhatsApp(from, typedMobile, pin, profileName);
+      if (registered) {
+        try {
+          await sendWhatsAppText(
+            from,
+            "You're registered! Head back to the page where you clicked the WhatsApp button to continue.",
+          );
+        } catch (error) {
+          console.error("Failed to send wa-login confirmation reply:", error);
+        }
+      }
       return;
     }
 

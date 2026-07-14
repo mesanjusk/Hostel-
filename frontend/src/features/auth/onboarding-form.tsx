@@ -22,14 +22,20 @@ import { HOME_ROUTE } from "@/lib/nav-items";
 import { ProfileFields } from "@/features/auth/profile-fields";
 import { profileFieldsSchema, type ProfileFieldsInput } from "@/features/auth/profile-fields-schema";
 
-export function OnboardingForm() {
+export function OnboardingForm({ defaultName }: { defaultName?: string }) {
   const navigate = useNavigate();
   const { completeOnboarding } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<ProfileFieldsInput>({
     resolver: zodResolver(profileFieldsSchema),
-    defaultValues: { name: "", gender: undefined, college: "", collegeCategoryId: "", courseId: "" },
+    defaultValues: {
+      name: defaultName ?? "",
+      gender: undefined,
+      college: "",
+      collegeCategoryId: "",
+      courseId: "",
+    },
   });
 
   async function onSubmit(values: ProfileFieldsInput) {
