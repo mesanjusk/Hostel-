@@ -15,7 +15,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogT
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { api, ApiError } from "@/lib/api";
 import { emitRefresh } from "@/lib/refresh-bus";
-import { CHECKLIST_PRIORITIES, STORE_OPTIONS } from "@/types";
+import { CHECKLIST_GENDER_OPTIONS, CHECKLIST_PRIORITIES, STORE_OPTIONS } from "@/types";
 import type { CollegeCategoryDTO, CourseDTO } from "@/features/auth/college-taxonomy-dto";
 import type { DefaultChecklistItemDTO } from "@/features/admin/default-checklist-item-dto";
 
@@ -28,6 +28,7 @@ const itemFormSchema = z.object({
   recommendedBrand: z.string().trim().max(80).optional().or(z.literal("")),
   recommendedStore: z.enum(STORE_OPTIONS).optional().or(z.literal("")),
   purchaseLink: z.string().trim().url().optional().or(z.literal("")),
+  gender: z.enum(CHECKLIST_GENDER_OPTIONS),
   isForAllCollegeCategories: z.boolean(),
   applicableCollegeCategories: z.array(z.string()),
   isForAllCourses: z.boolean(),
@@ -62,6 +63,7 @@ export function DefaultChecklistItemFormDialog({
       recommendedBrand: item?.recommendedBrand ?? "",
       recommendedStore: item?.recommendedStore ?? "",
       purchaseLink: item?.purchaseLink ?? "",
+      gender: item?.gender ?? "All",
       isForAllCollegeCategories: item?.isForAllCollegeCategories ?? true,
       applicableCollegeCategories: item?.applicableCollegeCategories ?? [],
       isForAllCourses: item?.isForAllCourses ?? true,
@@ -257,6 +259,31 @@ export function DefaultChecklistItemFormDialog({
                   <FormLabel>Purchase link</FormLabel>
                   <FormControl>
                     <Input placeholder="https://…" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="gender"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Gender</FormLabel>
+                  <FormControl>
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {CHECKLIST_GENDER_OPTIONS.map((g) => (
+                          <SelectItem key={g} value={g}>
+                            {g}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </FormControl>
                   <FormMessage />
                 </FormItem>

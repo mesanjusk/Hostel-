@@ -16,6 +16,7 @@ import { DefaultChecklistItemFormDialog } from "@/features/admin/default-checkli
 import { BulkImportDefaultItemsDialog } from "@/features/admin/bulk-import-default-items-dialog";
 import { api, ApiError } from "@/lib/api";
 import { emitRefresh } from "@/lib/refresh-bus";
+import { CHECKLIST_GENDER_OPTIONS } from "@/types";
 import type { CollegeCategoryDTO, CourseDTO } from "@/features/auth/college-taxonomy-dto";
 import type { DefaultChecklistItemDTO } from "@/features/admin/default-checklist-item-dto";
 
@@ -26,12 +27,14 @@ export function DefaultChecklistItemsView({
   totalPages,
   search,
   category,
+  gender,
   active,
   categoryOptions,
   collegeCategories,
   courses,
   onSearchChange,
   onCategoryChange,
+  onGenderChange,
   onActiveChange,
   onPageChange,
 }: {
@@ -41,12 +44,14 @@ export function DefaultChecklistItemsView({
   totalPages: number;
   search: string;
   category: string;
+  gender: string;
   active: string;
   categoryOptions: string[];
   collegeCategories: CollegeCategoryDTO[];
   courses: CourseDTO[];
   onSearchChange: (value: string) => void;
   onCategoryChange: (value: string) => void;
+  onGenderChange: (value: string) => void;
   onActiveChange: (value: string) => void;
   onPageChange: (page: number) => void;
 }) {
@@ -146,6 +151,20 @@ export function DefaultChecklistItemsView({
           </SelectContent>
         </Select>
 
+        <Select value={gender || "all"} onValueChange={(v) => onGenderChange(v === "all" ? "" : v)}>
+          <SelectTrigger className="w-40">
+            <SelectValue placeholder="All genders" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All genders</SelectItem>
+            {CHECKLIST_GENDER_OPTIONS.map((g) => (
+              <SelectItem key={g} value={g}>
+                {g}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
         <Select value={active || "all"} onValueChange={(v) => onActiveChange(v === "all" ? "" : v)}>
           <SelectTrigger className="w-40">
             <SelectValue placeholder="All statuses" />
@@ -196,6 +215,7 @@ export function DefaultChecklistItemsView({
                 <TableHead>Title</TableHead>
                 <TableHead>Category</TableHead>
                 <TableHead>Priority</TableHead>
+                <TableHead>Gender</TableHead>
                 <TableHead>Applies to</TableHead>
                 <TableHead>Usage</TableHead>
                 <TableHead>Status</TableHead>
@@ -211,6 +231,9 @@ export function DefaultChecklistItemsView({
                   <TableCell className="font-medium">{item.title}</TableCell>
                   <TableCell>{item.category}</TableCell>
                   <TableCell className="capitalize">{item.priority}</TableCell>
+                  <TableCell>
+                    <Badge variant={item.gender === "All" ? "outline" : "accent"}>{item.gender}</Badge>
+                  </TableCell>
                   <TableCell className="text-muted-foreground text-sm">
                     {item.isForAllCollegeCategories
                       ? "All categories"

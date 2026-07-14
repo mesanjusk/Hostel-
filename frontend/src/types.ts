@@ -3,6 +3,10 @@ export type UserRole = "student" | "admin";
 export const GENDER_OPTIONS = ["Male", "Female", "Other"] as const;
 export type Gender = (typeof GENDER_OPTIONS)[number];
 
+/** Checklist items default to "All" (unisex) but can be targeted at a specific gender. */
+export const CHECKLIST_GENDER_OPTIONS = ["All", ...GENDER_OPTIONS] as const;
+export type ChecklistGender = (typeof CHECKLIST_GENDER_OPTIONS)[number];
+
 export const COLLEGE_CATEGORY_OPTIONS = [
   "Designing",
   "Engineering",

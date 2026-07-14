@@ -1,6 +1,6 @@
 import { Schema, model, models, type InferSchemaType, type Model } from "mongoose";
 
-import { CHECKLIST_PRIORITIES, STORE_OPTIONS } from "@/types";
+import { CHECKLIST_GENDER_OPTIONS, CHECKLIST_PRIORITIES, STORE_OPTIONS } from "@/types";
 
 /** Master data for the packing checklist — admin-managed, shared across every user whose
  * UserChecklist references it. Never mutated per-user; see UserChecklist for the thin
@@ -19,6 +19,10 @@ const DefaultChecklistItemSchema = new Schema(
     recommendedStore: { type: String, enum: [...STORE_OPTIONS, null], default: null },
     purchaseLink: { type: String, default: null },
     sortOrder: { type: Number, default: 0 },
+
+    /** "All" means unisex/applies to everyone; a specific gender targets students whose
+     * profile gender matches (see findApplicableItems). */
+    gender: { type: String, enum: CHECKLIST_GENDER_OPTIONS, default: "All", index: true },
 
     /** Empty array + isForAllCollegeCategories=true means "every category". A non-empty
      * array only applies when isForAllCollegeCategories is false. */

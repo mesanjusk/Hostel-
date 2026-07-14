@@ -27,6 +27,7 @@ export default function AdminDefaultChecklistPage() {
   const page = Math.max(1, Number(searchParams.get("page")) || 1);
   const search = searchParams.get("search") ?? "";
   const category = searchParams.get("category") ?? "";
+  const gender = searchParams.get("gender") ?? "";
   const active = searchParams.get("active") ?? "";
 
   const [items, setItems] = useState<DefaultChecklistItemDTO[]>([]);
@@ -40,6 +41,7 @@ export default function AdminDefaultChecklistPage() {
       const params = new URLSearchParams({ page: String(page), pageSize: String(PAGE_SIZE) });
       if (search) params.set("search", search);
       if (category) params.set("category", category);
+      if (gender) params.set("gender", gender);
       if (active) params.set("active", active);
 
       const [itemsResult, categoriesResult, collegeCategoriesResult, coursesResult] = await Promise.all([
@@ -65,7 +67,7 @@ export default function AdminDefaultChecklistPage() {
     fetchData();
     return subscribeRefresh(fetchData);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, search, category, active]);
+  }, [page, search, category, gender, active]);
 
   function updateParams(patch: Record<string, string>) {
     const next = new URLSearchParams(searchParams);
@@ -89,12 +91,14 @@ export default function AdminDefaultChecklistPage() {
         totalPages={totalPages}
         search={search}
         category={category}
+        gender={gender}
         active={active}
         categoryOptions={categoryOptions}
         collegeCategories={collegeCategories}
         courses={courses}
         onSearchChange={(value) => updateParams({ search: value })}
         onCategoryChange={(value) => updateParams({ category: value })}
+        onGenderChange={(value) => updateParams({ gender: value })}
         onActiveChange={(value) => updateParams({ active: value })}
         onPageChange={(nextPage) => updateParams({ page: String(nextPage) })}
       />

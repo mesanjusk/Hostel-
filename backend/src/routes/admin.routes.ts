@@ -1,5 +1,6 @@
 import { Router } from "express";
 
+import { CHECKLIST_GENDER_OPTIONS } from "@/types";
 import { requireAdmin, requireAuth } from "@/middleware/auth";
 import { getAdminAnalytics } from "@/services/analyticsService";
 import {
@@ -443,12 +444,15 @@ adminRouter.patch("/checklist-templates/:id", async (req, res) => {
 // --- Default checklist items (master data) ---
 
 adminRouter.get("/default-checklist-items", async (req, res) => {
-  const { search, category, collegeCategoryId, courseId, active, page, pageSize } = req.query;
+  const { search, category, collegeCategoryId, courseId, gender, active, page, pageSize } = req.query;
   const result = await listDefaultChecklistItemsForAdmin({
     search: typeof search === "string" ? search : undefined,
     category: typeof category === "string" ? category : undefined,
     collegeCategoryId: typeof collegeCategoryId === "string" ? collegeCategoryId : undefined,
     courseId: typeof courseId === "string" ? courseId : undefined,
+    gender: CHECKLIST_GENDER_OPTIONS.includes(gender as (typeof CHECKLIST_GENDER_OPTIONS)[number])
+      ? (gender as (typeof CHECKLIST_GENDER_OPTIONS)[number])
+      : undefined,
     active: active === "true" ? true : active === "false" ? false : undefined,
     page: page ? Number(page) : undefined,
     pageSize: pageSize ? Number(pageSize) : undefined,

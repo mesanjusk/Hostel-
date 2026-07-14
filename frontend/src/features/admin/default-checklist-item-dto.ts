@@ -1,4 +1,4 @@
-import type { ChecklistPriority, StoreOption } from "@/types";
+import type { ChecklistGender, ChecklistPriority, StoreOption } from "@/types";
 
 export interface DefaultItemAnalytics {
   usersUsing: number;
@@ -23,6 +23,7 @@ export interface DefaultChecklistItemDTO {
   recommendedStore: StoreOption | null;
   purchaseLink: string | null;
   sortOrder: number;
+  gender: ChecklistGender;
   applicableCollegeCategories: string[];
   applicableCourses: string[];
   isForAllCollegeCategories: boolean;
@@ -44,6 +45,7 @@ export interface DefaultChecklistItemRaw {
   recommendedStore?: StoreOption | null;
   purchaseLink?: string | null;
   sortOrder: number;
+  gender?: ChecklistGender;
   applicableCollegeCategories: string[];
   applicableCourses: string[];
   isForAllCollegeCategories: boolean;
@@ -66,6 +68,7 @@ export function toDefaultChecklistItemDTO(raw: DefaultChecklistItemRaw): Default
     recommendedStore: raw.recommendedStore ?? null,
     purchaseLink: raw.purchaseLink ?? null,
     sortOrder: raw.sortOrder,
+    gender: raw.gender ?? "All",
     applicableCollegeCategories: (raw.applicableCollegeCategories ?? []).map(String),
     applicableCourses: (raw.applicableCourses ?? []).map(String),
     isForAllCollegeCategories: raw.isForAllCollegeCategories,

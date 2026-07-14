@@ -25,12 +25,13 @@ export async function generateUserChecklist(userId: string) {
     return { generated: false, count: 0 };
   }
 
-  const user = await User.findById(userId).select("collegeCategoryId courseId").lean();
+  const user = await User.findById(userId).select("collegeCategoryId courseId gender").lean();
   const template = await getOrCreateActiveTemplate();
   const items = await findApplicableItems(
     String(template._id),
     user?.collegeCategoryId ? String(user.collegeCategoryId) : null,
     user?.courseId ? String(user.courseId) : null,
+    user?.gender ?? null,
   );
 
   if (items.length === 0) {

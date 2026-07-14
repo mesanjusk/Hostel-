@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { CHECKLIST_PRIORITIES, STORE_OPTIONS } from "@/types";
+import { CHECKLIST_GENDER_OPTIONS, CHECKLIST_PRIORITIES, STORE_OPTIONS } from "@/types";
 
 const objectIdSchema = z.string().trim().regex(/^[a-f0-9]{24}$/i, "Invalid id");
 
@@ -53,6 +53,7 @@ const defaultChecklistItemBaseSchema = z.object({
   recommendedStore: z.enum(STORE_OPTIONS).optional().nullable(),
   purchaseLink: z.string().trim().url().optional().or(z.literal("")),
   sortOrder: z.coerce.number().optional(),
+  gender: z.enum(CHECKLIST_GENDER_OPTIONS).optional(),
   applicableCollegeCategories: z.array(objectIdSchema).optional(),
   applicableCourses: z.array(objectIdSchema).optional(),
   isForAllCollegeCategories: z.boolean().optional(),
@@ -75,6 +76,7 @@ export const bulkImportDefaultItemsSchema = z.object({
         description: z.string().trim().max(500).optional(),
         priority: z.enum(CHECKLIST_PRIORITIES).optional(),
         estimatedPrice: z.coerce.number().min(0).optional(),
+        gender: z.enum(CHECKLIST_GENDER_OPTIONS).optional(),
         collegeCategoryNames: z.array(z.string().trim().min(1)).optional(),
       }),
     )

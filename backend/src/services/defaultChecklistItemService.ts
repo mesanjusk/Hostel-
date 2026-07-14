@@ -6,7 +6,7 @@ import { UserChecklist } from "@/models/UserChecklist";
 import { User } from "@/models/User";
 import { getOrCreateActiveTemplate } from "@/services/checklistTemplateService";
 import { normalizeItemName } from "@/lib/textSimilarity";
-import type { ChecklistPriority, StoreOption } from "@/types";
+import type { ChecklistGender, ChecklistPriority, StoreOption } from "@/types";
 
 const PROPAGATION_PAGE_SIZE = 1000;
 
@@ -22,6 +22,7 @@ async function propagateDefaultItemToExistingUsers(item: {
   applicableCollegeCategories: unknown[];
   isForAllCourses: boolean;
   applicableCourses: unknown[];
+  gender?: ChecklistGender;
 }) {
   await connectDB();
 
@@ -31,6 +32,9 @@ async function propagateDefaultItemToExistingUsers(item: {
   }
   if (!item.isForAllCourses) {
     userQuery.courseId = { $in: item.applicableCourses };
+  }
+  if (item.gender && item.gender !== "All") {
+    userQuery.gender = item.gender;
   }
 
   let backfilled = 0;
@@ -125,6 +129,7 @@ export interface DefaultChecklistItemInput {
   recommendedStore?: StoreOption | null;
   purchaseLink?: string | null;
   sortOrder?: number;
+  gender?: ChecklistGender;
   applicableCollegeCategories?: string[];
   applicableCourses?: string[];
   isForAllCollegeCategories?: boolean;
@@ -132,14 +137,16 @@ export interface DefaultChecklistItemInput {
   active?: boolean;
 }
 
-/** Items applicable to a given (collegeCategoryId, courseId) pair — the core targeting rule
- * used both by checklist generation and by the admin item list's "applies to" filter.
- * "All categories" OR "matches selected category", AND "all courses" OR "matches selected
- * course" (courses are only meaningful once a category matches). */
+/** Items applicable to a given (collegeCategoryId, courseId, gender) combination — the core
+ * targeting rule used both by checklist generation and by the admin item list's "applies to"
+ * filter. "All categories" OR "matches selected category", AND "all courses" OR "matches
+ * selected course" (courses are only meaningful once a category matches), AND unisex ("All")
+ * OR matches the student's gender. A student with no gender on file only sees unisex items. */
 export async function findApplicableItems(
   templateId: string,
   collegeCategoryId: string | null,
   courseId: string | null,
+  gender?: ChecklistGender | null,
 ) {
   await connectDB();
 
@@ -151,10 +158,12 @@ export async function findApplicableItems(
     ? { $or: [{ isForAllCourses: true }, { applicableCourses: courseId }] }
     : { isForAllCourses: true };
 
+  const genderClause = gender ? { $or: [{ gender: "All" }, { gender }] } : { gender: "All" };
+
   return DefaultChecklistItem.find({
     templateId,
     active: true,
-    $and: [categoryClause, courseClause],
+    $and: [categoryClause, courseClause, genderClause],
   })
     .sort({ category: 1, sortOrder: 1, title: 1 })
     .lean();
@@ -165,6 +174,7 @@ export interface AdminListFilters {
   category?: string;
   collegeCategoryId?: string;
   courseId?: string;
+  gender?: ChecklistGender;
   active?: boolean;
   page?: number;
   pageSize?: number;
@@ -181,6 +191,7 @@ export async function listDefaultChecklistItemsForAdmin(filters: AdminListFilter
     ];
   }
   if (filters.category) query.category = filters.category;
+  if (filters.gender) query.gender = filters.gender;
   if (filters.collegeCategoryId) {
     query.$and = [
       { $or: [{ isForAllCollegeCategories: true }, { applicableCollegeCategories: filters.collegeCategoryId }] },
@@ -241,6 +252,7 @@ export async function createDefaultChecklistItem(input: DefaultChecklistItemInpu
     recommendedStore: input.recommendedStore ?? null,
     purchaseLink: input.purchaseLink ?? null,
     sortOrder: input.sortOrder ?? 0,
+    gender: input.gender ?? "All",
     applicableCollegeCategories: input.applicableCollegeCategories ?? [],
     applicableCourses: input.applicableCourses ?? [],
     isForAllCollegeCategories: input.isForAllCollegeCategories ?? true,
@@ -276,6 +288,7 @@ export async function updateDefaultChecklistItem(
   // index, so re-running it on an unrelated edit (e.g. price) is a cheap no-op.
   const targetingChanged =
     input.active !== undefined ||
+    input.gender !== undefined ||
     input.applicableCollegeCategories !== undefined ||
     input.applicableCourses !== undefined ||
     input.isForAllCollegeCategories !== undefined ||
@@ -320,6 +333,7 @@ export interface BulkImportRow {
   description?: string;
   priority?: ChecklistPriority;
   estimatedPrice?: number;
+  gender?: ChecklistGender;
   isForAllCollegeCategories?: boolean;
   collegeCategoryNames?: string[];
 }
@@ -359,6 +373,7 @@ export async function bulkImportDefaultChecklistItems(
       description: row.description ?? "",
       priority: row.priority ?? "medium",
       estimatedPrice: row.estimatedPrice ?? null,
+      gender: row.gender ?? "All",
       applicableCollegeCategories: row.applicableCollegeCategories ?? [],
       isForAllCollegeCategories: row.isForAllCollegeCategories ?? true,
       isForAllCourses: true,
