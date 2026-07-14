@@ -10,6 +10,7 @@ import { EmergencyContact } from "@/models/EmergencyContact";
 import { WishlistItem } from "@/models/WishlistItem";
 import { CollegeCategory } from "@/models/CollegeCategory";
 import { generatePin, hashPin } from "@/lib/pin";
+import { backfillChecklistForGenderChange } from "@/services/userChecklistService";
 import type { OnboardingInput } from "@/validations/auth";
 import type { ProfileUpdateInput } from "@/validations/profile";
 import { LEGACY_COLLEGE_CATEGORY_MAP, type UserRole } from "@/types";
@@ -52,8 +53,9 @@ export async function completeOnboarding(userId: string, input: OnboardingInput)
 
 export async function updateProfile(userId: string, input: ProfileUpdateInput) {
   await connectDB();
+  const previous = await User.findById(userId).select("gender").lean();
   const collegeCategory = await resolveLegacyCollegeCategory(input.collegeCategoryId);
-  return User.findByIdAndUpdate(
+  const updated = await User.findByIdAndUpdate(
     userId,
     {
       name: input.name,
@@ -65,6 +67,12 @@ export async function updateProfile(userId: string, input: ProfileUpdateInput) {
     },
     { returnDocument: "after" },
   ).lean();
+
+  if (updated && previous?.gender !== input.gender) {
+    await backfillChecklistForGenderChange(userId);
+  }
+
+  return updated;
 }
 
 export async function setNotificationPreference(userId: string, enabled: boolean) {

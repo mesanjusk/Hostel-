@@ -52,6 +52,48 @@ export async function generateUserChecklist(userId: string) {
   return { generated: true, count: docs.length };
 }
 
+/** Called when a user changes their gender after onboarding (see userService.updateProfile).
+ * generateUserChecklist only ever seeds once, so a user who initially onboarded with the
+ * "wrong" gender would otherwise never receive items targeted at their corrected gender. Only
+ * ADDS items newly applicable under the new gender — never removes items they already have,
+ * since those may already be checked off or customized. No-ops for users who haven't been
+ * seeded yet (they'll get the right items from generateUserChecklist on /onboarding). */
+export async function backfillChecklistForGenderChange(userId: string) {
+  await connectDB();
+
+  const hasChecklist = await hasUserChecklist(userId);
+  if (!hasChecklist) return { added: 0 };
+
+  const user = await User.findById(userId).select("collegeCategoryId courseId gender").lean();
+  const template = await getOrCreateActiveTemplate();
+  const items = await findApplicableItems(
+    String(template._id),
+    user?.collegeCategoryId ? String(user.collegeCategoryId) : null,
+    user?.courseId ? String(user.courseId) : null,
+    user?.gender ?? null,
+  );
+  if (items.length === 0) return { added: 0 };
+
+  const existingItemIds = await UserChecklist.distinct("defaultChecklistItemId", { userId });
+  const existingIds = new Set(existingItemIds.map(String));
+
+  const docs = items
+    .filter((item) => !existingIds.has(String(item._id)))
+    .map((item) => ({
+      userId,
+      defaultChecklistItemId: item._id,
+      checked: false,
+      quantity: 1,
+      metadataVersion: template.version,
+    }));
+  if (docs.length === 0) return { added: 0 };
+
+  await UserChecklist.insertMany(docs, { ordered: false }).catch(() => {
+    // Unique (userId, defaultChecklistItemId) index guards against double-seeding on races.
+  });
+  return { added: docs.length };
+}
+
 export interface HydratedChecklistRow {
   _id: string;
   category: ChecklistCategory;
