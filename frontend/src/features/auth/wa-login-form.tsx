@@ -80,7 +80,7 @@ export function WaLoginForm() {
       const result = await api.post<{ pendingId: string }>("/api/wa-register/start", { mobile, pin });
       pendingIdRef.current = result.pendingId;
 
-      const message = `Register me as ${normalized.slice(2)}, my PIN is ${pin}`;
+      const message = `PACKWITHME Register me as ${normalized.slice(2)}, my PIN is ${pin}`;
       setWaLink(`https://wa.me/${BOT_WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`);
       setStep(1);
     } catch (err) {
