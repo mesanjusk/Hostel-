@@ -1,35 +1,10 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import {
-  BookOpen,
-  FileText,
-  Heart,
-  ListChecks,
-  Luggage,
-  ShoppingBag,
-  Users,
-  Wallet,
-  type LucideIcon,
-} from "lucide-react";
 
 import { BrandName } from "@/components/shared/brand-name";
 import { useAuth } from "@/context/auth-context";
-
-/** One card per Welcome-page ("home page after splash") scrapbook section, carried over
- * as a clickable entry point into the matching real app feature — this page is the
- * "professional" landing hub /wa-login sends people to after they're signed in. Styled
- * as pinned sticky notes, so text stays short (one handwritten line) by design. */
-const HUB_CARDS: { section: string; title: string; href: string; icon: LucideIcon }[] = [
-  { section: "Hero", title: "Checklist", href: "/checklist", icon: ListChecks },
-  { section: "Mental Prep", title: "Survival Guide", href: "/guide/survival-guide", icon: BookOpen },
-  { section: "Room Setup", title: "Bags", href: "/bags", icon: Luggage },
-  { section: "Survival Hacks", title: "Shopping", href: "/shopping", icon: ShoppingBag },
-  { section: "Bathroom Reality", title: "Toiletries", href: "/checklist", icon: ListChecks },
-  { section: "Food Survival", title: "Budget", href: "/budget", icon: Wallet },
-  { section: "Roommate Vibes", title: "Discover", href: "/discover", icon: Users },
-  { section: "Underrated Essentials", title: "Wishlist", href: "/wishlist", icon: Heart },
-  { section: "Final", title: "Documents", href: "/documents", icon: FileText },
-];
+import { HUB_CARDS } from "@/features/welcome/hub-widget-registry";
+import { useHubLayout } from "@/features/welcome/use-hub-layout";
 
 /** One distinct pastel per note so the board reads as a set of colorful pinned notes. */
 const CARD_BACKGROUNDS = [
@@ -50,7 +25,10 @@ const PIN_ROTATIONS = [-8, 6, -4, 7, -6, 5, -5, 8, -3];
 
 export function WaLoginHomeView() {
   const { user } = useAuth();
-  const isOddCount = HUB_CARDS.length % 2 === 1;
+  const layout = useHubLayout();
+  const hiddenIds = new Set(layout.filter((w) => !w.visible).map((w) => w.id));
+  const visibleCards = HUB_CARDS.map((card, i) => ({ card, i })).filter(({ card }) => !hiddenIds.has(card.id));
+  const isOddCount = visibleCards.length % 2 === 1;
 
   return (
     <div className="mx-auto flex max-w-5xl flex-col gap-8">
@@ -68,14 +46,14 @@ export function WaLoginHomeView() {
       </div>
 
       <div className="grid grid-cols-2 gap-x-4 gap-y-6 md:grid-cols-3">
-        {HUB_CARDS.map((card, i) => (
+        {visibleCards.map(({ card, i }, displayIndex) => (
           <motion.div
-            key={card.section}
+            key={card.id}
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.04 }}
+            transition={{ delay: displayIndex * 0.04 }}
             className={
-              isOddCount && i === HUB_CARDS.length - 1
+              isOddCount && displayIndex === visibleCards.length - 1
                 ? "max-md:col-span-2 max-md:mx-auto max-md:w-[calc(50%-0.5rem)]"
                 : undefined
             }

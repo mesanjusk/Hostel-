@@ -19,6 +19,7 @@ const TABS = [
   { href: "/admin/pending-registrations", label: "Pending WA Signups" },
   { href: "/admin/layout", label: "Dashboard Layout" },
   { href: "/admin/nav", label: "Nav Items" },
+  { href: "/admin/home-cards", label: "Home Cards" },
   { href: "/admin/home-screen", label: "Home Screen" },
 ];
 

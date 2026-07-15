@@ -22,7 +22,7 @@ export function DashboardLayout() {
           <Outlet />
         </main>
       </div>
-      <BottomNav />
+      <BottomNav hiddenNavHrefs={hiddenNavHrefs} />
       <FabMenu hiddenNavHrefs={hiddenNavHrefs} />
       <PWAInstallPrompt />
     </div>

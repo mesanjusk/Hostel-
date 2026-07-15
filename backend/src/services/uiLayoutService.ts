@@ -8,6 +8,7 @@ export interface WidgetConfig {
 
 const DASHBOARD_PAGE = "dashboard";
 const NAV_PAGE = "nav";
+const HOME_PAGE = "home";
 
 async function getLayout(page: string): Promise<WidgetConfig[] | null> {
   await connectDB();
@@ -37,4 +38,13 @@ export function getNavLayout(): Promise<WidgetConfig[] | null> {
 /** Admin-only: persists which nav items are hidden/shown for every student. */
 export function saveNavLayout(widgets: WidgetConfig[]): Promise<WidgetConfig[]> {
   return saveLayout(NAV_PAGE, widgets);
+}
+
+export function getHomeLayout(): Promise<WidgetConfig[] | null> {
+  return getLayout(HOME_PAGE);
+}
+
+/** Admin-only: persists which cards are hidden/shown on the post-login home hub. */
+export function saveHomeLayout(widgets: WidgetConfig[]): Promise<WidgetConfig[]> {
+  return saveLayout(HOME_PAGE, widgets);
 }

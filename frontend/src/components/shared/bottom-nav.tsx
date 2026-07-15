@@ -3,9 +3,11 @@ import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { BOTTOM_NAV_ITEMS } from "@/lib/nav-items";
 
-export function BottomNav() {
+export function BottomNav({ hiddenNavHrefs }: { hiddenNavHrefs?: Set<string> }) {
   const { pathname } = useLocation();
   const [left, right] = [BOTTOM_NAV_ITEMS.slice(0, 2), BOTTOM_NAV_ITEMS.slice(2)];
+  const visibleLeft = left.filter((item) => !hiddenNavHrefs?.has(item.href));
+  const visibleRight = right.filter((item) => !hiddenNavHrefs?.has(item.href));
 
   function renderItem(item: (typeof BOTTOM_NAV_ITEMS)[number]) {
     const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
@@ -34,9 +36,9 @@ export function BottomNav() {
        * `position: fixed` from the viewport when `backdrop-filter` is applied directly to it. */}
       <div className="absolute inset-0 -z-10 backdrop-blur-md" aria-hidden="true" />
       <div className="flex items-stretch justify-between px-1 pt-2">
-        {left.map(renderItem)}
+        {visibleLeft.map(renderItem)}
         <div className="w-12 shrink-0" aria-hidden="true" />
-        {right.map(renderItem)}
+        {visibleRight.map(renderItem)}
       </div>
     </nav>
   );

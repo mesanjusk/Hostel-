@@ -20,7 +20,7 @@ import {
   deleteGuideArticle,
   updateGuideArticle,
 } from "@/services/guideService";
-import { saveDashboardLayout, saveNavLayout } from "@/services/uiLayoutService";
+import { saveDashboardLayout, saveHomeLayout, saveNavLayout } from "@/services/uiLayoutService";
 import { saveLandingDesign } from "@/services/landingDesignService";
 import { createCity, deleteCity, listCities, updateCity } from "@/services/cityService";
 import { createPlace, deletePlace, listPlaces, updatePlace } from "@/services/placeService";
@@ -229,6 +229,16 @@ adminRouter.put("/nav-layout", async (req, res) => {
     return;
   }
   const widgets = await saveNavLayout(parsed.data.widgets);
+  res.json({ widgets });
+});
+
+adminRouter.put("/home-layout", async (req, res) => {
+  const parsed = uiLayoutSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.issues[0]?.message ?? "Invalid input" });
+    return;
+  }
+  const widgets = await saveHomeLayout(parsed.data.widgets);
   res.json({ widgets });
 });
 
