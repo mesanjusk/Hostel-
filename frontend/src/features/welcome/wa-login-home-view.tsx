@@ -33,7 +33,6 @@ export function WaLoginHomeView() {
   return (
     <div className="mx-auto flex max-w-5xl flex-col gap-8">
       <div className="flex flex-col items-center gap-3 text-center">
-        <img src="/logo.png" alt="" width={56} height={56} />
         <h1
           className="text-5xl font-bold sm:text-6xl"
           style={{ fontFamily: "var(--font-caveat-home)" }}
