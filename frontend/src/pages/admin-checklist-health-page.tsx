@@ -27,6 +27,8 @@ interface UserSnapshot {
   gender?: string | null;
   userChecklistCount?: number;
   legacyChecklistItemCount?: number;
+  categoryFolderNames?: string[];
+  legacyItemCategoryNames?: string[];
 }
 
 interface HealthSnapshot {
@@ -154,6 +156,16 @@ export default function AdminChecklistHealthPage() {
               <p>
                 <span className="text-muted-foreground">Legacy checklist rows: </span>
                 {snapshot.user.legacyChecklistItemCount}
+              </p>
+              <p>
+                <span className="text-muted-foreground">Category folders ({snapshot.user.categoryFolderNames?.length ?? 0}): </span>
+                {snapshot.user.categoryFolderNames?.join(", ") || "(none)"}
+              </p>
+              <p>
+                <span className="text-muted-foreground">
+                  Category names on legacy items ({snapshot.user.legacyItemCategoryNames?.length ?? 0}):{" "}
+                </span>
+                {snapshot.user.legacyItemCategoryNames?.join(", ") || "(none)"}
               </p>
             </div>
           ) : (

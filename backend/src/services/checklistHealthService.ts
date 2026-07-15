@@ -6,6 +6,7 @@ import { Course } from "@/models/Course";
 import { User } from "@/models/User";
 import { UserChecklist } from "@/models/UserChecklist";
 import { ChecklistItem } from "@/models/ChecklistItem";
+import { Category } from "@/models/Category";
 import { normalizeMobile } from "@/lib/phone";
 
 /** Read-only diagnostic snapshot of the checklist-generation taxonomy — lets an admin confirm
@@ -45,9 +46,11 @@ export async function getChecklistHealthSnapshot(mobile?: string) {
     if (!user) {
       snapshot.user = { mobile: normalized, found: false };
     } else {
-      const [userChecklistCount, legacyChecklistItemCount] = await Promise.all([
+      const [userChecklistCount, legacyChecklistItemCount, categories, legacyItemCategories] = await Promise.all([
         UserChecklist.countDocuments({ userId: user._id }),
         ChecklistItem.countDocuments({ userId: user._id }),
+        Category.find({ userId: user._id }).select("name").lean(),
+        ChecklistItem.distinct("category", { userId: user._id }),
       ]);
       snapshot.user = {
         found: true,
@@ -60,6 +63,8 @@ export async function getChecklistHealthSnapshot(mobile?: string) {
         gender: user.gender ?? null,
         userChecklistCount,
         legacyChecklistItemCount,
+        categoryFolderNames: categories.map((c) => c.name),
+        legacyItemCategoryNames: legacyItemCategories,
       };
     }
   }
