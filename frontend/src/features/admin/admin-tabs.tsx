@@ -14,6 +14,7 @@ const TABS = [
   { href: "/admin/courses", label: "Courses" },
   { href: "/admin/checklist-templates", label: "Checklist Templates" },
   { href: "/admin/default-checklist", label: "Default Checklist" },
+  { href: "/admin/checklist-health", label: "Checklist Health" },
   { href: "/admin/suggested-items", label: "Suggested Items" },
   { href: "/admin/layout", label: "Dashboard Layout" },
   { href: "/admin/nav", label: "Nav Items" },
