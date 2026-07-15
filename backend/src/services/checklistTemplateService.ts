@@ -2,6 +2,7 @@ import { connectDB } from "@/db";
 import { ChecklistTemplate } from "@/models/ChecklistTemplate";
 import { DefaultChecklistItem } from "@/models/DefaultChecklistItem";
 import { DEFAULT_CHECKLIST_TEMPLATE } from "@/lib/defaultChecklistTemplate";
+import { CHECKLIST_GENDER_OPTIONS } from "@/types";
 
 /** Populates a template that has zero DefaultChecklistItem rows with the hardcoded starter
  * checklist, so `findApplicableItems` never comes back empty just because nobody has run the
@@ -9,6 +10,15 @@ import { DEFAULT_CHECKLIST_TEMPLATE } from "@/lib/defaultChecklistTemplate";
  * (visible to every college category / course / gender) — admins can narrow targeting later
  * via the taxonomy panel. Safe to call repeatedly: only inserts when the template is empty. */
 async function ensureTemplateHasDefaultItems(templateId: string) {
+  // Repair items left with an invalid/blank gender (insertMany did not reliably apply the
+  // schema's `default: "All"` in this environment) — findApplicableItems's gender clause only
+  // matches an exact "All" or the student's own gender, so a blank value silently hides the
+  // item from every user's checklist generation. Cheap no-op once fixed (indexed by templateId).
+  await DefaultChecklistItem.updateMany(
+    { templateId, gender: { $nin: CHECKLIST_GENDER_OPTIONS } },
+    { gender: "All" },
+  );
+
   const hasItems = await DefaultChecklistItem.exists({ templateId });
   if (hasItems) return;
 
@@ -22,6 +32,10 @@ async function ensureTemplateHasDefaultItems(templateId: string) {
     isForAllCollegeCategories: true,
     isForAllCourses: true,
     active: true,
+    // Explicit rather than relying on the schema default: findApplicableItems's gender clause
+    // only matches an exact "All" (or the student's own gender) — an empty/undefined value
+    // here silently excludes every item from every user's checklist generation.
+    gender: "All" as const,
   }));
 
   try {

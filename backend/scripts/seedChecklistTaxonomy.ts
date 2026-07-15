@@ -126,6 +126,7 @@ async function main() {
       isForAllCollegeCategories: !isDesignOnly,
       isForAllCourses: !isDesignOnly,
       active: true,
+      gender: "All",
     });
     imported += 1;
   }
