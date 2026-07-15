@@ -24,10 +24,14 @@ async function ensureTemplateHasDefaultItems(templateId: string) {
     active: true,
   }));
 
-  await DefaultChecklistItem.insertMany(docs, { ordered: false }).catch(() => {
+  try {
+    await DefaultChecklistItem.insertMany(docs, { ordered: false });
+  } catch (error) {
     // A concurrent request may have seeded first — fine, the exists() check above already
-    // avoids duplicating on the common path.
-  });
+    // avoids duplicating on the common path. Anything else is a real failure and must surface,
+    // or the catalog can be left silently empty with no trace of why.
+    console.error(`ensureTemplateHasDefaultItems: insertMany failed for template ${templateId}`, error);
+  }
 }
 
 /** Idempotent bootstrap: every environment needs at least one active template with default

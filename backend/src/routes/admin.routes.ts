@@ -67,7 +67,7 @@ import {
 } from "@/services/defaultChecklistItemService";
 import { addSuggestedItemToDefault, getSuggestedItemUsers, listSuggestedItems } from "@/services/suggestedItemsService";
 import { getChecklistDashboardStats, getDefaultItemAnalytics } from "@/services/checklistAnalyticsService";
-import { getChecklistHealthSnapshot } from "@/services/checklistHealthService";
+import { getChecklistHealthSnapshot, forceRegenerateChecklist } from "@/services/checklistHealthService";
 import {
   addSuggestedToDefaultSchema,
   bulkIdsSchema,
@@ -585,4 +585,9 @@ adminRouter.get("/checklist-dashboard", async (_req, res) => {
 adminRouter.get("/checklist-health", async (req, res) => {
   const mobile = typeof req.query.mobile === "string" ? req.query.mobile : undefined;
   res.json(await getChecklistHealthSnapshot(mobile));
+});
+
+adminRouter.post("/checklist-health/generate", async (req, res) => {
+  const mobile = typeof req.body?.mobile === "string" ? req.body.mobile : "";
+  res.json(await forceRegenerateChecklist(mobile));
 });

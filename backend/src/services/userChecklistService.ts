@@ -46,10 +46,17 @@ export async function generateUserChecklist(userId: string) {
     metadataVersion: template.version,
   }));
 
-  await UserChecklist.insertMany(docs, { ordered: false }).catch(() => {
-    // Unique (userId, defaultChecklistItemId) index guards against double-seeding on races.
-  });
-  return { generated: true, count: docs.length };
+  try {
+    await UserChecklist.insertMany(docs, { ordered: false });
+  } catch (error) {
+    // Unique (userId, defaultChecklistItemId) index guards against double-seeding on races —
+    // that's expected and fine. Anything else is a real failure and must not be swallowed
+    // silently, or a user can be left with zero rows with no trace of why.
+    console.error(`generateUserChecklist: insertMany failed for user ${userId}`, error);
+  }
+
+  const insertedCount = await UserChecklist.countDocuments({ userId });
+  return { generated: true, count: insertedCount };
 }
 
 /** Called when a user changes their gender after onboarding (see userService.updateProfile).
@@ -88,9 +95,11 @@ export async function backfillChecklistForGenderChange(userId: string) {
     }));
   if (docs.length === 0) return { added: 0 };
 
-  await UserChecklist.insertMany(docs, { ordered: false }).catch(() => {
-    // Unique (userId, defaultChecklistItemId) index guards against double-seeding on races.
-  });
+  try {
+    await UserChecklist.insertMany(docs, { ordered: false });
+  } catch (error) {
+    console.error(`backfillChecklistForGenderChange: insertMany failed for user ${userId}`, error);
+  }
   return { added: docs.length };
 }
 

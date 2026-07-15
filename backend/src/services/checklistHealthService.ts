@@ -8,6 +8,7 @@ import { UserChecklist } from "@/models/UserChecklist";
 import { ChecklistItem } from "@/models/ChecklistItem";
 import { Category } from "@/models/Category";
 import { normalizeMobile } from "@/lib/phone";
+import { generateUserChecklist } from "@/services/userChecklistService";
 
 /** Read-only diagnostic snapshot of the checklist-generation taxonomy — lets an admin confirm
  * whether the self-healing seed (getOrCreateActiveTemplate / listActiveCollegeCategories) has
@@ -70,4 +71,29 @@ export async function getChecklistHealthSnapshot(mobile?: string) {
   }
 
   return snapshot;
+}
+
+/** Runs the real generateUserChecklist() against a specific account on demand, and reports
+ * exactly what happened — including any error it hits — instead of the silent-failure behavior
+ * the normal onboarding/checklist-page call sites have. Lets an admin test the actual generation
+ * path against production data directly, without registering another throwaway account. */
+export async function forceRegenerateChecklist(mobile: string) {
+  await connectDB();
+
+  const normalized = normalizeMobile(mobile);
+  if (!normalized) {
+    return { success: false as const, error: "Invalid mobile number" };
+  }
+
+  const user = await User.findOne({ mobile: normalized }).lean();
+  if (!user) {
+    return { success: false as const, error: "No account found with that mobile number" };
+  }
+
+  try {
+    const result = await generateUserChecklist(String(user._id));
+    return { success: true as const, result };
+  } catch (error) {
+    return { success: false as const, error: error instanceof Error ? error.message : String(error) };
+  }
 }

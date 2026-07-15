@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Loader2, Search } from "lucide-react";
+import { Loader2, RefreshCw, Search } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -43,10 +43,18 @@ interface HealthSnapshot {
  * DefaultChecklistItem/CollegeCategory actually have data in production — from a phone, using
  * the same authenticated session as the rest of the admin panel — without needing DB access or
  * browser devtools. */
+interface GenerateResult {
+  success: boolean;
+  error?: string;
+  result?: { generated: boolean; count: number };
+}
+
 export default function AdminChecklistHealthPage() {
   const [snapshot, setSnapshot] = useState<HealthSnapshot | null>(null);
   const [loading, setLoading] = useState(true);
   const [mobile, setMobile] = useState("");
+  const [generating, setGenerating] = useState(false);
+  const [generateResult, setGenerateResult] = useState<GenerateResult | null>(null);
 
   async function fetchData(withMobile?: string) {
     setLoading(true);
@@ -58,6 +66,21 @@ export default function AdminChecklistHealthPage() {
       toast.error(error instanceof ApiError ? error.message : "Failed to load checklist health");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleForceGenerate() {
+    if (!mobile.trim()) return;
+    setGenerating(true);
+    setGenerateResult(null);
+    try {
+      const data = await api.post<GenerateResult>("/api/admin/checklist-health/generate", { mobile: mobile.trim() });
+      setGenerateResult(data);
+      await fetchData(mobile.trim());
+    } catch (error) {
+      toast.error(error instanceof ApiError ? error.message : "Failed to run generateUserChecklist");
+    } finally {
+      setGenerating(false);
     }
   }
 
@@ -130,6 +153,30 @@ export default function AdminChecklistHealthPage() {
             {loading ? <Loader2 className="size-4 animate-spin" /> : <Search className="size-4" />}
           </Button>
         </form>
+        {snapshot?.user?.found && (
+          <Button
+            size="sm"
+            variant="outline"
+            className="mb-3"
+            onClick={handleForceGenerate}
+            disabled={generating}
+          >
+            {generating ? <Loader2 className="size-4 animate-spin" /> : <RefreshCw className="size-4" />}
+            Force-run generateUserChecklist
+          </Button>
+        )}
+        {generateResult && (
+          <div className="bg-muted mb-3 rounded-lg p-3 text-xs">
+            {generateResult.success ? (
+              <p>
+                Ran successfully: generated={String(generateResult.result?.generated)}, count=
+                {generateResult.result?.count}
+              </p>
+            ) : (
+              <p className="text-destructive">Error: {generateResult.error}</p>
+            )}
+          </div>
+        )}
         {snapshot?.user &&
           (snapshot.user.found ? (
             <div className="space-y-1 text-xs">
