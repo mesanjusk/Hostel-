@@ -64,7 +64,7 @@ export async function createBag(userId: string, name: string, color?: string) {
   const existing = await Bag.find({ userId }).lean();
   const clash = existing.some((b) => normalize(b.name) === normalize(trimmed));
   if (clash) {
-    return { success: false as const, error: "A bag with this name already exists" };
+    return { success: false as const, error: "A bag with this name already exists", code: "CONFLICT" as const };
   }
 
   const bag = await Bag.create({ userId, name: trimmed, ...(color ? { color } : {}) });
@@ -80,7 +80,7 @@ export async function updateBag(
 
   const current = await Bag.findOne({ _id: id, userId }).lean();
   if (!current) {
-    return { success: false as const, error: "Bag not found" };
+    return { success: false as const, error: "Bag not found", code: "NOT_FOUND" as const };
   }
 
   const patch: { name?: string; color?: string } = {};
@@ -90,7 +90,7 @@ export async function updateBag(
     const existing = await Bag.find({ userId, _id: { $ne: id } }).lean();
     const clash = existing.some((b) => normalize(b.name) === normalize(trimmed));
     if (clash) {
-      return { success: false as const, error: "A bag with this name already exists" };
+      return { success: false as const, error: "A bag with this name already exists", code: "CONFLICT" as const };
     }
     patch.name = trimmed;
   }
@@ -109,7 +109,7 @@ export async function deleteBag(userId: string, id: string) {
 
   const bag = await Bag.findOne({ _id: id, userId }).lean();
   if (!bag) {
-    return { success: false as const, error: "Bag not found" };
+    return { success: false as const, error: "Bag not found", code: "NOT_FOUND" as const };
   }
 
   await ChecklistItem.updateMany({ userId, bagId: id }, { bagId: null });

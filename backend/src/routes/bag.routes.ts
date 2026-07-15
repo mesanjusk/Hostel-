@@ -13,6 +13,16 @@ import { BAG_COLOR_PRESETS } from "@/types";
 
 export const bagRouter = createAsyncRouter();
 
+/** Maps a service-layer error code to its HTTP status — "not found" and "conflict" are
+ * distinct from a validation failure and shouldn't all collapse onto 400 (a client/monitoring
+ * system needs to tell "fix your input" apart from "the resource doesn't exist" apart from
+ * "that name is already taken"). */
+function statusForErrorCode(code: string | undefined): number {
+  if (code === "NOT_FOUND") return 404;
+  if (code === "CONFLICT") return 409;
+  return 400;
+}
+
 bagRouter.use(requireAuth);
 
 bagRouter.get("/", async (req, res) => {
@@ -45,10 +55,10 @@ bagRouter.post("/", async (req, res) => {
 
   const result = await createBag(req.user!._id.toString(), parsed.data.name, parsed.data.color);
   if (!result.success) {
-    res.status(400).json({ error: result.error });
+    res.status(statusForErrorCode(result.code)).json({ error: result.error });
     return;
   }
-  res.json({
+  res.status(201).json({
     bag: { id: String(result.bag._id), name: result.bag.name, color: result.bag.color },
   });
 });
@@ -65,7 +75,7 @@ bagRouter.patch("/:id", async (req, res) => {
     color: parsed.data.color,
   });
   if (!result.success) {
-    res.status(400).json({ error: result.error });
+    res.status(statusForErrorCode(result.code)).json({ error: result.error });
     return;
   }
   res.json({ success: true });
@@ -74,7 +84,7 @@ bagRouter.patch("/:id", async (req, res) => {
 bagRouter.delete("/:id", async (req, res) => {
   const result = await deleteBag(req.user!._id.toString(), req.params.id);
   if (!result.success) {
-    res.status(400).json({ error: result.error });
+    res.status(statusForErrorCode(result.code)).json({ error: result.error });
     return;
   }
   res.json({ success: true });
