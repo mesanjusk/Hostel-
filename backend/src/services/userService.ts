@@ -9,7 +9,10 @@ import { DocumentItem } from "@/models/DocumentItem";
 import { EmergencyContact } from "@/models/EmergencyContact";
 import { WishlistItem } from "@/models/WishlistItem";
 import { CollegeCategory } from "@/models/CollegeCategory";
+import { CommunityMember } from "@/models/CommunityMember";
 import { generatePin, hashPin } from "@/lib/pin";
+import { generateUniqueUsername } from "@/lib/username";
+import { ensureAutoJoinCommunities } from "@/services/communityService";
 import type { OnboardingInput } from "@/validations/auth";
 import type { ProfileUpdateInput } from "@/validations/profile";
 import { LEGACY_COLLEGE_CATEGORY_MAP, type UserRole } from "@/types";
@@ -36,7 +39,7 @@ async function resolveLegacyCollegeCategory(collegeCategoryId: string) {
 export async function completeOnboarding(userId: string, input: OnboardingInput) {
   await connectDB();
   const collegeCategory = await resolveLegacyCollegeCategory(input.collegeCategoryId);
-  return User.findByIdAndUpdate(
+  const updated = await User.findByIdAndUpdate(
     userId,
     {
       name: input.name,
@@ -48,6 +51,11 @@ export async function completeOnboarding(userId: string, input: OnboardingInput)
     },
     { returnDocument: "after" },
   ).lean();
+
+  // City/college are now known for the first time — this is when auto-join into the
+  // Country/City/College/Marketplace/Events communities actually has data to work with.
+  if (updated) await ensureAutoJoinCommunities(updated);
+  return updated;
 }
 
 export async function updateProfile(userId: string, input: ProfileUpdateInput) {
@@ -55,7 +63,7 @@ export async function updateProfile(userId: string, input: ProfileUpdateInput) {
   const collegeCategory = await resolveLegacyCollegeCategory(input.collegeCategoryId);
   // No backfill needed on a gender/category change: the checklist is always computed live from
   // the student's current profile fields, so the next read already reflects it.
-  return User.findByIdAndUpdate(
+  const updated = await User.findByIdAndUpdate(
     userId,
     {
       name: input.name,
@@ -69,6 +77,11 @@ export async function updateProfile(userId: string, input: ProfileUpdateInput) {
     },
     { returnDocument: "after" },
   ).lean();
+
+  // Re-running auto-join is additive (see ensureAutoJoinCommunities) — a city/course/campus
+  // change just adds the newly-implied communities without touching ones already joined.
+  if (updated) await ensureAutoJoinCommunities(updated);
+  return updated;
 }
 
 export async function setNotificationPreference(userId: string, enabled: boolean) {
@@ -105,8 +118,9 @@ export async function createUserByAdmin(mobile: string) {
 
   const pin = generatePin();
   const loginPinHash = await hashPin(pin);
+  const username = await generateUniqueUsername();
 
-  const user = await User.create({ mobile, role: "student", loginPinHash });
+  const user = await User.create({ mobile, role: "student", loginPinHash, username, displayName: username });
   return { success: true as const, user, pin };
 }
 
@@ -122,7 +136,8 @@ export async function registerUserWithOtp(mobile: string, verifiedOtpCode: strin
   }
 
   const loginPinHash = await hashPin(customPin ?? verifiedOtpCode);
-  const user = await User.create({ mobile, role: "student", loginPinHash });
+  const username = await generateUniqueUsername();
+  const user = await User.create({ mobile, role: "student", loginPinHash, username, displayName: username });
   return { success: true as const, user };
 }
 
@@ -195,6 +210,7 @@ export async function deleteUserByAdmin(userId: string) {
     DocumentItem.deleteMany({ userId }),
     EmergencyContact.deleteMany({ userId }),
     WishlistItem.deleteMany({ userId }),
+    CommunityMember.deleteMany({ userId }),
   ]);
 
   await User.findByIdAndDelete(userId);

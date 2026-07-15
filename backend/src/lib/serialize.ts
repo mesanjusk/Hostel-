@@ -21,6 +21,12 @@ export function serializeUser(user: HydratedDocument<UserDocument>): UserDTO {
     needsOnboarding: !user.name,
     verified: Boolean(user.verified),
     createdAt: (user as unknown as { createdAt: Date }).createdAt.toISOString(),
+    username: user.username ?? null,
+    displayName: user.displayName ?? null,
+    bio: user.bio ?? null,
+    interests: user.interests ?? [],
+    campus: user.campus ?? null,
+    year: user.year ?? null,
   };
 }
 

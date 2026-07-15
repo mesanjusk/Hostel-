@@ -53,6 +53,19 @@ const UserSchema = new Schema(
     blockedUserIds: { type: [{ type: Schema.Types.ObjectId, ref: "User" }], default: [], index: true },
     /** Saved Places to Explore, most-recent first. */
     favoritePlaceIds: { type: [{ type: Schema.Types.ObjectId, ref: "Place" }], default: [] },
+
+    /** Community/chat public identity — the ONLY identity other students ever see. `name`,
+     * `mobile`, `city`/`college`/room/address stay private and are never selected into a
+     * community/chat API response (see lib/serialize.ts's serializePublicUser). Generated
+     * automatically at account creation (see lib/username.ts) and editable from Settings. */
+    username: { type: String, default: null, trim: true, lowercase: true, maxlength: 32, unique: true, sparse: true, index: true },
+    displayName: { type: String, default: null, trim: true, maxlength: 40 },
+    bio: { type: String, default: "", trim: true, maxlength: 200 },
+    interests: { type: [{ type: String, trim: true, maxlength: 40 }], default: [] },
+    /** Free-text campus/branch within a college — not a foreign key, since not every college
+     * in India runs multiple campuses through this catalog yet. */
+    campus: { type: String, default: null, trim: true, maxlength: 120 },
+    year: { type: String, default: null, trim: true, maxlength: 20 },
   },
   { timestamps: true },
 );

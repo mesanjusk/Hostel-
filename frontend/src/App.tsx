@@ -56,6 +56,11 @@ const AdminChecklistHealthPage = lazy(() => import("@/pages/admin-checklist-heal
 const DiscoverPage = lazy(() => import("@/pages/discover-page"));
 const BookingsPage = lazy(() => import("@/pages/bookings-page"));
 const ExplorePage = lazy(() => import("@/pages/explore-page"));
+const CommunityPage = lazy(() => import("@/pages/community-page"));
+const CommunityDetailPage = lazy(() => import("@/pages/community-detail-page"));
+const ChatPage = lazy(() => import("@/pages/chat-page"));
+const ChatConversationPage = lazy(() => import("@/pages/chat-conversation-page"));
+const UserProfilePage = lazy(() => import("@/pages/user-profile-page"));
 
 function RootRoute() {
   const { user, loading } = useAuth();
@@ -143,6 +148,11 @@ export default function App() {
             <Route path="/discover" element={<DiscoverPage />} />
             <Route path="/bookings" element={<BookingsPage />} />
             <Route path="/explore" element={<ExplorePage />} />
+            <Route path="/community" element={<CommunityPage />} />
+            <Route path="/community/:slug" element={<CommunityDetailPage />} />
+            <Route path="/chat" element={<ChatPage />} />
+            <Route path="/chat/:id" element={<ChatConversationPage />} />
+            <Route path="/u/:username" element={<UserProfilePage />} />
             <Route path="/guide" element={<GuidePage />} />
             <Route path="/guide/survival-guide" element={<SurvivalGuidePage />} />
             <Route path="/guide/:slug" element={<GuideArticlePage />} />

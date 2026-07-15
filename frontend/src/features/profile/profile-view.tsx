@@ -24,6 +24,7 @@ import { useAuth } from "@/context/auth-context";
 import { api, ApiError } from "@/lib/api";
 import { ProfileFields } from "@/features/auth/profile-fields";
 import { profileFieldsSchema, type ProfileFieldsInput } from "@/features/auth/profile-fields-schema";
+import { PublicProfileSettings } from "@/features/community/public-profile-settings";
 
 export function ProfileView() {
   const navigate = useNavigate();
@@ -122,6 +123,8 @@ export function ProfileView() {
             </Form>
           </CardContent>
         </Card>
+
+        <PublicProfileSettings />
 
         <Button
           type="button"

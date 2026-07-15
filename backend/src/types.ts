@@ -35,6 +35,12 @@ export interface UserDTO {
   needsOnboarding: boolean;
   verified: boolean;
   createdAt: string;
+  username: string | null;
+  displayName: string | null;
+  bio: string | null;
+  interests: string[];
+  campus: string | null;
+  year: string | null;
 }
 
 export const DEFAULT_CHECKLIST_CATEGORIES = [
@@ -170,3 +176,77 @@ export const PLACE_CATEGORIES = [
   "Nearby Attraction",
 ] as const;
 export type PlaceCategory = (typeof PLACE_CATEGORIES)[number];
+
+// --- Community + Chat ------------------------------------------------------------------
+
+/** Auto-join scoped types are derived straight from a student's own profile fields (college,
+ * city, courseId, etc) — nothing here is hardcoded to any one institution, so any Indian
+ * college/course/city works the moment a student's profile names it. */
+export const COMMUNITY_TYPES = [
+  "country",
+  "city",
+  "college",
+  "campus",
+  "course",
+  "year",
+  "hostel",
+  "interest",
+  "marketplace",
+  "events",
+  "lost_found",
+  "general",
+  "announcements",
+  "custom",
+] as const;
+export type CommunityType = (typeof COMMUNITY_TYPES)[number];
+
+export const COMMUNITY_VISIBILITY = ["public", "private", "invite_only"] as const;
+export type CommunityVisibility = (typeof COMMUNITY_VISIBILITY)[number];
+
+export const COMMUNITY_ROLES = ["owner", "admin", "moderator", "verified", "member", "guest"] as const;
+export type CommunityRole = (typeof COMMUNITY_ROLES)[number];
+
+export const CHANNEL_TYPES = ["text", "announcement"] as const;
+export type ChannelType = (typeof CHANNEL_TYPES)[number];
+
+export const ATTACHMENT_TYPES = ["image", "video", "audio", "document"] as const;
+export type AttachmentType = (typeof ATTACHMENT_TYPES)[number];
+
+export const MESSAGE_SCOPE_TYPES = ["channel", "conversation"] as const;
+export type MessageScopeType = (typeof MESSAGE_SCOPE_TYPES)[number];
+
+export const CONVERSATION_TYPES = ["dm", "group"] as const;
+export type ConversationType = (typeof CONVERSATION_TYPES)[number];
+
+export const REPORT_TARGET_TYPES = ["message", "user", "community"] as const;
+export type ReportTargetType = (typeof REPORT_TARGET_TYPES)[number];
+
+export const REPORT_REASONS = [
+  "spam",
+  "harassment",
+  "hate_speech",
+  "nudity",
+  "violence",
+  "scam",
+  "misinformation",
+  "other",
+] as const;
+export type ReportReason = (typeof REPORT_REASONS)[number];
+
+export const REPORT_STATUSES = ["open", "reviewing", "resolved", "dismissed"] as const;
+export type ReportStatus = (typeof REPORT_STATUSES)[number];
+
+export interface PublicUserDTO {
+  id: string;
+  username: string;
+  displayName: string;
+  avatar: string | null;
+  college: string | null;
+  campus: string | null;
+  course: string | null;
+  year: string | null;
+  city: string | null;
+  bio: string | null;
+  interests: string[];
+  verified: boolean;
+}

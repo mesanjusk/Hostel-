@@ -15,3 +15,17 @@ export const uploadImageSchema = z.object({
 });
 
 export type UploadImageInput = z.infer<typeof uploadImageSchema>;
+
+/** Chat attachments (images, videos, PDFs/docs, voice notes) — broader than uploadImageSchema
+ * since chat needs more than just images, capped larger for video/voice-note data URIs. */
+export const uploadFileSchema = z.object({
+  file: z
+    .string()
+    .trim()
+    .min(1, "File is required")
+    .max(25_000_000, "File is too large")
+    .refine((val) => val.startsWith("data:"), { message: "File must be a data URI" }),
+  name: z.string().trim().max(200).optional(),
+});
+
+export type UploadFileInput = z.infer<typeof uploadFileSchema>;

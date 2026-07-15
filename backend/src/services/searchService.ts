@@ -8,9 +8,11 @@ import { DocumentItem } from "@/models/DocumentItem";
 import { EmergencyContact } from "@/models/EmergencyContact";
 import { WishlistItem } from "@/models/WishlistItem";
 import { GuideArticle } from "@/models/GuideArticle";
+import { Community } from "@/models/Community";
+import { User } from "@/models/User";
 
 export interface SearchResult {
-  type: "checklist" | "bag" | "budget" | "note" | "document" | "contact" | "wishlist" | "guide";
+  type: "checklist" | "bag" | "budget" | "note" | "document" | "contact" | "wishlist" | "guide" | "community" | "user";
   id: string;
   title: string;
   subtitle?: string;
@@ -37,7 +39,7 @@ export async function globalSearch(userId: string, query: string): Promise<Searc
     return items.filter((i) => regex.test(i.item)).slice(0, 5);
   };
 
-  const [checklist, bags, budget, notes, documents, contacts, wishlist, guide] = await Promise.all([
+  const [checklist, bags, budget, notes, documents, contacts, wishlist, guide, communities, users] = await Promise.all([
     searchChecklist(),
     Bag.find({ userId, name: regex }).limit(5).lean(),
     BudgetEntry.find({ userId, title: regex }).limit(5).lean(),
@@ -49,6 +51,12 @@ export async function globalSearch(userId: string, query: string): Promise<Searc
     GuideArticle.find({ $or: [{ title: regex }, { summary: regex }, { content: regex }] })
       .limit(5)
       .lean(),
+    // Communities/users are shared, public content too — searchable by anyone, not scoped to
+    // the requesting user's own data like the sections above.
+    Community.find({ active: true, visibility: "public", name: regex }).limit(5).lean(),
+    // Username only — never matches on real name/mobile, keeping the "communicate by
+    // username only" privacy rule intact even inside global search.
+    User.find({ username: regex }).select("username displayName avatar verified").limit(5).lean(),
   ]);
 
   const bagIds = [...new Set(checklist.map((c) => c.bagId).filter(Boolean).map(String))];
@@ -115,6 +123,21 @@ export async function globalSearch(userId: string, query: string): Promise<Searc
       title: g.title,
       subtitle: g.summary || undefined,
       href: `/guide/${g.slug}`,
+    })),
+    ...communities.map((c) => ({
+      type: "community" as const,
+      id: c._id.toString(),
+      title: c.name,
+      subtitle: `${c.memberCount} members`,
+      href: `/community/${c.slug}`,
+    })),
+    ...users.map((u) => ({
+      type: "user" as const,
+      id: u._id.toString(),
+      title: `@${u.username}`,
+      subtitle: u.displayName || undefined,
+      href: `/u/${u.username}`,
+      imageUrl: u.avatar ?? null,
     })),
   ];
 }

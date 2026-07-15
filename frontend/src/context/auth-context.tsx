@@ -3,6 +3,7 @@ import { toast } from "sonner";
 
 import { api, ApiError, setAuthToken, getAuthToken } from "@/lib/api";
 import { subscribeUnauthorized } from "@/lib/auth-events";
+import { disconnectSocket } from "@/lib/socket";
 import type { Gender, UserDTO } from "@/types";
 
 interface OnboardingInput {
@@ -66,6 +67,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // i.e. the session died server-side (expired/rotated), not a bad login attempt.
     return subscribeUnauthorized(() => {
       setAuthToken(null);
+      disconnectSocket();
       setUser((prev) => {
         if (prev) {
           toast.error("Your session has expired. Please log in again.");
@@ -87,6 +89,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = useCallback(() => {
     setAuthToken(null);
     setUser(null);
+    disconnectSocket();
   }, []);
 
   const completeOnboarding = useCallback(async (input: OnboardingInput) => {

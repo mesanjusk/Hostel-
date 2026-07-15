@@ -1,11 +1,15 @@
 import "dotenv/config";
+import { createServer } from "node:http";
 import compression from "compression";
 import cors from "cors";
 import express from "express";
 import helmet from "helmet";
+import rateLimit from "express-rate-limit";
 
 import { connectDB } from "@/db";
 import { ensureCitiesSeeded } from "@/services/cityService";
+import { ensureGlobalCommunitiesSeeded } from "@/services/communityService";
+import { initSocketServer } from "@/lib/socket";
 import { analyticsContext } from "@/middleware/analyticsContext";
 import { authRouter } from "@/routes/auth.routes";
 import { profileRouter } from "@/routes/profile.routes";
@@ -36,8 +40,20 @@ import { placesRouter } from "@/routes/places.routes";
 import { citiesRouter } from "@/routes/cities.routes";
 import { collegeCategoriesRouter } from "@/routes/collegeCategories.routes";
 import { coursesRouter } from "@/routes/courses.routes";
+import { communitiesRouter } from "@/routes/communities.routes";
+import { chatRouter } from "@/routes/chat.routes";
+import { conversationsRouter } from "@/routes/conversations.routes";
+import { moderationRouter } from "@/routes/moderation.routes";
+import { usersRouter } from "@/routes/users.routes";
 
 const app = express();
+
+// Render puts one reverse proxy in front of this service, so req.ip (and express-rate-limit's
+// IP-keyed limiter below) need `trust proxy` to read the real client IP from X-Forwarded-For
+// instead of the proxy's own address — without it every student behind Render's LB would
+// share one rate-limit bucket. Matches lib/geo.ts, which already reads XFF manually for the
+// same reason.
+app.set("trust proxy", 1);
 
 // Every response here is JSON going to a mobile-heavy student audience — gzip cuts payload
 // size dramatically (checklist/dashboard/search responses especially) for negligible CPU cost.
@@ -100,6 +116,18 @@ app.get("/health", (_req, res) => {
   res.json({ status: "ok" });
 });
 
+// Coarse abuse guard across every API route — the chat/report/community endpoints layer
+// their own tighter limits (see lib/rateLimiter.ts) on top of this general ceiling.
+app.use(
+  "/api",
+  rateLimit({
+    windowMs: 60 * 1000,
+    limit: 300,
+    standardHeaders: true,
+    legacyHeaders: false,
+  }),
+);
+
 app.use(analyticsContext);
 
 app.use("/api/auth", authRouter);
@@ -131,6 +159,11 @@ app.use("/api/places", placesRouter);
 app.use("/api/cities", citiesRouter);
 app.use("/api/college-categories", collegeCategoriesRouter);
 app.use("/api/courses", coursesRouter);
+app.use("/api/communities", communitiesRouter);
+app.use("/api/chat", chatRouter);
+app.use("/api/conversations", conversationsRouter);
+app.use("/api/moderation", moderationRouter);
+app.use("/api/users", usersRouter);
 
 app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error(err);
@@ -139,10 +172,15 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
 
 const PORT = Number(process.env.PORT) || 4000;
 
+// A plain http.Server wraps the Express app so Socket.IO (real-time chat/presence) can share
+// the same port and TLS termination as the REST API — Render only exposes one port per service.
+const httpServer = createServer(app);
+initSocketServer(httpServer);
+
 connectDB()
-  .then(() => ensureCitiesSeeded())
+  .then(() => Promise.all([ensureCitiesSeeded(), ensureGlobalCommunitiesSeeded()]))
   .then(() => {
-    app.listen(PORT, () => {
+    httpServer.listen(PORT, () => {
       console.log(`Backend listening on port ${PORT}`);
     });
   })

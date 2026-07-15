@@ -34,6 +34,12 @@ export interface UserDTO {
   needsOnboarding: boolean;
   verified: boolean;
   createdAt: string;
+  username: string | null;
+  displayName: string | null;
+  bio: string | null;
+  interests: string[];
+  campus: string | null;
+  year: string | null;
 }
 
 export const DEFAULT_CHECKLIST_CATEGORIES = [
@@ -148,3 +154,118 @@ export const PLACE_CATEGORIES = [
   "Nearby Attraction",
 ] as const;
 export type PlaceCategory = (typeof PLACE_CATEGORIES)[number];
+
+// --- Community + Chat ------------------------------------------------------------------
+
+export type CommunityType =
+  | "country"
+  | "city"
+  | "college"
+  | "campus"
+  | "course"
+  | "year"
+  | "hostel"
+  | "interest"
+  | "marketplace"
+  | "events"
+  | "lost_found"
+  | "general"
+  | "announcements"
+  | "custom";
+
+export type CommunityVisibility = "public" | "private" | "invite_only";
+export type CommunityRole = "owner" | "admin" | "moderator" | "verified" | "member" | "guest";
+export type MessageScopeType = "channel" | "conversation";
+export type AttachmentType = "image" | "video" | "audio" | "document";
+
+export const REPORT_REASONS = [
+  "spam",
+  "harassment",
+  "hate_speech",
+  "nudity",
+  "violence",
+  "scam",
+  "misinformation",
+  "other",
+] as const;
+export type ReportReason = (typeof REPORT_REASONS)[number];
+
+export interface PublicUserDTO {
+  id: string;
+  username: string;
+  displayName: string;
+  avatar: string | null;
+  college: string | null;
+  campus: string | null;
+  city: string | null;
+  bio: string;
+  interests: string[];
+  verified: boolean;
+}
+
+export interface CommunityDTO {
+  _id: string;
+  name: string;
+  slug: string;
+  type: CommunityType;
+  description: string;
+  icon: string | null;
+  visibility: CommunityVisibility;
+  isOfficial: boolean;
+  allowAnonymous: boolean;
+  memberCount: number;
+  myRole?: CommunityRole;
+  joined?: boolean;
+}
+
+export interface ChannelDTO {
+  _id: string;
+  communityId: string;
+  name: string;
+  slug: string;
+  type: "text" | "announcement";
+  topic: string;
+  isDefault: boolean;
+  allowAnonymous: boolean;
+}
+
+export interface MessageAttachmentDTO {
+  type: AttachmentType;
+  url: string;
+  name?: string;
+  size?: number | null;
+  mimeType?: string | null;
+}
+
+export interface MessageReactionDTO {
+  emoji: string;
+  count: number;
+  userIds: string[];
+}
+
+export interface MessageDTO {
+  id: string;
+  scopeType: MessageScopeType;
+  scopeId: string;
+  author: PublicUserDTO | null;
+  anonymousAlias: string | null;
+  body: string;
+  attachments: MessageAttachmentDTO[];
+  mentions: string[];
+  parentMessageId: string | null;
+  edited: boolean;
+  pinned: boolean;
+  reactions: MessageReactionDTO[];
+  deleted: boolean;
+  createdAt: string;
+}
+
+export interface ConversationDTO {
+  id: string;
+  type: "dm" | "group";
+  name: string | null;
+  lastMessageAt: string;
+  lastMessagePreview: string;
+  unreadCount: number;
+  members: PublicUserDTO[];
+}

@@ -3,6 +3,7 @@ import { User } from "@/models/User";
 import { WaPendingRegistration } from "@/models/WaPendingRegistration";
 import { normalizeMobile } from "@/lib/phone";
 import { hashPin, verifyPin, generateShortPin } from "@/lib/pin";
+import { generateUniqueUsername } from "@/lib/username";
 import { signAuthToken } from "@/lib/jwt";
 import { serializeUser } from "@/lib/serialize";
 import { sendWhatsAppText } from "@/lib/whatsapp";
@@ -131,11 +132,14 @@ export async function completeRegistrationFromWhatsApp(
     return false;
   }
 
+  const username = await generateUniqueUsername();
   const user = await User.create({
     mobile: normalizedVerified,
     role: "student",
     loginPinHash: pending.pinHash,
     waLoginPin: pin,
+    username,
+    displayName: username,
   });
   await removeTempUser(normalizedVerified);
 
