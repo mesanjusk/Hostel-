@@ -77,7 +77,7 @@ export default function App() {
             <Route
               path="/login"
               element={
-                <AuthOnlyRoute>
+                <AuthOnlyRoute redirectTo="/wa-login/home">
                   <LoginPage />
                 </AuthOnlyRoute>
               }
@@ -101,7 +101,7 @@ export default function App() {
             <Route
               path="/wa-login"
               element={
-                <AuthOnlyRoute>
+                <AuthOnlyRoute redirectTo="/wa-login/home">
                   <WaLoginPage />
                 </AuthOnlyRoute>
               }
