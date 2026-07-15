@@ -1,13 +1,22 @@
 import { Router } from "express";
+import { z } from "zod";
 
-import type { ProductCategory } from "@/types";
+import { DEFAULT_CHECKLIST_CATEGORIES } from "@/types";
 import { getProductById, listProducts } from "@/services/productService";
 
 export const productsRouter = Router();
 
+const productsQuerySchema = z.object({
+  category: z.enum(DEFAULT_CHECKLIST_CATEGORIES).optional(),
+});
+
 productsRouter.get("/", async (req, res) => {
-  const category = typeof req.query.category === "string" ? (req.query.category as ProductCategory) : undefined;
-  const products = await listProducts(category);
+  const parsed = productsQuerySchema.safeParse(req.query);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.issues[0]?.message ?? "Invalid filters" });
+    return;
+  }
+  const products = await listProducts(parsed.data.category);
   res.json({ products });
 });
 

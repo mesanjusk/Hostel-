@@ -202,6 +202,8 @@ export function BagDetailView({ bagId }: { bagId: string }) {
                     src={item.imageUrl!}
                     alt={item.item}
                     className="size-16 shrink-0 rounded-lg object-cover"
+                    loading="lazy"
+                    decoding="async"
                   />
                 ))}
               </div>
@@ -225,6 +227,8 @@ export function BagDetailView({ bagId }: { bagId: string }) {
                       src={item.imageUrl}
                       alt={item.item}
                       className="size-12 shrink-0 rounded-lg object-cover"
+                      loading="lazy"
+                      decoding="async"
                     />
                   ) : (
                     <QuickPhotoAdd

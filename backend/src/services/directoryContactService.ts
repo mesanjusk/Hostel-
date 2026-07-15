@@ -1,5 +1,6 @@
 import { connectDB } from "@/db";
 import { DirectoryContact } from "@/models/DirectoryContact";
+import { escapeRegex } from "@/lib/regex";
 import type { ContactCategory } from "@/types";
 import type { DirectoryContactInput } from "@/validations/directoryContacts";
 
@@ -7,7 +8,7 @@ export async function listDirectoryContacts(city: string, category?: ContactCate
   await connectDB();
   const filter: Record<string, unknown> = { city: new RegExp(`^${city}$`, "i") };
   if (category) filter.category = category;
-  if (search) filter.name = new RegExp(search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
+  if (search) filter.name = new RegExp(escapeRegex(search), "i");
 
   return DirectoryContact.find(filter).sort({ verified: -1, createdAt: -1 }).lean();
 }

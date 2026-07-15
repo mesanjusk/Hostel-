@@ -36,6 +36,10 @@ function pruneExpired(): void {
   }
 }
 
+// Self-prune on a timer instead of relying solely on webhook traffic to trigger pruneExpired()
+// — otherwise these maps only shrink in response to more of the exact traffic causing growth.
+setInterval(pruneExpired, 5 * 60 * 1000).unref();
+
 interface MetabspPayload {
   fromMe?: boolean;
   from?: string;

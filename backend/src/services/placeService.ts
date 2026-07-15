@@ -1,6 +1,7 @@
 import { connectDB } from "@/db";
 import { Place } from "@/models/Place";
 import { User } from "@/models/User";
+import { escapeRegex } from "@/lib/regex";
 import type { PlaceCategory } from "@/types";
 import type { PlaceInput, PlaceUpdateInput } from "@/validations/admin";
 
@@ -11,7 +12,7 @@ export async function listPlaces(city?: string, category?: PlaceCategory, search
   const filter: Record<string, unknown> = {};
   if (city) filter.city = new RegExp(`^${city}$`, "i");
   if (category) filter.category = category;
-  if (search) filter.name = new RegExp(search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
+  if (search) filter.name = new RegExp(escapeRegex(search), "i");
 
   return Place.find(filter).sort({ featured: -1, rating: -1 }).lean();
 }

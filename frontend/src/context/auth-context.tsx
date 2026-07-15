@@ -1,4 +1,12 @@
-import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
 import { toast } from "sonner";
 
 import { api, ApiError, setAuthToken, getAuthToken } from "@/lib/api";
@@ -139,27 +147,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(user);
   }, []);
 
-  return (
-    <AuthContext.Provider
-      value={{
-        user,
-        loading,
-        login,
-        logout,
-        completeOnboarding,
-        refreshUser,
-        setUser,
-        checkMobile,
-        loginWithToken,
-        requestRegisterOtp,
-        registerWithOtp,
-        requestResetOtp,
-        resetWithOtp,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
+  const value = useMemo<AuthContextValue>(
+    () => ({
+      user,
+      loading,
+      login,
+      logout,
+      completeOnboarding,
+      refreshUser,
+      setUser,
+      checkMobile,
+      loginWithToken,
+      requestRegisterOtp,
+      registerWithOtp,
+      requestResetOtp,
+      resetWithOtp,
+    }),
+    [
+      user,
+      loading,
+      login,
+      logout,
+      completeOnboarding,
+      refreshUser,
+      checkMobile,
+      loginWithToken,
+      requestRegisterOtp,
+      registerWithOtp,
+      requestResetOtp,
+      resetWithOtp,
+    ],
   );
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {

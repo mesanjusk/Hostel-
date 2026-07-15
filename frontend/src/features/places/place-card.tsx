@@ -44,7 +44,13 @@ export function PlaceCard({ place, isFavorite: initialFavorite }: { place: Place
     <Card className="flex flex-col overflow-hidden p-0">
       {place.imageUrl && (
         <div className="aspect-video w-full overflow-hidden bg-muted">
-          <img src={place.imageUrl} alt={place.name} className="size-full object-cover" />
+          <img
+            src={place.imageUrl}
+            alt={place.name}
+            className="size-full object-cover"
+            loading="lazy"
+            decoding="async"
+          />
         </div>
       )}
       <div className="flex flex-col gap-2 p-4">

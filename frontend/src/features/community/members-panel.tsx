@@ -92,7 +92,7 @@ export function MembersPanel({ communityId, canModerate }: { communityId: string
           {canModerate && m.role !== "owner" && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="size-7">
+                <Button variant="ghost" size="icon" className="size-7" aria-label="Member actions">
                   <MoreVertical className="size-3.5" />
                 </Button>
               </DropdownMenuTrigger>

@@ -50,6 +50,11 @@ function pruneOnline(): void {
   }
 }
 
+// Self-prune on a timer instead of relying solely on getOnlineVisitors()/getOnlineCount() being
+// called — otherwise this map only shrinks when an admin happens to view the live dashboard,
+// growing unbounded (one entry per distinct visitor) for as long as nobody looks at it.
+setInterval(pruneOnline, 60 * 1000).unref();
+
 export function getOnlineVisitors(): (OnlineVisitor & { visitorId: string })[] {
   pruneOnline();
   return [...onlineVisitors.entries()].map(([visitorId, entry]) => ({ visitorId, ...entry }));

@@ -126,7 +126,13 @@ export function GlobalSearch() {
                   }}
                 >
                   {item.imageUrl && (
-                    <img src={item.imageUrl} alt="" className="size-6 rounded object-cover" />
+                    <img
+                      src={item.imageUrl}
+                      alt=""
+                      className="size-6 rounded object-cover"
+                      loading="lazy"
+                      decoding="async"
+                    />
                   )}
                   <div className="flex flex-col">
                     <span>{item.title}</span>

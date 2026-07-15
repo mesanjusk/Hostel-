@@ -2,6 +2,7 @@ import { connectDB } from "@/db";
 import { Course } from "@/models/Course";
 import { DefaultChecklistItem } from "@/models/DefaultChecklistItem";
 import { User } from "@/models/User";
+import { escapeRegex } from "@/lib/regex";
 
 function slugify(name: string) {
   return name
@@ -22,7 +23,7 @@ export async function listAllCourses(filters: { collegeCategoryId?: string; sear
   await connectDB();
   const query: Record<string, unknown> = {};
   if (filters.collegeCategoryId) query.collegeCategoryId = filters.collegeCategoryId;
-  if (filters.search) query.name = { $regex: filters.search, $options: "i" };
+  if (filters.search) query.name = { $regex: escapeRegex(filters.search), $options: "i" };
   return Course.find(query).sort({ sortOrder: 1, name: 1 }).lean();
 }
 

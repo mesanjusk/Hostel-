@@ -18,7 +18,15 @@ const QUICK_EMOJI = ["👍", "❤️", "😂", "😮", "🙏"];
 
 function AttachmentPreview({ attachment }: { attachment: MessageDTO["attachments"][number] }) {
   if (attachment.type === "image") {
-    return <img src={attachment.url} alt={attachment.name || "Image"} className="max-h-64 max-w-full rounded-xl object-cover" />;
+    return (
+      <img
+        src={attachment.url}
+        alt={attachment.name || "Image"}
+        className="max-h-64 max-w-full rounded-xl object-cover"
+        loading="lazy"
+        decoding="async"
+      />
+    );
   }
   if (attachment.type === "video") {
     return <video src={attachment.url} controls className="max-h-64 max-w-full rounded-xl" />;

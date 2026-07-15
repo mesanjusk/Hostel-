@@ -17,7 +17,7 @@ const HOST_MAP: { pattern: RegExp; source: ReferralSource }[] = [
 
 /** Classifies a raw `document.referrer` (or empty string for direct traffic) into one of the
  * known referral buckets. UTM source, when present, always wins — see `resolveReferralSource`. */
-export function classifyReferrer(referrer: string | null | undefined): ReferralSource {
+function classifyReferrer(referrer: string | null | undefined): ReferralSource {
   if (!referrer) return "direct";
 
   try {

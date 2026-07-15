@@ -3,6 +3,7 @@ import { CollegeCategory } from "@/models/CollegeCategory";
 import { Course } from "@/models/Course";
 import { DefaultChecklistItem } from "@/models/DefaultChecklistItem";
 import { User } from "@/models/User";
+import { escapeRegex } from "@/lib/regex";
 
 function slugify(name: string) {
   return name
@@ -75,7 +76,7 @@ export async function listActiveCollegeCategories() {
 /** Admin listing — everything, with optional search. */
 export async function listAllCollegeCategories(search?: string) {
   await connectDB();
-  const filter = search ? { name: { $regex: search, $options: "i" } } : {};
+  const filter = search ? { name: { $regex: escapeRegex(search), $options: "i" } } : {};
   return CollegeCategory.find(filter).sort({ sortOrder: 1, name: 1 }).lean();
 }
 

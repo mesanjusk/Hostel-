@@ -5,6 +5,7 @@ import { DefaultChecklistItem } from "@/models/DefaultChecklistItem";
 import { UserChecklist } from "@/models/UserChecklist";
 import { getOrCreateActiveTemplate } from "@/services/checklistTemplateService";
 import { normalizeItemName } from "@/lib/textSimilarity";
+import { escapeRegex } from "@/lib/regex";
 import type { ChecklistGender, ChecklistPriority, StoreOption } from "@/types";
 
 /** Deleting a DefaultChecklistItem that existing students already reference would otherwise
@@ -167,7 +168,7 @@ export async function createDefaultChecklistItem(input: DefaultChecklistItemInpu
   const duplicate = await DefaultChecklistItem.findOne({
     templateId: template._id,
     category: input.category.trim(),
-    title: { $regex: `^${escapeRegExp(input.title.trim())}$`, $options: "i" },
+    title: { $regex: `^${escapeRegex(input.title.trim())}$`, $options: "i" },
   }).lean();
   if (duplicate) {
     return { success: false as const, error: "An item with this title already exists in this category" };
@@ -306,8 +307,4 @@ export async function listDistinctCategories(templateId?: string) {
   const template = templateId ? { _id: new Types.ObjectId(templateId) } : await getOrCreateActiveTemplate();
   const id = "_id" in template ? template._id : template;
   return DefaultChecklistItem.distinct("category", { templateId: id });
-}
-
-function escapeRegExp(value: string) {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }

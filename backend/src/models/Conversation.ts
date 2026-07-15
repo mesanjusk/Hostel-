@@ -6,7 +6,9 @@ import { CONVERSATION_TYPES } from "@/types";
 const ConversationSchema = new Schema(
   {
     type: { type: String, enum: CONVERSATION_TYPES, required: true },
-    memberIds: { type: [{ type: Schema.Types.ObjectId, ref: "User" }], required: true, index: true },
+    // No inline `index: true` here — the compound index below ({memberIds, lastMessageAt})
+    // already serves any query filtering on memberIds alone via its leading-field prefix.
+    memberIds: { type: [{ type: Schema.Types.ObjectId, ref: "User" }], required: true },
     name: { type: String, default: null, trim: true, maxlength: 80 },
     createdBy: { type: Schema.Types.ObjectId, ref: "User", required: true },
     /** Sorted, joined member-id pair — only set for type "dm", used to enforce one conversation

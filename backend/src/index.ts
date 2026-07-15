@@ -4,6 +4,7 @@ import compression from "compression";
 import cors from "cors";
 import express from "express";
 import helmet from "helmet";
+import mongoose from "mongoose";
 import rateLimit from "express-rate-limit";
 
 import { connectDB } from "@/db";
@@ -165,6 +166,11 @@ app.use("/api/conversations", conversationsRouter);
 app.use("/api/moderation", moderationRouter);
 app.use("/api/users", usersRouter);
 
+// Unmatched routes: respond JSON, not Express's default HTML 404 page — this is a JSON-only API.
+app.use((_req, res) => {
+  res.status(404).json({ error: "Not found" });
+});
+
 app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error(err);
   res.status(500).json({ error: "Internal server error" });
@@ -188,3 +194,26 @@ connectDB()
     console.error("Failed to connect to MongoDB:", error);
     process.exit(1);
   });
+
+// On redeploy/restart Render sends SIGTERM — without handling it, in-flight requests, open
+// Socket.IO connections, and the Mongo connection are all cut abruptly instead of drained.
+function gracefulShutdown(signal: string) {
+  console.log(`${signal} received, shutting down gracefully`);
+  const forceExit = setTimeout(() => {
+    console.error("Graceful shutdown timed out, forcing exit");
+    process.exit(1);
+  }, 10_000);
+  forceExit.unref();
+
+  httpServer.close(async () => {
+    try {
+      await mongoose.connection.close();
+    } finally {
+      clearTimeout(forceExit);
+      process.exit(0);
+    }
+  });
+}
+
+process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
+process.on("SIGINT", () => gracefulShutdown("SIGINT"));

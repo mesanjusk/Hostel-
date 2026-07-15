@@ -1,6 +1,7 @@
 import { connectDB } from "@/db";
 import { City } from "@/models/City";
 import { INDIAN_CITY_NAMES } from "@/lib/indianCities";
+import { escapeRegex } from "@/lib/regex";
 import type { CityInput, CityUpdateInput } from "@/validations/admin";
 
 /** Auto-seeds the City catalog from the starter Indian-cities list the first time the
@@ -23,7 +24,7 @@ export async function ensureCitiesSeeded() {
 
 export async function listCities(search?: string) {
   await connectDB();
-  const filter = search ? { name: new RegExp(search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i") } : {};
+  const filter = search ? { name: new RegExp(escapeRegex(search), "i") } : {};
   return City.find(filter).sort({ featured: -1, name: 1 }).lean();
 }
 

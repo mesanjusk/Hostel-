@@ -88,6 +88,10 @@ export function useChatScope(scopeType: MessageScopeType, scopeId: string | null
 
     return () => {
       cancelled = true;
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+        typingTimeoutRef.current = null;
+      }
       socket.emit("scope:leave", { scopeType, scopeId });
       socket.off("message:new", onNew);
       socket.off("message:edited", onEdited);
