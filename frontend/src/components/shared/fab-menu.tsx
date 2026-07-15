@@ -133,17 +133,6 @@ export function FabMenu({ hiddenNavHrefs }: { hiddenNavHrefs?: Set<string> }) {
 
   const toggleButton = (size: "sm" | "lg") => (
     <div className={cn("relative", size === "sm" && "-translate-y-2")}>
-      {/* Slow, elegant "breathing" glow to draw the eye without flashing — pauses while open. */}
-      {!speedDialOpen && (
-        <motion.span
-          aria-hidden
-          className="pointer-events-none absolute -inset-2.5 rounded-full blur-lg"
-          style={{ background: "var(--gradient-brand)" }}
-          animate={{ opacity: [0.35, 0.7, 0.35], scale: [0.96, 1.05, 0.96] }}
-          transition={{ duration: 2.6, repeat: Infinity, ease: "easeInOut" }}
-        />
-      )}
-
       <motion.button
         type="button"
         aria-label={speedDialOpen ? "Close quick add" : "Quick add"}
@@ -153,7 +142,7 @@ export function FabMenu({ hiddenNavHrefs }: { hiddenNavHrefs?: Set<string> }) {
         whileTap={{ scale: 0.95 }}
         transition={{ type: "spring", stiffness: 400, damping: 22 }}
         className={cn(
-          "gradient-brand relative flex items-center justify-center overflow-hidden rounded-full text-white shadow-[0_10px_28px_-8px_rgba(201,107,154,0.6)]",
+          "gradient-brand relative flex items-center justify-center overflow-hidden rounded-full text-white",
           size === "sm" ? "size-14" : "size-16",
         )}
       >

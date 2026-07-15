@@ -27,12 +27,17 @@ export function BottomNav() {
 
   return (
     <nav
-      className="fixed inset-x-0 bottom-0 z-40 flex items-stretch justify-between bg-transparent px-1 pt-2 backdrop-blur-md lg:hidden"
+      className="fixed inset-x-0 bottom-0 z-40 lg:hidden"
       style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 0.5rem)" }}
     >
-      {left.map(renderItem)}
-      <div className="w-12 shrink-0" aria-hidden="true" />
-      {right.map(renderItem)}
+      {/* Blur lives on its own layer, not the fixed element itself — Safari detaches
+       * `position: fixed` from the viewport when `backdrop-filter` is applied directly to it. */}
+      <div className="absolute inset-0 -z-10 backdrop-blur-md" aria-hidden="true" />
+      <div className="flex items-stretch justify-between px-1 pt-2">
+        {left.map(renderItem)}
+        <div className="w-12 shrink-0" aria-hidden="true" />
+        {right.map(renderItem)}
+      </div>
     </nav>
   );
 }
