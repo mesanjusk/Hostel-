@@ -14,6 +14,7 @@ const LoginPage = lazy(() => import("@/pages/login-page"));
 const RegisterPage = lazy(() => import("@/pages/register-page"));
 const WaLoginPage = lazy(() => import("@/pages/wa-login-page"));
 const WaLoginCompletePage = lazy(() => import("@/pages/wa-login-complete-page"));
+const WaLoginHomePage = lazy(() => import("@/pages/wa-login-home-page"));
 const ForgotPasswordPage = lazy(() => import("@/pages/forgot-password-page"));
 const OnboardingPage = lazy(() => import("@/pages/onboarding-page"));
 const NotFound = lazy(() => import("@/pages/not-found"));
@@ -118,6 +119,17 @@ export default function App() {
               }
             />
           </Route>
+
+          {/* Standalone (no AuthLayout centering, no DashboardLayout chrome) — a distinct
+              full-page landing hub the /wa-login flow sends people to after signing in. */}
+          <Route
+            path="/wa-login/home"
+            element={
+              <ProtectedRoute>
+                <WaLoginHomePage />
+              </ProtectedRoute>
+            }
+          />
 
           <Route
             element={

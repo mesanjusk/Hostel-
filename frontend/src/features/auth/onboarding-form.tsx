@@ -22,7 +22,7 @@ import { HOME_ROUTE } from "@/lib/nav-items";
 import { ProfileFields } from "@/features/auth/profile-fields";
 import { profileFieldsSchema, type ProfileFieldsInput } from "@/features/auth/profile-fields-schema";
 
-export function OnboardingForm({ defaultName }: { defaultName?: string }) {
+export function OnboardingForm({ defaultName, viaWaLogin }: { defaultName?: string; viaWaLogin?: boolean }) {
   const navigate = useNavigate();
   const { completeOnboarding } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -43,7 +43,7 @@ export function OnboardingForm({ defaultName }: { defaultName?: string }) {
     try {
       await completeOnboarding(values);
       toast.success("Welcome to Pack with Me!");
-      navigate(HOME_ROUTE, { replace: true });
+      navigate(viaWaLogin ? "/wa-login/home" : HOME_ROUTE, { replace: true });
     } catch (error) {
       toast.error(error instanceof ApiError ? error.message : "Something went wrong");
     } finally {

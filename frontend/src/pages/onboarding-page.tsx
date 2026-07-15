@@ -3,10 +3,11 @@ import { useLocation } from "react-router-dom";
 import { OnboardingForm } from "@/features/auth/onboarding-form";
 
 export default function OnboardingPage() {
-  // Set by the /wa-login flow so the name field starts prefilled with the visitor's
-  // WhatsApp profile name — they can still edit it before submitting.
+  // Set by the /wa-login flow — prefills the name field with the visitor's WhatsApp
+  // profile name, and routes onboarding completion to that flow's own landing hub
+  // instead of the main app's HOME_ROUTE.
   const location = useLocation();
-  const suggestedName = (location.state as { suggestedName?: string } | null)?.suggestedName;
+  const state = location.state as { suggestedName?: string; viaWaLogin?: boolean } | null;
 
-  return <OnboardingForm defaultName={suggestedName} />;
+  return <OnboardingForm defaultName={state?.suggestedName} viaWaLogin={state?.viaWaLogin} />;
 }

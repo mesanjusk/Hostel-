@@ -11,12 +11,14 @@ import { BrandName } from "@/components/shared/brand-name";
 import { useAuth } from "@/context/auth-context";
 import { api, ApiError } from "@/lib/api";
 import { normalizeMobile } from "@/lib/phone";
-import { HOME_ROUTE } from "@/lib/nav-items";
 import type { UserDTO } from "@/types";
 
 // Experimental — kept off the live registration flow. The bot's WhatsApp number this
 // page sends the pre-filled message to.
 const BOT_WHATSAPP_NUMBER = "919370195000";
+// Post-login landing hub for this flow specifically — distinct from the main app's
+// HOME_ROUTE, which registrations reach later via onboarding as normal.
+const WA_LOGIN_HOME_ROUTE = "/wa-login/home";
 const POLL_INTERVAL_MS = 3000;
 
 type WaLoginMode = "register" | "resend";
@@ -52,9 +54,9 @@ export function WaLoginForm() {
           clearInterval(interval);
           loginWithToken(result.token, result.user);
           toast.success(result.mode === "resend" ? "You're logged in!" : "You're registered!");
-          navigate(result.mode === "resend" ? HOME_ROUTE : "/onboarding", {
+          navigate(result.mode === "resend" ? WA_LOGIN_HOME_ROUTE : "/onboarding", {
             replace: true,
-            state: { suggestedName: result.suggestedName ?? undefined },
+            state: { suggestedName: result.suggestedName ?? undefined, viaWaLogin: true },
           });
         } else if (result.status === "expired") {
           clearInterval(interval);
@@ -144,7 +146,7 @@ export function WaLoginForm() {
     try {
       await login(mobile, pin);
       toast.success("You're logged in!");
-      navigate(HOME_ROUTE, { replace: true });
+      navigate(WA_LOGIN_HOME_ROUTE, { replace: true });
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Invalid code. Try again, or tap \"Get code\" below.");
     } finally {

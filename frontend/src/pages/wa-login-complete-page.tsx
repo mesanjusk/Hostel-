@@ -4,8 +4,11 @@ import { Loader2 } from "lucide-react";
 
 import { useAuth } from "@/context/auth-context";
 import { api, ApiError } from "@/lib/api";
-import { HOME_ROUTE } from "@/lib/nav-items";
 import type { UserDTO } from "@/types";
+
+// Post-login landing hub for this flow specifically — distinct from the main app's
+// HOME_ROUTE, which registrations reach later via onboarding as normal.
+const WA_LOGIN_HOME_ROUTE = "/wa-login/home";
 
 type StatusResponse =
   | { status: "pending" }
@@ -45,9 +48,9 @@ export default function WaLoginCompletePage() {
 
         if (result.status === "registered") {
           loginWithToken(result.token, result.user);
-          navigate(result.mode === "resend" ? HOME_ROUTE : "/onboarding", {
+          navigate(result.mode === "resend" ? WA_LOGIN_HOME_ROUTE : "/onboarding", {
             replace: true,
-            state: { suggestedName: result.suggestedName ?? undefined },
+            state: { suggestedName: result.suggestedName ?? undefined, viaWaLogin: true },
           });
           return;
         }
