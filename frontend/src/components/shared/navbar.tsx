@@ -12,7 +12,7 @@ interface NavbarProps {
 
 export function Navbar({ isAdmin, hiddenNavHrefs }: NavbarProps) {
   return (
-    <header className="glass sticky top-0 z-30 flex items-center justify-between gap-3 px-4 py-3 lg:px-8">
+    <header className="sticky top-0 z-30 flex items-center justify-between gap-3 bg-transparent px-4 py-3 backdrop-blur-md lg:px-8">
       <Link to={HOME_ROUTE} className="flex items-center gap-2 lg:hidden">
         <img src="/logo.png" alt="" width={24} height={24} />
         <BrandName />

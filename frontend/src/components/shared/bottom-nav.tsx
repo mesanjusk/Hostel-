@@ -27,7 +27,7 @@ export function BottomNav() {
 
   return (
     <nav
-      className="glass fixed inset-x-0 bottom-0 z-40 flex items-stretch justify-between px-1 pt-2 lg:hidden"
+      className="fixed inset-x-0 bottom-0 z-40 flex items-stretch justify-between bg-transparent px-1 pt-2 backdrop-blur-md lg:hidden"
       style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 0.5rem)" }}
     >
       {left.map(renderItem)}

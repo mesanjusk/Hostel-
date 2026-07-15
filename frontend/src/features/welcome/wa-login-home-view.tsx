@@ -15,7 +15,6 @@ import {
 
 import { BrandName } from "@/components/shared/brand-name";
 import { useAuth } from "@/context/auth-context";
-import { SECTION_BACKGROUND_PRESETS } from "@/features/welcome/section-background-presets";
 
 /** One card per Welcome-page ("home page after splash") scrapbook section, carried over
  * as a clickable entry point into the matching real app feature — this page is the
@@ -32,10 +31,18 @@ const HUB_CARDS: { section: string; title: string; description: string; href: st
   { section: "Final", title: "Documents", description: "Keep your paperwork in order.", href: "/documents", icon: FileText },
 ];
 
+/** One distinct pastel per card so the hub grid reads as a set of colorful sticky notes
+ * instead of a repeating gradient cycle. */
 const CARD_BACKGROUNDS = [
-  SECTION_BACKGROUND_PRESETS.sunrise,
-  SECTION_BACKGROUND_PRESETS.cream,
-  SECTION_BACKGROUND_PRESETS.dusk,
+  "#FFD9E8", // pastel pink
+  "#FFE8C7", // pastel peach
+  "#FFF6BA", // pastel lemon
+  "#D9F5D6", // pastel mint
+  "#CFF3EC", // pastel seafoam
+  "#CFEAFF", // pastel sky
+  "#D9DFFF", // pastel periwinkle
+  "#E6D9FF", // pastel lavender
+  "#FFD9D9", // pastel blush
 ];
 
 export function WaLoginHomeView() {
