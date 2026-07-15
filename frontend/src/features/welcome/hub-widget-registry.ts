@@ -6,6 +6,7 @@ import {
   Luggage,
   ShoppingBag,
   Users,
+  Users2,
   Wallet,
   type LucideIcon,
 } from "lucide-react";
@@ -32,6 +33,7 @@ export const HUB_CARDS: HubCardDef[] = [
   { id: "toiletries", section: "Bathroom Reality", title: "Toiletries", href: "/checklist", icon: ListChecks },
   { id: "budget", section: "Food Survival", title: "Budget", href: "/budget", icon: Wallet },
   { id: "discover", section: "Roommate Vibes", title: "Discover", href: "/discover", icon: Users },
+  { id: "community", section: "Roommate Vibes", title: "Community", href: "/community", icon: Users2 },
   { id: "wishlist", section: "Underrated Essentials", title: "Wishlist", href: "/wishlist", icon: Heart },
   { id: "documents", section: "Final", title: "Documents", href: "/documents", icon: FileText },
 ];
