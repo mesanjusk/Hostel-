@@ -1,5 +1,6 @@
 import type { LucideIcon } from "lucide-react";
 import {
+  Home,
   LayoutDashboard,
   ListChecks,
   Luggage,
@@ -27,6 +28,7 @@ export interface NavItem {
 }
 
 export const PRIMARY_NAV_ITEMS: NavItem[] = [
+  { href: "/wa-login/home", label: "Home", icon: Home },
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/checklist", label: "Checklist", icon: ListChecks },
   { href: "/bags", label: "Bags", icon: Luggage },
@@ -60,9 +62,10 @@ export const SETTINGS_NAV_ITEM: NavItem = {
   icon: Settings,
 };
 
-/** Bottom tab bar: Dashboard, Checklist, [FAB in the middle], Hostel Guide, Profile. */
+/** Bottom tab bar: Home, Checklist, [FAB in the middle], Hostel Guide, Profile. Dashboard
+ * moved into the overflow ("more") menu to make room for Home. */
 export const BOTTOM_NAV_ITEMS: NavItem[] = [
-  PRIMARY_NAV_ITEMS.find((i) => i.href === "/dashboard")!,
+  PRIMARY_NAV_ITEMS.find((i) => i.href === "/wa-login/home")!,
   PRIMARY_NAV_ITEMS.find((i) => i.href === "/checklist")!,
   PRIMARY_NAV_ITEMS.find((i) => i.href === "/guide/survival-guide")!,
   PROFILE_NAV_ITEM,

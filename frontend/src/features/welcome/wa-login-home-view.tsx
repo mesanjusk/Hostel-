@@ -42,11 +42,11 @@ export function WaLoginHomeView() {
   const { user } = useAuth();
 
   return (
-    <div className="mx-auto flex min-h-screen max-w-5xl flex-col gap-10 px-4 py-12 sm:px-8">
+    <div className="mx-auto flex max-w-5xl flex-col gap-8">
       <div className="flex flex-col items-center gap-3 text-center">
         <img src="/logo.png" alt="" width={56} height={56} />
         <h1 className="font-display text-2xl font-bold sm:text-3xl">
-          {user?.name ? `You're in, ${user.name.split(" ")[0]}!` : "You're in!"}
+          {user?.name ? `Hi, ${user.name.split(" ")[0]}!` : "Welcome!"}
         </h1>
         <p className="text-muted-foreground max-w-md text-sm">
           Here&apos;s where to start with <BrandName />.

@@ -120,17 +120,6 @@ export default function App() {
             />
           </Route>
 
-          {/* Standalone (no AuthLayout centering, no DashboardLayout chrome) — a distinct
-              full-page landing hub the /wa-login flow sends people to after signing in. */}
-          <Route
-            path="/wa-login/home"
-            element={
-              <ProtectedRoute>
-                <WaLoginHomePage />
-              </ProtectedRoute>
-            }
-          />
-
           <Route
             element={
               <ProtectedRoute>
@@ -138,6 +127,7 @@ export default function App() {
               </ProtectedRoute>
             }
           >
+            <Route path="/wa-login/home" element={<WaLoginHomePage />} />
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/checklist" element={<ChecklistPage />} />
             <Route path="/checklist/:category" element={<ChecklistCategoryPage />} />
