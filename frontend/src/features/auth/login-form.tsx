@@ -8,7 +8,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/context/auth-context";
 import { ApiError } from "@/lib/api";
-import { HOME_ROUTE } from "@/lib/nav-items";
 import { cn } from "@/lib/utils";
 import { trackFormInteraction, trackRegistrationPageOpened } from "@/lib/analytics/client";
 
@@ -48,8 +47,11 @@ export function LoginForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   function goHome() {
-    const from = (location.state as { from?: Location })?.from?.pathname ?? HOME_ROUTE;
-    navigate(from, { replace: true });
+    // Deep-link redirects (ProtectedRoute sends visitors here with `from` when they tried
+    // to open a specific page while signed out) still take priority — only the plain,
+    // no-particular-destination login falls through to the new landing hub.
+    const from = (location.state as { from?: Location })?.from?.pathname;
+    navigate(from ?? "/wa-login/home", { replace: true });
   }
 
   async function handleMobileSubmit(e: React.FormEvent) {
