@@ -1,2 +1,2 @@
-/** Post-login landing page — the packing checklist, so students land straight on their list. */
-export const HOME_ROUTE = "/checklist";
+/** Post-login landing page — the home hub, so students always land here after signing in. */
+export const HOME_ROUTE = "/wa-login/home";
