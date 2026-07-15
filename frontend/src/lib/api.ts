@@ -6,6 +6,11 @@ const TOKEN_KEY = "pwm_auth_token";
 const REQUEST_TIMEOUT_MS = 15000;
 const GET_RETRY_ATTEMPTS = 2;
 const GET_RETRY_BASE_DELAY_MS = 400;
+// Short-lived cache for GET responses, keyed by path. Every mutation (POST/PUT/PATCH/DELETE)
+// clears it — same "everything might be stale, refetch" philosophy as lib/refresh-bus.ts —
+// so switching tabs and back within this window is instant instead of a blank-screen refetch.
+const GET_CACHE_TTL_MS = 30000;
+const getCache = new Map<string, { data: unknown; expiresAt: number }>();
 
 let authToken: string | null = localStorage.getItem(TOKEN_KEY);
 
@@ -16,6 +21,10 @@ export function setAuthToken(token: string | null) {
   } else {
     localStorage.removeItem(TOKEN_KEY);
   }
+  // Every cached GET is scoped to whichever user was logged in when it was fetched — on a
+  // shared hostel-room device, switching accounts without this would leak the previous
+  // student's dashboard/checklist/budget data into the next login for up to GET_CACHE_TTL_MS.
+  getCache.clear();
 }
 
 export function getAuthToken() {
@@ -128,12 +137,22 @@ async function apiFetch<T>(path: string, options: RequestInit = {}, attempt = 0)
 const inFlightGets = new Map<string, Promise<unknown>>();
 
 function getWithDedupe<T>(path: string): Promise<T> {
+  const cached = getCache.get(path);
+  if (cached && cached.expiresAt > Date.now()) {
+    return Promise.resolve(cached.data as T);
+  }
+
   const existing = inFlightGets.get(path);
   if (existing) return existing as Promise<T>;
 
-  const request = apiFetch<T>(path).finally(() => {
-    inFlightGets.delete(path);
-  });
+  const request = apiFetch<T>(path)
+    .then((data) => {
+      getCache.set(path, { data, expiresAt: Date.now() + GET_CACHE_TTL_MS });
+      return data;
+    })
+    .finally(() => {
+      inFlightGets.delete(path);
+    });
   inFlightGets.set(path, request);
   return request as Promise<T>;
 }
@@ -143,6 +162,11 @@ function withBody(method: string) {
     apiFetch<T>(path, {
       method,
       body: body !== undefined ? JSON.stringify(body) : undefined,
+    }).then((data) => {
+      // Any mutation can affect data another page has cached (e.g. adding a checklist item
+      // changes /api/dashboard's counts too) — simplest correct move is to drop it all.
+      getCache.clear();
+      return data;
     });
 }
 

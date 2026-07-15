@@ -1,4 +1,5 @@
 import "dotenv/config";
+import compression from "compression";
 import cors from "cors";
 import express from "express";
 import helmet from "helmet";
@@ -35,6 +36,10 @@ import { collegeCategoriesRouter } from "@/routes/collegeCategories.routes";
 import { coursesRouter } from "@/routes/courses.routes";
 
 const app = express();
+
+// Every response here is JSON going to a mobile-heavy student audience — gzip cuts payload
+// size dramatically (checklist/dashboard/search responses especially) for negligible CPU cost.
+app.use(compression());
 
 // JSON API only — disable the HTML-oriented CSP directives and keep resources fetchable
 // cross-origin (the frontend runs on a separate origin and relies on the `cors` config below).

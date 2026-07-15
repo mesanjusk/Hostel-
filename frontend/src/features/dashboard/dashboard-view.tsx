@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { formatDistanceToNow } from "date-fns";
@@ -8,13 +9,20 @@ import { Badge } from "@/components/ui/badge";
 import { SuitcaseFill, PiggyBankFill } from "@/components/shared/liquid-fill-icons";
 import { StatCard } from "@/components/shared/stat-card";
 import { EmptyState } from "@/components/shared/empty-state";
-import { SuccessLottie } from "@/components/shared/success-lottie";
 import { SiteFooter } from "@/components/shared/site-footer";
-import { ExpenseMiniChart } from "@/features/dashboard/expense-mini-chart";
 import { getCategoryIcon } from "@/lib/checklist-icons";
 import { mergeDashboardLayout, STAT_CARD_IDS, type WidgetConfig } from "@/features/dashboard/widget-registry";
 import type { ChecklistPriority } from "@/types";
 import type { DashboardDataDTO } from "@/features/dashboard/dashboard-dto";
+
+// Deferred off the dashboard's critical path — lottie-react and recharts together add well
+// over 300kb, too heavy to eagerly ship on the page every user lands on right after login.
+const SuccessLottie = lazy(() =>
+  import("@/components/shared/success-lottie").then((m) => ({ default: m.SuccessLottie })),
+);
+const ExpenseMiniChart = lazy(() =>
+  import("@/features/dashboard/expense-mini-chart").then((m) => ({ default: m.ExpenseMiniChart })),
+);
 
 const PRIORITY_VARIANT: Record<ChecklistPriority, "outline" | "warning" | "destructive"> = {
   low: "outline",
@@ -43,7 +51,9 @@ function StatsWidget({ data, visibleStatIds }: { data: DashboardDataDTO; visible
               <SuitcaseFill value={completionPercent} />
               {completionPercent >= 100 && (
                 <div className="pointer-events-none absolute -top-3 -right-3">
-                  <SuccessLottie size={48} />
+                  <Suspense fallback={null}>
+                    <SuccessLottie size={48} />
+                  </Suspense>
                 </div>
               )}
             </div>
@@ -95,7 +105,11 @@ function StatsWidget({ data, visibleStatIds }: { data: DashboardDataDTO; visible
 }
 
 function ExpenseChartWidget({ data }: { data: DashboardDataDTO }) {
-  return <ExpenseMiniChart byCategory={data.budgetSummary.byCategory} />;
+  return (
+    <Suspense fallback={<div className="bg-card h-64 w-full animate-pulse rounded-2xl" />}>
+      <ExpenseMiniChart byCategory={data.budgetSummary.byCategory} />
+    </Suspense>
+  );
 }
 
 function UpcomingTasksWidget({ data }: { data: DashboardDataDTO }) {
