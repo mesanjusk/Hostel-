@@ -15,6 +15,8 @@ const objectIdSchema = z.string().trim().regex(/^[a-f0-9]{24}$/i, "Invalid id");
 export const collegeCategoryIdSchema = objectIdSchema;
 export const courseIdSchema = objectIdSchema;
 
+export const citySchema = z.string().trim().min(1, "Select your city").max(80);
+
 export const mobileSchema = z
   .string()
   .trim()
@@ -36,12 +38,14 @@ export const loginSchema = z.object({
   pin: z.string().trim().min(1, "Enter your login code"),
 });
 
+// Course is deliberately not collected at registration — it's a voluntary profile-edit
+// field (see profileUpdateSchema) so onboarding stays quick.
 export const onboardingSchema = z.object({
   name: z.string().trim().min(2, "Name is too short").max(80, "Name is too long"),
   gender: genderSchema,
   college: z.string().trim().min(1, "Enter your college name").max(120, "College name is too long"),
   collegeCategoryId: collegeCategoryIdSchema,
-  courseId: courseIdSchema,
+  city: citySchema,
 });
 
 const otpCodeSchema = z

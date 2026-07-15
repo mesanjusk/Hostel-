@@ -74,6 +74,12 @@ Optionally seed starter Shopping/Guide content:
 npm run seed
 ```
 
+Seed the City catalog (powers the city picker on registration/profile):
+
+```bash
+npm run seed:cities
+```
+
 Run the backend:
 
 ```bash
@@ -116,7 +122,7 @@ Open [http://localhost:5173](http://localhost:5173) and log in with the mobile n
    | `WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_API_VERSION`, `WHATSAPP_OTP_TEMPLATE_NAME`, `WHATSAPP_OTP_TEMPLATE_LANGUAGE` | See "WhatsApp OTP setup" above — required for self-registration and forgot-code to send real messages |
 3. In MongoDB Atlas → Network Access, allow Render's outbound IPs (or `0.0.0.0/0`).
 4. Deploy. Your API will be live at something like `https://hostel-dpqg.onrender.com` — note this URL, the frontend needs it.
-5. Run `npm run make-admin -- <mobile>` and `npm run seed` locally (or from any machine) pointed at the same `MONGODB_URI` — these are one-off maintenance scripts, not part of the deployed service.
+5. Run `npm run make-admin -- <mobile>`, `npm run seed`, and `npm run seed:cities` locally (or from any machine) pointed at the same `MONGODB_URI` — these are one-off maintenance scripts, not part of the deployed service.
 
 ### Frontend → Vercel
 
@@ -161,5 +167,6 @@ frontend/
 | `backend/` | `npm run build` / `npm start` | Production build / run |
 | `backend/` | `npm run make-admin -- <mobile>` | Create/promote an admin account with a fresh login code |
 | `backend/` | `npm run seed` | Populate Shopping/Guide starter content |
+| `backend/` | `npm run seed:cities` | Populate the City catalog (registration/profile city picker) |
 | `frontend/` | `npm run dev` | Local dev server |
 | `frontend/` | `npm run build` | Production build |

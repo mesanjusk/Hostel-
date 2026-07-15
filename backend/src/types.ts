@@ -28,6 +28,8 @@ export interface UserDTO {
   collegeCategory: CollegeCategory | null;
   collegeCategoryId: string | null;
   courseId: string | null;
+  city: string | null;
+  homeTown: string | null;
   role: UserRole;
   theme: "light" | "dark" | "system";
   needsOnboarding: boolean;

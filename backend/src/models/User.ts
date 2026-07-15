@@ -9,6 +9,10 @@ const UserSchema = new Schema(
     avatar: { type: String, default: null },
     gender: { type: String, enum: GENDER_OPTIONS, default: null },
     college: { type: String, default: null, trim: true, maxlength: 120 },
+    /** City selected at registration, from the admin-managed City catalog (see City model). */
+    city: { type: String, default: null, trim: true, maxlength: 80 },
+    /** Optional — added later from the profile page, not collected at registration. */
+    homeTown: { type: String, default: null, trim: true, maxlength: 80 },
     /** Legacy fixed-enum field — kept for existing users and old code paths (categoryService's
      * Designing-only checklist folder, admin filters). New signups are classified via
      * collegeCategoryId/courseId instead; see userService.LEGACY_COLLEGE_CATEGORY_MAP for the

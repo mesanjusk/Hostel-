@@ -55,3 +55,17 @@ export function toCourseDTO(raw: CourseRaw): CourseDTO {
     sortOrder: raw.sortOrder,
   };
 }
+
+export interface CityOptionDTO {
+  id: string;
+  name: string;
+}
+
+export interface CityOptionRaw {
+  _id: string;
+  name: string;
+}
+
+export function toCityOptionDTO(raw: CityOptionRaw): CityOptionDTO {
+  return { id: raw._id, name: raw.name };
+}

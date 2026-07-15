@@ -35,6 +35,8 @@ export function OnboardingForm({ defaultName, viaWaLogin }: { defaultName?: stri
       college: "",
       collegeCategoryId: "",
       courseId: "",
+      city: "",
+      homeTown: "",
     },
   });
 

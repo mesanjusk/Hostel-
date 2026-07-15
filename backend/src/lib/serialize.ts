@@ -14,6 +14,8 @@ export function serializeUser(user: HydratedDocument<UserDocument>): UserDTO {
     collegeCategory: (user.collegeCategory as UserDTO["collegeCategory"]) ?? null,
     collegeCategoryId: user.collegeCategoryId ? String(user.collegeCategoryId) : null,
     courseId: user.courseId ? String(user.courseId) : null,
+    city: user.city ?? null,
+    homeTown: user.homeTown ?? null,
     role: user.role as UserDTO["role"],
     theme: user.theme as UserDTO["theme"],
     needsOnboarding: !user.name,

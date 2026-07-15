@@ -11,6 +11,7 @@
     "seed": "tsx scripts/seed.ts",
     "make-admin": "tsx scripts/make-admin.ts",
     "seed:checklist-taxonomy": "tsx scripts/seedChecklistTaxonomy.ts",
+    "seed:cities": "tsx scripts/seedCities.ts",
     "migrate:checklist-v2": "tsx scripts/migrateLegacyChecklistToV2.ts"
   },
   "dependencies": {

@@ -40,6 +40,8 @@ export function ProfileView() {
       college: user?.college ?? "",
       collegeCategoryId: user?.collegeCategoryId ?? "",
       courseId: user?.courseId ?? "",
+      city: user?.city ?? "",
+      homeTown: user?.homeTown ?? "",
     },
   });
 
@@ -111,7 +113,7 @@ export function ProfileView() {
                     </FormItem>
                   )}
                 />
-                <ProfileFields form={form} />
+                <ProfileFields form={form} variant="profile" />
                 <Button type="submit" size="lg" disabled={isSubmitting} className="mt-2 self-start">
                   {isSubmitting && <Loader2 className="size-4 animate-spin" />}
                   Save changes

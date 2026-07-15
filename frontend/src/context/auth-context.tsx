@@ -10,7 +10,7 @@ interface OnboardingInput {
   gender: Gender;
   college: string;
   collegeCategoryId: string;
-  courseId: string;
+  city: string;
 }
 
 interface OtpRequestResult {
