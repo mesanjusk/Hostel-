@@ -48,6 +48,7 @@ export async function completeOnboarding(userId: string, input: OnboardingInput)
       collegeCategoryId: input.collegeCategoryId,
       city: input.city,
       collegeCategory,
+      ...(input.avatar ? { avatar: input.avatar } : {}),
     },
     { returnDocument: "after" },
   ).lean();

@@ -33,7 +33,6 @@ import { checklistItemSchema, type ChecklistItemInput } from "@/lib/validations/
 import { api, ApiError } from "@/lib/api";
 import { emitRefresh } from "@/lib/refresh-bus";
 import { CategorySelect } from "@/features/checklist/category-select";
-import { PhotoUploadField } from "@/features/checklist/photo-upload-field";
 import { BagSelect } from "@/features/bags/bag-select";
 import { CHECKLIST_PRIORITIES, type ChecklistCategory } from "@/types";
 import type { ChecklistItemDTO } from "@/features/checklist/checklist-item-dto";
@@ -191,20 +190,6 @@ export function ItemFormDialog({
                       ))}
                     </SelectContent>
                   </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="imageUrl"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Photo (optional)</FormLabel>
-                  <FormControl>
-                    <PhotoUploadField value={field.value ?? ""} onChange={field.onChange} />
-                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}

@@ -11,7 +11,7 @@ interface PhotoUploadFieldProps {
   onChange: (value: string) => void;
 }
 
-/** Optional single-photo picker for a checklist item. Compresses on-device, then
+/** Optional single-photo picker — used for a bag's photo. Compresses on-device, then
  * uploads the result to Cloudinary via the backend — the form only ever holds the
  * short hosted URL, not the raw image data, and the Cloudinary API secret never
  * leaves the server. */
@@ -49,7 +49,7 @@ export function PhotoUploadField({ value, onChange }: PhotoUploadFieldProps) {
     <div className="flex items-center gap-3">
       {displayUrl ? (
         <div className="relative size-20 shrink-0 overflow-hidden rounded-lg border">
-          <img src={displayUrl} alt="Item photo" className="h-full w-full object-cover" />
+          <img src={displayUrl} alt="Photo" className="h-full w-full object-cover" />
           {!busy && (
             <button
               type="button"

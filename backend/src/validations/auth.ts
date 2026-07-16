@@ -38,6 +38,18 @@ export const loginSchema = z.object({
   pin: z.string().trim().min(1, "Enter your login code"),
 });
 
+// Same convention as checklist items' photo field: client-compressed base64 data URI, or a
+// plain https URL. Optional — a profile picture is never required to finish onboarding.
+const avatarImageField = z
+  .string()
+  .trim()
+  .max(200_000, "Image is too large")
+  .refine((val) => val === "" || val.startsWith("data:image/") || /^https?:\/\//i.test(val), {
+    message: "Image must be a photo or a valid URL",
+  })
+  .optional()
+  .or(z.literal(""));
+
 // Course is deliberately not collected at registration — it's a voluntary profile-edit
 // field (see profileUpdateSchema) so onboarding stays quick.
 export const onboardingSchema = z.object({
@@ -46,6 +58,7 @@ export const onboardingSchema = z.object({
   college: z.string().trim().min(1, "Enter your college name").max(120, "College name is too long"),
   collegeCategoryId: collegeCategoryIdSchema,
   city: citySchema,
+  avatar: avatarImageField,
 });
 
 const otpCodeSchema = z

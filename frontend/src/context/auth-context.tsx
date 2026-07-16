@@ -20,6 +20,8 @@ interface OnboardingInput {
   college: string;
   collegeCategoryId: string;
   city: string;
+  /** Optional — a student can finish onboarding without picking a profile picture. */
+  avatar?: string;
 }
 
 interface OtpRequestResult {

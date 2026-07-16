@@ -41,6 +41,7 @@ export async function listBagsWithCounts(userId: string) {
       id: String(bag._id),
       name: bag.name,
       color: bag.color ?? BAG_COLOR_PRESETS[0],
+      imageUrl: bag.imageUrl ?? null,
       total: assigned.length,
       completed: assigned.filter((i) => i.completed).length,
     };
@@ -74,7 +75,7 @@ export async function createBag(userId: string, name: string, color?: string) {
 export async function updateBag(
   userId: string,
   id: string,
-  updates: { name?: string; color?: string },
+  updates: { name?: string; color?: string; imageUrl?: string | null },
 ) {
   await connectDB();
 
@@ -83,7 +84,7 @@ export async function updateBag(
     return { success: false as const, error: "Bag not found", code: "NOT_FOUND" as const };
   }
 
-  const patch: { name?: string; color?: string } = {};
+  const patch: { name?: string; color?: string; imageUrl?: string | null } = {};
 
   if (updates.name !== undefined) {
     const trimmed = updates.name.trim();
@@ -97,6 +98,10 @@ export async function updateBag(
 
   if (updates.color !== undefined) {
     patch.color = updates.color;
+  }
+
+  if (updates.imageUrl !== undefined) {
+    patch.imageUrl = updates.imageUrl || null;
   }
 
   await Bag.updateOne({ _id: id, userId }, patch);
