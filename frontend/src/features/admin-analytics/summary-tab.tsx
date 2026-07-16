@@ -5,8 +5,12 @@ import { toast } from "sonner";
 import { StatCard } from "@/components/shared/stat-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getCategoryIcon } from "@/lib/checklist-icons";
-import { api, ApiError } from "@/lib/api";
+import { api, ApiError, peekCache } from "@/lib/api";
 import type { ChecklistCategory } from "@/types";
+
+const ANALYTICS_PATH = "/api/admin/analytics";
+const CHECKLIST_DASHBOARD_PATH = "/api/admin/checklist-dashboard";
+const SUGGESTED_ITEMS_PATH = "/api/admin/suggested-items";
 
 interface AdminAnalytics {
   totalUsers: number;
@@ -31,23 +35,29 @@ interface ChecklistDashboardStats {
 }
 
 export function SummaryTab() {
-  const [analytics, setAnalytics] = useState<AdminAnalytics | null>(null);
-  const [checklistStats, setChecklistStats] = useState<ChecklistDashboardStats | null>(null);
-  const [suggestedCount, setSuggestedCount] = useState<number | null>(null);
+  const [analytics, setAnalytics] = useState<AdminAnalytics | null>(
+    () => peekCache<{ analytics: AdminAnalytics }>(ANALYTICS_PATH)?.analytics ?? null,
+  );
+  const [checklistStats, setChecklistStats] = useState<ChecklistDashboardStats | null>(
+    () => peekCache<{ stats: ChecklistDashboardStats }>(CHECKLIST_DASHBOARD_PATH)?.stats ?? null,
+  );
+  const [suggestedCount, setSuggestedCount] = useState<number | null>(
+    () => peekCache<{ suggestions: unknown[] }>(SUGGESTED_ITEMS_PATH)?.suggestions.length ?? null,
+  );
 
   useEffect(() => {
     api
-      .get<{ analytics: AdminAnalytics }>("/api/admin/analytics")
+      .get<{ analytics: AdminAnalytics }>(ANALYTICS_PATH)
       .then(({ analytics }) => setAnalytics(analytics))
       .catch((error) => toast.error(error instanceof ApiError ? error.message : "Failed to load analytics"));
 
     api
-      .get<{ stats: ChecklistDashboardStats }>("/api/admin/checklist-dashboard")
+      .get<{ stats: ChecklistDashboardStats }>(CHECKLIST_DASHBOARD_PATH)
       .then(({ stats }) => setChecklistStats(stats))
       .catch(() => {});
 
     api
-      .get<{ suggestions: unknown[] }>("/api/admin/suggested-items")
+      .get<{ suggestions: unknown[] }>(SUGGESTED_ITEMS_PATH)
       .then(({ suggestions }) => setSuggestedCount(suggestions.length))
       .catch(() => {});
   }, []);

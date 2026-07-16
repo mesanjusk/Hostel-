@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
-import { api, ApiError } from "@/lib/api";
+import { api, ApiError, peekCache } from "@/lib/api";
 import { CountedTable } from "@/features/admin-analytics/counted-table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -9,18 +9,22 @@ import type { DateRangeValue } from "@/features/admin-analytics/date-range-filte
 import type { TechResponse, GeoResponse, ReferralResponse } from "@/features/admin-analytics/analytics-dto";
 
 export function AudienceTab({ range }: { range: DateRangeValue }) {
-  const [tech, setTech] = useState<TechResponse | null>(null);
-  const [geo, setGeo] = useState<GeoResponse | null>(null);
-  const [referral, setReferral] = useState<ReferralResponse | null>(null);
+  const qs = `?from=${range.from}&to=${range.to}`;
+  const techPath = `/api/analytics/tech${qs}`;
+  const geoPath = `/api/analytics/geo${qs}`;
+  const referralPath = `/api/analytics/referral${qs}`;
+  const [tech, setTech] = useState<TechResponse | null>(() => peekCache(techPath) ?? null);
+  const [geo, setGeo] = useState<GeoResponse | null>(() => peekCache(geoPath) ?? null);
+  const [referral, setReferral] = useState<ReferralResponse | null>(() => peekCache(referralPath) ?? null);
 
   useEffect(() => {
-    const qs = `?from=${range.from}&to=${range.to}`;
-    api.get<TechResponse>(`/api/analytics/tech${qs}`).then(setTech).catch((e) => toast.error(e instanceof ApiError ? e.message : "Failed to load"));
-    api.get<GeoResponse>(`/api/analytics/geo${qs}`).then(setGeo).catch((e) => toast.error(e instanceof ApiError ? e.message : "Failed to load"));
+    api.get<TechResponse>(techPath).then(setTech).catch((e) => toast.error(e instanceof ApiError ? e.message : "Failed to load"));
+    api.get<GeoResponse>(geoPath).then(setGeo).catch((e) => toast.error(e instanceof ApiError ? e.message : "Failed to load"));
     api
-      .get<ReferralResponse>(`/api/analytics/referral${qs}`)
+      .get<ReferralResponse>(referralPath)
       .then(setReferral)
       .catch((e) => toast.error(e instanceof ApiError ? e.message : "Failed to load"));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [range.from, range.to]);
 
   return (

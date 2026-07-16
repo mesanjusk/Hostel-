@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { StatCard } from "@/components/shared/stat-card";
-import { api, ApiError } from "@/lib/api";
+import { api, ApiError, peekCache } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ExportButtons } from "@/features/admin-analytics/export-buttons";
 import type { DateRangeValue } from "@/features/admin-analytics/date-range-filter";
@@ -10,13 +10,15 @@ import type { RegistrationFunnelResponse } from "@/features/admin-analytics/anal
 import { UserX, PhoneOff, ShieldAlert, Clock3, UserMinus, UserCheck } from "lucide-react";
 
 export function FunnelTab({ range }: { range: DateRangeValue }) {
-  const [data, setData] = useState<RegistrationFunnelResponse | null>(null);
+  const path = `/api/analytics/registration-funnel?from=${range.from}&to=${range.to}`;
+  const [data, setData] = useState<RegistrationFunnelResponse | null>(() => peekCache(path) ?? null);
 
   useEffect(() => {
     api
-      .get<RegistrationFunnelResponse>(`/api/analytics/registration-funnel?from=${range.from}&to=${range.to}`)
+      .get<RegistrationFunnelResponse>(path)
       .then(setData)
       .catch((error) => toast.error(error instanceof ApiError ? error.message : "Failed to load funnel"));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [range.from, range.to]);
 
   if (!data) return null;

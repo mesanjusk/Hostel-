@@ -3,19 +3,21 @@ import { Users, UserPlus, UserCheck, UserX, ArrowRightLeft, Repeat } from "lucid
 import { toast } from "sonner";
 
 import { StatCard } from "@/components/shared/stat-card";
-import { api, ApiError } from "@/lib/api";
+import { api, ApiError, peekCache } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { DateRangeValue } from "@/features/admin-analytics/date-range-filter";
 import type { BusinessResponse } from "@/features/admin-analytics/analytics-dto";
 
 export function BusinessTab({ range }: { range: DateRangeValue }) {
-  const [data, setData] = useState<BusinessResponse | null>(null);
+  const path = `/api/analytics/business?from=${range.from}&to=${range.to}`;
+  const [data, setData] = useState<BusinessResponse | null>(() => peekCache(path) ?? null);
 
   useEffect(() => {
     api
-      .get<BusinessResponse>(`/api/analytics/business?from=${range.from}&to=${range.to}`)
+      .get<BusinessResponse>(path)
       .then(setData)
       .catch((error) => toast.error(error instanceof ApiError ? error.message : "Failed to load business analytics"));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [range.from, range.to]);
 
   if (!data) return null;

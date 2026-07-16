@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 
-import { api, ApiError } from "@/lib/api";
+import { api, ApiError, peekCache } from "@/lib/api";
 import { subscribeRefresh } from "@/lib/refresh-bus";
 import { ChecklistOverview } from "@/features/checklist/checklist-overview";
 import { NotebookView } from "@/features/checklist/notebook-view";
@@ -17,22 +17,24 @@ interface CategoryGroup {
   items: ChecklistItemDTO[];
 }
 
+const CHECKLIST_PATH = "/api/checklist";
+
+function toGroups(categories: { category: string; items: ChecklistItemRaw[] }[]): CategoryGroup[] {
+  return categories.map((g) => ({ category: g.category, items: g.items.map(toChecklistItemDTO) }));
+}
+
 export default function ChecklistPage() {
   const [searchParams] = useSearchParams();
-  const [groups, setGroups] = useState<CategoryGroup[]>([]);
-  const [loading, setLoading] = useState(true);
+  const cachedChecklist = peekCache<{ categories: { category: string; items: ChecklistItemRaw[] }[] }>(CHECKLIST_PATH);
+  const [groups, setGroups] = useState<CategoryGroup[]>(() => (cachedChecklist ? toGroups(cachedChecklist.categories) : []));
+  const [loading, setLoading] = useState(() => !cachedChecklist);
 
   async function fetchData() {
     try {
       const { categories } = await api.get<{
         categories: { category: string; items: ChecklistItemRaw[] }[];
-      }>("/api/checklist");
-      setGroups(
-        categories.map((g) => ({
-          category: g.category,
-          items: g.items.map(toChecklistItemDTO),
-        })),
-      );
+      }>(CHECKLIST_PATH);
+      setGroups(toGroups(categories));
     } catch (error) {
       toast.error(error instanceof ApiError ? error.message : "Failed to load checklist");
     } finally {

@@ -2,10 +2,12 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { StatCard } from "@/components/shared/stat-card";
-import { api, ApiError } from "@/lib/api";
+import { api, ApiError, peekCache } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, Repeat } from "lucide-react";
 import type { RetentionResponse } from "@/features/admin-analytics/analytics-dto";
+
+const RETENTION_PATH = "/api/analytics/retention";
 
 function heatColor(rate: number): string {
   if (rate === 0) return "bg-muted";
@@ -16,11 +18,11 @@ function heatColor(rate: number): string {
 }
 
 export function RetentionTab() {
-  const [data, setData] = useState<RetentionResponse | null>(null);
+  const [data, setData] = useState<RetentionResponse | null>(() => peekCache(RETENTION_PATH) ?? null);
 
   useEffect(() => {
     api
-      .get<RetentionResponse>("/api/analytics/retention")
+      .get<RetentionResponse>(RETENTION_PATH)
       .then(setData)
       .catch((error) => toast.error(error instanceof ApiError ? error.message : "Failed to load retention"));
   }, []);

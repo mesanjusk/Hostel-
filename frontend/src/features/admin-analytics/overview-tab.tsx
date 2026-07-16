@@ -3,7 +3,7 @@ import { Users, UserPlus, Repeat, Activity, Clock, MousePointerClick, Layers, Lo
 import { toast } from "sonner";
 
 import { StatCard } from "@/components/shared/stat-card";
-import { api, ApiError } from "@/lib/api";
+import { api, ApiError, peekCache } from "@/lib/api";
 import { CountedTable } from "@/features/admin-analytics/counted-table";
 import type { DateRangeValue } from "@/features/admin-analytics/date-range-filter";
 import type { OverviewResponse } from "@/features/admin-analytics/analytics-dto";
@@ -15,13 +15,15 @@ function formatDuration(seconds: number): string {
 }
 
 export function OverviewTab({ range }: { range: DateRangeValue }) {
-  const [data, setData] = useState<OverviewResponse | null>(null);
+  const path = `/api/analytics/overview?from=${range.from}&to=${range.to}`;
+  const [data, setData] = useState<OverviewResponse | null>(() => peekCache(path) ?? null);
 
   useEffect(() => {
     api
-      .get<OverviewResponse>(`/api/analytics/overview?from=${range.from}&to=${range.to}`)
+      .get<OverviewResponse>(path)
       .then(setData)
       .catch((error) => toast.error(error instanceof ApiError ? error.message : "Failed to load overview"));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [range.from, range.to]);
 
   if (!data) return null;

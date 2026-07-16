@@ -3,13 +3,14 @@ import { Radio, Users } from "lucide-react";
 import { toast } from "sonner";
 
 import { StatCard } from "@/components/shared/stat-card";
-import { api, ApiError } from "@/lib/api";
+import { api, ApiError, peekCache } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { EmptyState } from "@/components/shared/empty-state";
 import type { RealtimeResponse } from "@/features/admin-analytics/analytics-dto";
 
 const POLL_INTERVAL_MS = 8000;
+const REALTIME_PATH = "/api/analytics/realtime";
 
 function timeAgo(iso: string): string {
   const seconds = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 1000));
@@ -18,14 +19,14 @@ function timeAgo(iso: string): string {
 }
 
 export function RealtimeTab() {
-  const [data, setData] = useState<RealtimeResponse | null>(null);
+  const [data, setData] = useState<RealtimeResponse | null>(() => peekCache(REALTIME_PATH) ?? null);
 
   useEffect(() => {
     let cancelled = false;
 
     function load() {
       api
-        .get<RealtimeResponse>("/api/analytics/realtime")
+        .get<RealtimeResponse>(REALTIME_PATH)
         .then((res) => {
           if (!cancelled) setData(res);
         })

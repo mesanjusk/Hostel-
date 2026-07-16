@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
-import { api, ApiError } from "@/lib/api";
+import { api, ApiError, peekCache } from "@/lib/api";
 import { GuideView } from "@/features/guide/guide-view";
 import {
   toGuideArticleSummaryDTO,
@@ -9,13 +9,18 @@ import {
   type GuideArticleSummaryDTO,
 } from "@/features/guide/guide-dto";
 
+const GUIDE_PATH = "/api/guide";
+
 export default function GuidePage() {
-  const [articles, setArticles] = useState<GuideArticleSummaryDTO[]>([]);
-  const [loading, setLoading] = useState(true);
+  const cachedGuide = peekCache<{ articles: GuideArticleRaw[] }>(GUIDE_PATH);
+  const [articles, setArticles] = useState<GuideArticleSummaryDTO[]>(
+    () => cachedGuide?.articles.map(toGuideArticleSummaryDTO) ?? [],
+  );
+  const [loading, setLoading] = useState(() => !cachedGuide);
 
   useEffect(() => {
     api
-      .get<{ articles: GuideArticleRaw[] }>("/api/guide")
+      .get<{ articles: GuideArticleRaw[] }>(GUIDE_PATH)
       .then(({ articles }) => setArticles(articles.map(toGuideArticleSummaryDTO)))
       .catch((error) => toast.error(error instanceof ApiError ? error.message : "Failed to load guide"))
       .finally(() => setLoading(false));

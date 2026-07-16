@@ -3,7 +3,7 @@ import { MousePointerClick, Ban } from "lucide-react";
 import { toast } from "sonner";
 
 import { StatCard } from "@/components/shared/stat-card";
-import { api, ApiError } from "@/lib/api";
+import { api, ApiError, peekCache } from "@/lib/api";
 import { CountedTable } from "@/features/admin-analytics/counted-table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -11,13 +11,15 @@ import type { DateRangeValue } from "@/features/admin-analytics/date-range-filte
 import type { EngagementResponse } from "@/features/admin-analytics/analytics-dto";
 
 export function EngagementTab({ range }: { range: DateRangeValue }) {
-  const [data, setData] = useState<EngagementResponse | null>(null);
+  const path = `/api/analytics/engagement?from=${range.from}&to=${range.to}`;
+  const [data, setData] = useState<EngagementResponse | null>(() => peekCache(path) ?? null);
 
   useEffect(() => {
     api
-      .get<EngagementResponse>(`/api/analytics/engagement?from=${range.from}&to=${range.to}`)
+      .get<EngagementResponse>(path)
       .then(setData)
       .catch((error) => toast.error(error instanceof ApiError ? error.message : "Failed to load engagement"));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [range.from, range.to]);
 
   if (!data) return null;

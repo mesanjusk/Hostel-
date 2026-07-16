@@ -3,18 +3,20 @@ import { CheckCircle2, XCircle, KeyRound, MessageCircle, AlertTriangle, UserX, C
 import { toast } from "sonner";
 
 import { StatCard } from "@/components/shared/stat-card";
-import { api, ApiError } from "@/lib/api";
+import { api, ApiError, peekCache } from "@/lib/api";
 import type { DateRangeValue } from "@/features/admin-analytics/date-range-filter";
 import type { LoginResponse } from "@/features/admin-analytics/analytics-dto";
 
 export function LoginTab({ range }: { range: DateRangeValue }) {
-  const [data, setData] = useState<LoginResponse | null>(null);
+  const path = `/api/analytics/login?from=${range.from}&to=${range.to}`;
+  const [data, setData] = useState<LoginResponse | null>(() => peekCache(path) ?? null);
 
   useEffect(() => {
     api
-      .get<LoginResponse>(`/api/analytics/login?from=${range.from}&to=${range.to}`)
+      .get<LoginResponse>(path)
       .then(setData)
       .catch((error) => toast.error(error instanceof ApiError ? error.message : "Failed to load login analytics"));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [range.from, range.to]);
 
   if (!data) return null;

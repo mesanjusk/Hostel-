@@ -2,22 +2,30 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { toast } from "sonner";
 
-import { api, ApiError } from "@/lib/api";
+import { api, ApiError, peekCache } from "@/lib/api";
 import { ArticleView } from "@/features/guide/article-view";
 import NotFound from "@/pages/not-found";
 import { toGuideArticleDTO, type GuideArticleDTO, type GuideArticleRaw } from "@/features/guide/guide-dto";
 
+function articlePath(slug: string | undefined) {
+  return `/api/guide/${slug}`;
+}
+
 export default function GuideArticlePage() {
   const { slug } = useParams<{ slug: string }>();
-  const [article, setArticle] = useState<GuideArticleDTO | null>(null);
-  const [loading, setLoading] = useState(true);
+  const cachedArticle = peekCache<{ article: GuideArticleRaw }>(articlePath(slug));
+  const [article, setArticle] = useState<GuideArticleDTO | null>(
+    () => (cachedArticle ? toGuideArticleDTO(cachedArticle.article) : null),
+  );
+  const [loading, setLoading] = useState(() => !cachedArticle);
   const [notFound, setNotFound] = useState(false);
 
   useEffect(() => {
-    setLoading(true);
+    const cached = peekCache<{ article: GuideArticleRaw }>(articlePath(slug));
+    setLoading(!cached);
     setNotFound(false);
     api
-      .get<{ article: GuideArticleRaw }>(`/api/guide/${slug}`)
+      .get<{ article: GuideArticleRaw }>(articlePath(slug))
       .then(({ article }) => setArticle(toGuideArticleDTO(article)))
       .catch((error) => {
         if (error instanceof ApiError && error.status === 404) {

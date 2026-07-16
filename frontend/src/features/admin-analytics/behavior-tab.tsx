@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
-import { api, ApiError } from "@/lib/api";
+import { api, ApiError, peekCache } from "@/lib/api";
 import { CountedTable } from "@/features/admin-analytics/counted-table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -10,13 +10,15 @@ import type { DateRangeValue } from "@/features/admin-analytics/date-range-filte
 import type { BehaviorResponse } from "@/features/admin-analytics/analytics-dto";
 
 export function BehaviorTab({ range }: { range: DateRangeValue }) {
-  const [data, setData] = useState<BehaviorResponse | null>(null);
+  const path = `/api/analytics/behavior?from=${range.from}&to=${range.to}`;
+  const [data, setData] = useState<BehaviorResponse | null>(() => peekCache(path) ?? null);
 
   useEffect(() => {
     api
-      .get<BehaviorResponse>(`/api/analytics/behavior?from=${range.from}&to=${range.to}`)
+      .get<BehaviorResponse>(path)
       .then(setData)
       .catch((error) => toast.error(error instanceof ApiError ? error.message : "Failed to load behavior analytics"));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [range.from, range.to]);
 
   if (!data) return null;

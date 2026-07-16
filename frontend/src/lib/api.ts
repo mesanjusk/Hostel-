@@ -136,6 +136,14 @@ async function apiFetch<T>(path: string, options: RequestInit = {}, attempt = 0)
 // same list) so we don't fire the request twice — the second caller just rides the first.
 const inFlightGets = new Map<string, Promise<unknown>>();
 
+/** Synchronously reads a still-fresh cached GET response, if any — lets a component seed its
+ * initial state with the last known data instead of `null` when it (re)mounts (e.g. switching
+ * back to a tab), avoiding a blank flash while the background refetch is in flight. */
+export function peekCache<T>(path: string): T | undefined {
+  const cached = getCache.get(path);
+  return cached && cached.expiresAt > Date.now() ? (cached.data as T) : undefined;
+}
+
 function getWithDedupe<T>(path: string): Promise<T> {
   const cached = getCache.get(path);
   if (cached && cached.expiresAt > Date.now()) {

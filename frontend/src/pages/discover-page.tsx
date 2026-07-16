@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PageHeader } from "@/components/shared/page-header";
-import { api } from "@/lib/api";
+import { api, peekCache } from "@/lib/api";
 import { TravelProfileForm } from "@/features/discovery/travel-profile-form";
 import { CoPackerView } from "@/features/discovery/co-packer-view";
 import { RoommateView } from "@/features/discovery/roommate-view";
@@ -10,14 +10,17 @@ import { ConnectionsView } from "@/features/discovery/connections-view";
 import { DirectoryContactsView } from "@/features/directory-contacts/directory-contacts-view";
 import { toTravelProfileDTO, type TravelProfileRaw } from "@/features/discovery/discovery-dto";
 
+const DISCOVERY_PROFILE_PATH = "/api/discovery/profile";
+
 export default function DiscoverPage() {
-  const [hasProfile, setHasProfile] = useState(false);
-  const [defaultCity, setDefaultCity] = useState("");
-  const [loaded, setLoaded] = useState(false);
+  const cachedProfile = peekCache<{ profile: TravelProfileRaw | null }>(DISCOVERY_PROFILE_PATH);
+  const [hasProfile, setHasProfile] = useState(() => Boolean(cachedProfile?.profile));
+  const [defaultCity, setDefaultCity] = useState(() => toTravelProfileDTO(cachedProfile?.profile ?? null).destinationCity);
+  const [loaded, setLoaded] = useState(() => cachedProfile !== undefined);
 
   useEffect(() => {
     api
-      .get<{ profile: TravelProfileRaw | null }>("/api/discovery/profile")
+      .get<{ profile: TravelProfileRaw | null }>(DISCOVERY_PROFILE_PATH)
       .then(({ profile }) => {
         const dto = toTravelProfileDTO(profile);
         setHasProfile(Boolean(profile));
