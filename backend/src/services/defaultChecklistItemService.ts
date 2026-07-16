@@ -6,7 +6,7 @@ import { UserChecklist } from "@/models/UserChecklist";
 import { getOrCreateActiveTemplate } from "@/services/checklistTemplateService";
 import { normalizeItemName } from "@/lib/textSimilarity";
 import { escapeRegex } from "@/lib/regex";
-import type { ChecklistGender, ChecklistPriority, StoreOption } from "@/types";
+import type { ChecklistGender, ChecklistPlanType, ChecklistPriority, StoreOption } from "@/types";
 
 /** Deleting a DefaultChecklistItem that existing students already reference would otherwise
  * leave their UserChecklist row pointing at nothing — silently rendering as a blank/"Untitled"
@@ -56,6 +56,7 @@ export interface DefaultChecklistItemInput {
   description?: string;
   image?: string | null;
   priority?: ChecklistPriority;
+  planType?: ChecklistPlanType | null;
   importance?: string;
   estimatedPrice?: number | null;
   recommendedBrand?: string | null;
@@ -181,6 +182,7 @@ export async function createDefaultChecklistItem(input: DefaultChecklistItemInpu
     description: input.description ?? "",
     image: input.image ?? null,
     priority: input.priority ?? "medium",
+    planType: input.planType ?? null,
     importance: input.importance ?? "",
     estimatedPrice: input.estimatedPrice ?? null,
     recommendedBrand: input.recommendedBrand ?? null,

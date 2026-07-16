@@ -7,7 +7,13 @@ import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import { NotebookPage } from "@/features/checklist/notebook-page";
 import { DownloadPdfButton } from "@/features/checklist/download-pdf-button";
+import type { ChecklistPlanType } from "@/types";
 import type { ChecklistItemDTO } from "@/features/checklist/checklist-item-dto";
+
+const PLAN_TYPE_TABS: { type: ChecklistPlanType; label: string }[] = [
+  { type: "pack", label: "Pack it" },
+  { type: "plan", label: "Plan it" },
+];
 
 /** Curated for a plain notebook margin doodle feel — no event-specific stickers. */
 const PAGE_STICKERS = [
@@ -88,6 +94,11 @@ export function NotebookView({
   const [groups, setGroups] = useState(initialGroups);
   const [index, setIndex] = useState(0);
   const [direction, setDirection] = useState(1);
+  const [planTypeFilter, setPlanTypeFilter] = useState<ChecklistPlanType | null>(null);
+
+  function togglePlanTypeFilter(type: ChecklistPlanType) {
+    setPlanTypeFilter((prev) => (prev === type ? null : type));
+  }
 
   useEffect(() => {
     setGroups(initialGroups);
@@ -160,6 +171,26 @@ export function NotebookView({
           className="-bottom-4 -left-3 rotate-[12deg] sm:-bottom-5 sm:-left-4"
         />
 
+        <div className="absolute top-1/2 right-0 z-40 flex -translate-y-1/2 translate-x-1/2 flex-col gap-2">
+          {PLAN_TYPE_TABS.map(({ type, label }) => (
+            <button
+              key={type}
+              type="button"
+              onClick={() => togglePlanTypeFilter(type)}
+              aria-pressed={planTypeFilter === type}
+              className={cn(
+                "rounded-r-lg border border-l-0 px-1.5 py-2.5 text-xs shadow-sm transition-colors sm:px-2 sm:py-3 sm:text-sm",
+                planTypeFilter === type
+                  ? "border-[#c96b9a] bg-[#c96b9a] text-white"
+                  : "border-[#e9ddc9] bg-white text-[#8a7a6a] hover:text-[#3a2e2a]",
+              )}
+              style={{ fontFamily: "var(--font-caveat-notebook)", writingMode: "vertical-rl" }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
         <div className="relative overflow-hidden">
           <AnimatePresence initial={false} custom={direction} mode="popLayout">
             <motion.div
@@ -184,6 +215,7 @@ export function NotebookView({
                 category={current.category}
                 allCategories={allCategories}
                 items={current.items}
+                planTypeFilter={planTypeFilter}
                 onItemsChange={(u) => updateCategoryItems(current.category, u)}
               />
             </motion.div>

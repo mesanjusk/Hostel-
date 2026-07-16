@@ -65,6 +65,11 @@ export type ChecklistCategory = string;
 export const CHECKLIST_PRIORITIES = ["low", "medium", "high"] as const;
 export type ChecklistPriority = (typeof CHECKLIST_PRIORITIES)[number];
 
+/** Whether an item is something you physically pack, or something to plan/prepare ahead of
+ * time (book a ticket, arrange a SIM card, etc). Unset (null) until the user classifies it. */
+export const PLAN_TYPES = ["pack", "plan"] as const;
+export type ChecklistPlanType = (typeof PLAN_TYPES)[number];
+
 /** Best-effort mapping from an admin-created CollegeCategory name to the legacy fixed enum,
  * so old code paths (categoryService's Designing-only folder, admin filters) keep working for
  * new signups too. Anything unmatched falls back to "Other", mirroring the legacy semantics. */

@@ -1,5 +1,7 @@
 import { Schema, model, models, type InferSchemaType, type Model } from "mongoose";
 
+import { PLAN_TYPES } from "@/types";
+
 /** Per-user checklist row. Deliberately thin — for master-linked items (defaultChecklistItemId
  * set), everything except the fields below (title, price, brand, etc.) lives on
  * DefaultChecklistItem and is joined in at read time. Never duplicate master metadata here. */
@@ -12,6 +14,9 @@ const UserChecklistSchema = new Schema(
     quantity: { type: Number, default: 1, min: 1 },
     note: { type: String, default: "", maxlength: 1000 },
     bagId: { type: Schema.Types.ObjectId, ref: "Bag", default: null, index: true },
+    /** Pack it / Plan it classification — a per-user override. Unset (null) falls back to the
+     * linked DefaultChecklistItem's planType (or stays unset for custom items). */
+    planType: { type: String, enum: [...PLAN_TYPES, null], default: null },
 
     /** Only set when defaultChecklistItemId is null (a user-authored item). */
     isCustomItem: { type: Boolean, default: false },

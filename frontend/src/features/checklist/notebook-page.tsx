@@ -8,6 +8,7 @@ import { ItemFormDialog } from "@/features/checklist/item-form-dialog";
 import { ItemDetailSheet } from "@/features/checklist/item-detail-sheet";
 import { api, ApiError } from "@/lib/api";
 import { emitRefresh } from "@/lib/refresh-bus";
+import type { ChecklistPlanType } from "@/types";
 import type { ChecklistItemDTO } from "@/features/checklist/checklist-item-dto";
 
 /** Fades in only during the ancestor page's exit transition — variant state ("enter" /
@@ -22,11 +23,13 @@ export function NotebookPage({
   category,
   allCategories,
   items,
+  planTypeFilter,
   onItemsChange,
 }: {
   category: string;
   allCategories: string[];
   items: ChecklistItemDTO[];
+  planTypeFilter: ChecklistPlanType | null;
   onItemsChange: (updater: (prev: ChecklistItemDTO[]) => ChecklistItemDTO[]) => void;
 }) {
   const [detailItem, setDetailItem] = useState<ChecklistItemDTO | null>(null);
@@ -53,8 +56,21 @@ export function NotebookPage({
     }
   }
 
-  const pending = items.filter((i) => !i.completed);
-  const completed = items.filter((i) => i.completed);
+  async function handlePlanTypeChange(item: ChecklistItemDTO, planType: ChecklistPlanType | null) {
+    onItemsChange((prev) => prev.map((i) => (i.id === item.id ? { ...i, planType } : i)));
+    setDetailItem((prev) => (prev && prev.id === item.id ? { ...prev, planType } : prev));
+    try {
+      await api.patch(`/api/checklist/${item.id}`, { planType });
+      emitRefresh();
+    } catch (error) {
+      toast.error(error instanceof ApiError ? error.message : "Failed to update item");
+    }
+  }
+
+  const visibleItems = planTypeFilter ? items.filter((i) => i.planType === planTypeFilter) : items;
+  const pending = visibleItems.filter((i) => !i.completed);
+  const completed = visibleItems.filter((i) => i.completed);
+  const planTypeLabel = planTypeFilter === "pack" ? "pack it" : "plan it";
 
   return (
     <div className="exam-paper relative flex h-full min-h-[70vh] flex-col overflow-hidden rounded-[20px] border border-[#e9ddc9] p-5 shadow-[0_2px_14px_rgba(58,46,42,0.14)] sm:min-h-[560px] sm:p-8 lg:min-h-[calc(100dvh-230px)] lg:p-10">
@@ -75,7 +91,7 @@ export function NotebookPage({
         {category}
       </h2>
       <p className="relative z-10 mt-1.5 text-sm text-[#8a7a6a] lg:text-base">
-        {items.length === 0 ? "nothing added yet" : `${completed.length}/${items.length} packed`}
+        {visibleItems.length === 0 ? "nothing added yet" : `${completed.length}/${visibleItems.length} packed`}
       </p>
 
       <LayoutGroup>
@@ -83,12 +99,12 @@ export function NotebookPage({
           className="relative z-10 mt-4 flex-1 space-y-0.5 overflow-y-auto lg:mt-8 lg:space-y-1"
           style={{ touchAction: "pan-y" }}
         >
-          {items.length === 0 ? (
+          {visibleItems.length === 0 ? (
             <p
               className="mt-10 text-center text-xl text-[#8a7a6a] lg:text-2xl"
               style={{ fontFamily: "var(--font-caveat-notebook)" }}
             >
-              add your first item below ✨
+              {planTypeFilter ? `nothing to ${planTypeLabel} here ✨` : "add your first item below ✨"}
             </p>
           ) : pending.length === 0 ? (
             <p
@@ -172,6 +188,7 @@ export function NotebookPage({
         open={detailItem !== null}
         onOpenChange={(open) => !open && setDetailItem(null)}
         onDelete={handleDelete}
+        onPlanTypeChange={handlePlanTypeChange}
       />
     </div>
   );

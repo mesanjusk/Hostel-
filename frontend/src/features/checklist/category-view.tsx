@@ -21,7 +21,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { getCategoryIcon } from "@/lib/checklist-icons";
 import { api, ApiError } from "@/lib/api";
 import { emitRefresh } from "@/lib/refresh-bus";
-import type { ChecklistCategory, ChecklistPriority } from "@/types";
+import type { ChecklistCategory, ChecklistPlanType, ChecklistPriority } from "@/types";
 import type { ChecklistItemDTO } from "@/features/checklist/checklist-item-dto";
 import { ItemDetailSheet } from "@/features/checklist/item-detail-sheet";
 
@@ -132,6 +132,17 @@ export function CategoryView({
       emitRefresh();
     } catch (error) {
       toast.error(error instanceof ApiError ? error.message : "Failed to delete item");
+    }
+  }
+
+  async function handlePlanTypeChange(item: ChecklistItemDTO, planType: ChecklistPlanType | null) {
+    setItems((prev) => prev.map((i) => (i.id === item.id ? { ...i, planType } : i)));
+    setDetailItem((prev) => (prev && prev.id === item.id ? { ...prev, planType } : prev));
+    try {
+      await api.patch(`/api/checklist/${item.id}`, { planType });
+      emitRefresh();
+    } catch (error) {
+      toast.error(error instanceof ApiError ? error.message : "Failed to update item");
     }
   }
 
@@ -343,6 +354,7 @@ export function CategoryView({
         open={detailItem !== null}
         onOpenChange={(open) => !open && setDetailItem(null)}
         onDelete={handleDelete}
+        onPlanTypeChange={handlePlanTypeChange}
       />
     </div>
   );

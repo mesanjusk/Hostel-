@@ -64,6 +64,11 @@ export type ChecklistCategory = string;
 export const CHECKLIST_PRIORITIES = ["low", "medium", "high"] as const;
 export type ChecklistPriority = (typeof CHECKLIST_PRIORITIES)[number];
 
+/** Whether an item is something you physically pack, or something to plan/prepare ahead of
+ * time. Unset (null) until the user classifies it. */
+export const PLAN_TYPES = ["pack", "plan"] as const;
+export type ChecklistPlanType = (typeof PLAN_TYPES)[number];
+
 export const BUDGET_ENTRY_TYPES = ["planned", "expense"] as const;
 export type BudgetEntryType = (typeof BUDGET_ENTRY_TYPES)[number];
 

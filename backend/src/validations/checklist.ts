@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { CHECKLIST_PRIORITIES, STORE_OPTIONS } from "@/types";
+import { CHECKLIST_PRIORITIES, PLAN_TYPES, STORE_OPTIONS } from "@/types";
 
 const checklistCategoryField = z.string().trim().min(1, "Category is required").max(60);
 
@@ -25,6 +25,7 @@ export const checklistItemSchema = z.object({
   bagId: z.string().trim().min(1).nullable().optional(),
   notes: z.string().trim().max(1000).optional().or(z.literal("")),
   priority: z.enum(CHECKLIST_PRIORITIES),
+  planType: z.enum(PLAN_TYPES).nullable().optional(),
   price: z.coerce.number().min(0).optional().nullable(),
   priceRangeMin: z.coerce.number().min(0).optional().nullable(),
   priceRangeMax: z.coerce.number().min(0).optional().nullable(),

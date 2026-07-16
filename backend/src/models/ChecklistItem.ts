@@ -1,6 +1,6 @@
 import { Schema, model, models, type InferSchemaType, type Model } from "mongoose";
 
-import { CHECKLIST_PRIORITIES, STORE_OPTIONS } from "@/types";
+import { CHECKLIST_PRIORITIES, PLAN_TYPES, STORE_OPTIONS } from "@/types";
 
 const ChecklistItemSchema = new Schema(
   {
@@ -13,6 +13,8 @@ const ChecklistItemSchema = new Schema(
     notes: { type: String, default: "", maxlength: 1000 },
     completed: { type: Boolean, default: false, index: true },
     priority: { type: String, enum: CHECKLIST_PRIORITIES, default: "medium" },
+    /** Pack it / Plan it classification — unset until the user classifies the item. */
+    planType: { type: String, enum: [...PLAN_TYPES, null], default: null },
     price: { type: Number, default: null, min: 0 },
     priceRangeMin: { type: Number, default: null, min: 0 },
     priceRangeMax: { type: Number, default: null, min: 0 },

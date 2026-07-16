@@ -1,6 +1,6 @@
 import { Schema, model, models, type InferSchemaType, type Model } from "mongoose";
 
-import { CHECKLIST_GENDER_OPTIONS, CHECKLIST_PRIORITIES, STORE_OPTIONS } from "@/types";
+import { CHECKLIST_GENDER_OPTIONS, CHECKLIST_PRIORITIES, PLAN_TYPES, STORE_OPTIONS } from "@/types";
 
 /** Master data for the packing checklist — admin-managed, shared across every user whose
  * UserChecklist references it. Never mutated per-user; see UserChecklist for the thin
@@ -13,6 +13,9 @@ const DefaultChecklistItemSchema = new Schema(
     description: { type: String, default: "", maxlength: 500 },
     image: { type: String, default: null },
     priority: { type: String, enum: CHECKLIST_PRIORITIES, default: "medium" },
+    /** Pack it / Plan it classification — unset by default; a user can still override it
+     * per-item via UserChecklist.planType regardless of what's set here. */
+    planType: { type: String, enum: [...PLAN_TYPES, null], default: null },
     importance: { type: String, default: "", maxlength: 200 },
     estimatedPrice: { type: Number, default: null, min: 0 },
     recommendedBrand: { type: String, default: null, trim: true },

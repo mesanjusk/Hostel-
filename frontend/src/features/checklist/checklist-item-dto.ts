@@ -1,4 +1,4 @@
-import type { ChecklistCategory, ChecklistPriority, StoreOption } from "@/types";
+import type { ChecklistCategory, ChecklistPlanType, ChecklistPriority, StoreOption } from "@/types";
 
 export interface ChecklistItemDTO {
   id: string;
@@ -12,6 +12,7 @@ export interface ChecklistItemDTO {
   notes: string;
   completed: boolean;
   priority: ChecklistPriority;
+  planType: ChecklistPlanType | null;
   price: number | null;
   priceRangeMin: number | null;
   priceRangeMax: number | null;
@@ -40,6 +41,7 @@ export interface ChecklistItemRaw {
   notes?: string;
   completed: boolean;
   priority: ChecklistPriority;
+  planType?: ChecklistPlanType | null;
   price?: number | null;
   priceRangeMin?: number | null;
   priceRangeMax?: number | null;
@@ -66,6 +68,7 @@ export function toChecklistItemDTO(raw: ChecklistItemRaw): ChecklistItemDTO {
     notes: raw.notes ?? "",
     completed: raw.completed,
     priority: raw.priority,
+    planType: raw.planType ?? null,
     price: raw.price ?? null,
     priceRangeMin: raw.priceRangeMin ?? null,
     priceRangeMax: raw.priceRangeMax ?? null,

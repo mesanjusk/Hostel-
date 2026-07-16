@@ -52,6 +52,7 @@ function materializeDefaults(
     quantity: 1,
     note: "",
     bagId: null,
+    planType: null,
     deleted: false,
   };
   for (const key of Object.keys(overrides)) delete defaults[key];
@@ -88,6 +89,7 @@ export interface HydratedChecklistRow {
   notes: string;
   completed: boolean;
   priority: string;
+  planType: string | null;
   price: number | null;
   priceRangeMin: null;
   priceRangeMax: null;
@@ -122,6 +124,7 @@ function hydrate(
     notes: row.note ?? "",
     completed: Boolean(row.checked),
     priority: master?.priority ?? "medium",
+    planType: row.planType ?? master?.planType ?? null,
     price: master?.estimatedPrice ?? null,
     priceRangeMin: null,
     priceRangeMax: null,
@@ -153,6 +156,7 @@ function hydrateVirtual(master: DefaultChecklistItemDocument & { _id: unknown })
     notes: "",
     completed: false,
     priority: master.priority ?? "medium",
+    planType: master.planType ?? null,
     price: master.estimatedPrice ?? null,
     priceRangeMin: null,
     priceRangeMax: null,
@@ -315,11 +319,12 @@ export async function createCustomItems(userId: string, category: string, names:
   return { count: docs.length, skipped: names.length - docs.length };
 }
 
-/** Master-linked rows only accept the per-user overlay fields (checked/quantity/note/bagId);
- * custom rows additionally accept customName/customCategory. Any other field silently has no
- * effect — the rich metadata for master-linked items lives on DefaultChecklistItem and is
- * admin-managed only. A virtual id (not yet a real row) is materialized on first write via
- * upsert, keyed on the same (userId, defaultChecklistItemId) pair the unique index enforces. */
+/** Master-linked rows only accept the per-user overlay fields (checked/quantity/note/bagId/
+ * planType); custom rows additionally accept customName/customCategory. Any other field
+ * silently has no effect — the rich metadata for master-linked items lives on
+ * DefaultChecklistItem and is admin-managed only. A virtual id (not yet a real row) is
+ * materialized on first write via upsert, keyed on the same (userId, defaultChecklistItemId)
+ * pair the unique index enforces. */
 export async function updateItem(
   userId: string,
   id: string,
@@ -328,6 +333,7 @@ export async function updateItem(
     quantity?: number;
     notes?: string;
     bagId?: string | null;
+    planType?: string | null;
     item?: string;
     category?: string;
   },
@@ -341,6 +347,7 @@ export async function updateItem(
     if (input.quantity !== undefined) patch.quantity = Math.max(1, input.quantity);
     if (input.notes !== undefined) patch.note = input.notes;
     if (input.bagId !== undefined) patch.bagId = input.bagId;
+    if (input.planType !== undefined) patch.planType = input.planType;
 
     const updated = await UserChecklist.findOneAndUpdate(
       { userId, defaultChecklistItemId },
@@ -361,6 +368,7 @@ export async function updateItem(
   if (input.quantity !== undefined) patch.quantity = Math.max(1, input.quantity);
   if (input.notes !== undefined) patch.note = input.notes;
   if (input.bagId !== undefined) patch.bagId = input.bagId;
+  if (input.planType !== undefined) patch.planType = input.planType;
   if (row.isCustomItem) {
     if (input.item !== undefined) {
       const customName = input.item.trim();
@@ -490,6 +498,7 @@ export async function bulkUpdateItems(
       customNameNormalized: doc.customNameNormalized ?? normalizeItemName(doc.customName ?? ""),
       note: doc.note,
       bagId: doc.bagId,
+      planType: doc.planType,
       quantity: doc.quantity,
       checked: false,
     }));

@@ -15,7 +15,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogT
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { api, ApiError } from "@/lib/api";
 import { emitRefresh } from "@/lib/refresh-bus";
-import { CHECKLIST_GENDER_OPTIONS, CHECKLIST_PRIORITIES, STORE_OPTIONS } from "@/types";
+import { CHECKLIST_GENDER_OPTIONS, CHECKLIST_PRIORITIES, PLAN_TYPES, STORE_OPTIONS } from "@/types";
 import type { CollegeCategoryDTO, CourseDTO } from "@/features/auth/college-taxonomy-dto";
 import type { DefaultChecklistItemDTO } from "@/features/admin/default-checklist-item-dto";
 
@@ -24,6 +24,7 @@ const itemFormSchema = z.object({
   title: z.string().trim().min(1, "Title is required").max(120),
   description: z.string().trim().max(500).optional().or(z.literal("")),
   priority: z.enum(CHECKLIST_PRIORITIES),
+  planType: z.enum(PLAN_TYPES).optional().or(z.literal("")),
   estimatedPrice: z.union([z.coerce.number().min(0), z.literal("")]).optional(),
   recommendedBrand: z.string().trim().max(80).optional().or(z.literal("")),
   recommendedStore: z.enum(STORE_OPTIONS).optional().or(z.literal("")),
@@ -59,6 +60,7 @@ export function DefaultChecklistItemFormDialog({
       title: item?.title ?? "",
       description: item?.description ?? "",
       priority: item?.priority ?? "medium",
+      planType: item?.planType ?? "",
       estimatedPrice: item?.estimatedPrice ?? "",
       recommendedBrand: item?.recommendedBrand ?? "",
       recommendedStore: item?.recommendedStore ?? "",
@@ -96,6 +98,7 @@ export function DefaultChecklistItemFormDialog({
         ...values,
         estimatedPrice: values.estimatedPrice === "" ? null : values.estimatedPrice,
         recommendedStore: values.recommendedStore === "" ? null : values.recommendedStore,
+        planType: values.planType === "" ? null : values.planType,
       };
       if (isEdit) {
         await api.patch(`/api/admin/default-checklist-items/${item!.id}`, payload);
@@ -210,6 +213,32 @@ export function DefaultChecklistItemFormDialog({
                 )}
               />
             </div>
+
+            <FormField
+              control={form.control}
+              name="planType"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Pack it / Plan it</FormLabel>
+                  <FormControl>
+                    <Select value={field.value || "none"} onValueChange={(v) => field.onChange(v === "none" ? "" : v)}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Unset" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Unset</SelectItem>
+                        {PLAN_TYPES.map((p) => (
+                          <SelectItem key={p} value={p}>
+                            {p === "pack" ? "Pack it" : "Plan it"}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             <div className="grid grid-cols-2 gap-3">
               <FormField

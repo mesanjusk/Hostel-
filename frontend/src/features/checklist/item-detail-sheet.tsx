@@ -12,6 +12,8 @@ import {
 } from "@/components/ui/dialog";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { AddToBagList } from "@/features/bags/add-to-bag-list";
+import { cn } from "@/lib/utils";
+import type { ChecklistPlanType } from "@/types";
 import type { ChecklistItemDTO } from "@/features/checklist/checklist-item-dto";
 
 const PRIORITY_BADGE_VARIANT = {
@@ -20,14 +22,26 @@ const PRIORITY_BADGE_VARIANT = {
   high: "destructive",
 } as const;
 
+const PLAN_TYPE_LABEL: Record<ChecklistPlanType, string> = {
+  pack: "Pack it",
+  plan: "Plan it",
+};
+
 interface ItemDetailSheetProps {
   item: ChecklistItemDTO | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onDelete: (id: string) => void;
+  onPlanTypeChange: (item: ChecklistItemDTO, planType: ChecklistPlanType | null) => void;
 }
 
-export function ItemDetailSheet({ item, open, onOpenChange, onDelete }: ItemDetailSheetProps) {
+export function ItemDetailSheet({
+  item,
+  open,
+  onOpenChange,
+  onDelete,
+  onPlanTypeChange,
+}: ItemDetailSheetProps) {
   if (!item) return null;
 
   const hasPriceRange = item.priceRangeMin != null || item.priceRangeMax != null;
@@ -46,6 +60,24 @@ export function ItemDetailSheet({ item, open, onOpenChange, onDelete }: ItemDeta
               {item.priority.charAt(0).toUpperCase() + item.priority.slice(1)} priority
             </Badge>
             {item.completed && <Badge variant="success">Packed</Badge>}
+          </div>
+
+          <div className="flex items-center gap-2">
+            {(["pack", "plan"] as const).map((type) => (
+              <button
+                key={type}
+                type="button"
+                onClick={() => onPlanTypeChange(item, item.planType === type ? null : type)}
+                className={cn(
+                  "flex-1 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors",
+                  item.planType === type
+                    ? "border-primary bg-primary/10 text-primary"
+                    : "border-border text-muted-foreground hover:text-foreground",
+                )}
+              >
+                {PLAN_TYPE_LABEL[type]}
+              </button>
+            ))}
           </div>
 
           {item.notes && (

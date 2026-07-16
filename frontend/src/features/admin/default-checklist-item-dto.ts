@@ -1,4 +1,4 @@
-import type { ChecklistGender, ChecklistPriority, StoreOption } from "@/types";
+import type { ChecklistGender, ChecklistPlanType, ChecklistPriority, StoreOption } from "@/types";
 
 export interface DefaultItemAnalytics {
   usersUsing: number;
@@ -17,6 +17,7 @@ export interface DefaultChecklistItemDTO {
   description: string;
   image: string | null;
   priority: ChecklistPriority;
+  planType: ChecklistPlanType | null;
   importance: string;
   estimatedPrice: number | null;
   recommendedBrand: string | null;
@@ -39,6 +40,7 @@ export interface DefaultChecklistItemRaw {
   description?: string;
   image?: string | null;
   priority: ChecklistPriority;
+  planType?: ChecklistPlanType | null;
   importance?: string;
   estimatedPrice?: number | null;
   recommendedBrand?: string | null;
@@ -62,6 +64,7 @@ export function toDefaultChecklistItemDTO(raw: DefaultChecklistItemRaw): Default
     description: raw.description ?? "",
     image: raw.image ?? null,
     priority: raw.priority,
+    planType: raw.planType ?? null,
     importance: raw.importance ?? "",
     estimatedPrice: raw.estimatedPrice ?? null,
     recommendedBrand: raw.recommendedBrand ?? null,

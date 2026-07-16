@@ -261,6 +261,7 @@ export async function bulkUpdateItems(
       bagId: doc.bagId,
       notes: doc.notes,
       priority: doc.priority,
+      planType: doc.planType,
       price: doc.price,
       priceRangeMin: doc.priceRangeMin,
       priceRangeMax: doc.priceRangeMax,

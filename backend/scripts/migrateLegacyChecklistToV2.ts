@@ -85,6 +85,7 @@ async function migrateUser(userId: string, masters: { _id: mongoose.Types.Object
       quantity: 1,
       note,
       bagId: item.bagId ?? null,
+      planType: item.planType ?? null,
       metadataVersion: 1,
       deleted: false,
       createdAt: (item as unknown as { createdAt: Date }).createdAt,

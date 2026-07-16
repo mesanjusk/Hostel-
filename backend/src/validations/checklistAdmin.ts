@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { CHECKLIST_GENDER_OPTIONS, CHECKLIST_PRIORITIES, STORE_OPTIONS } from "@/types";
+import { CHECKLIST_GENDER_OPTIONS, CHECKLIST_PRIORITIES, PLAN_TYPES, STORE_OPTIONS } from "@/types";
 
 const objectIdSchema = z.string().trim().regex(/^[a-f0-9]{24}$/i, "Invalid id");
 
@@ -47,6 +47,7 @@ const defaultChecklistItemBaseSchema = z.object({
   description: z.string().trim().max(500).optional().or(z.literal("")),
   image: z.string().trim().max(200_000).optional().or(z.literal("")),
   priority: z.enum(CHECKLIST_PRIORITIES).optional(),
+  planType: z.enum(PLAN_TYPES).nullable().optional(),
   importance: z.string().trim().max(200).optional().or(z.literal("")),
   estimatedPrice: z.coerce.number().min(0).optional().nullable(),
   recommendedBrand: z.string().trim().max(80).optional().or(z.literal("")),
