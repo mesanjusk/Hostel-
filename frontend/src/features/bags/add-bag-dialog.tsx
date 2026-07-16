@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { api, ApiError } from "@/lib/api";
 import { emitRefresh } from "@/lib/refresh-bus";
-import { Suitcase3D } from "@/features/bags/suitcase-3d";
+import { SuitcaseIcon } from "@/features/bags/suitcase-icon";
 import { BAG_COLOR_PRESETS } from "@/types";
 
 interface AddBagDialogProps {
@@ -77,7 +77,7 @@ export function AddBagDialog({ trigger }: AddBagDialogProps) {
         </DialogHeader>
 
         <div className="flex flex-col items-center gap-3">
-          <Suitcase3D color={color} interactive={false} size={120} />
+          <SuitcaseIcon color={color} interactive={false} size={120} />
 
           <div className="w-full space-y-2">
             <Label htmlFor="bag-name">Bag name</Label>

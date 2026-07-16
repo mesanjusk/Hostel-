@@ -27,7 +27,7 @@ import { api, ApiError } from "@/lib/api";
 import { emitRefresh, subscribeRefresh } from "@/lib/refresh-bus";
 import { AddBagDialog } from "@/features/bags/add-bag-dialog";
 import { BagQrDialog } from "@/features/bags/bag-qr-dialog";
-import { Suitcase3D } from "@/features/bags/suitcase-3d";
+import { SuitcaseIcon } from "@/features/bags/suitcase-icon";
 import type { BagSummaryDTO } from "@/features/bags/bag-dto";
 
 /** How long the lid-open animation plays before we navigate into the bag. */
@@ -173,7 +173,7 @@ export function BagsOverview() {
                   onClick={() => handleOpenBag(bag.id)}
                   className="flex w-full flex-col items-center gap-1"
                 >
-                  <Suitcase3D color={bag.color} open={openingId === bag.id} size={128} />
+                  <SuitcaseIcon color={bag.color} open={openingId === bag.id} size={128} />
                   <p className="font-display w-full truncate text-center font-semibold">{bag.name}</p>
                   <p className="text-muted-foreground text-xs">
                     {bag.completed} / {bag.total} packed

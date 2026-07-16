@@ -22,7 +22,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { api, ApiError } from "@/lib/api";
 import { emitRefresh, subscribeRefresh } from "@/lib/refresh-bus";
 import { BagQrDialog } from "@/features/bags/bag-qr-dialog";
-import { Suitcase3D } from "@/features/bags/suitcase-3d";
+import { SuitcaseIcon } from "@/features/bags/suitcase-icon";
 import { AddItemsToBagDialog } from "@/features/bags/add-items-to-bag-dialog";
 import { PhotoUploadField } from "@/features/checklist/photo-upload-field";
 import {
@@ -141,7 +141,7 @@ export function BagDetailView({ bagId }: { bagId: string }) {
       </Link>
 
       <div className="mb-2 flex justify-center">
-        <Suitcase3D color={bag.color} open interactive={false} size={200} />
+        <SuitcaseIcon color={bag.color} open interactive={false} size={200} />
       </div>
 
       <PageHeader
