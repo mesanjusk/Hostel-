@@ -1,7 +1,7 @@
 /**
  * Pub-sub so the API client can announce "the server rejected our token" without importing
  * auth-context (which would create a cycle back into api.ts). auth-context subscribes once
- * and clears the session; ProtectedRoute then redirects to /login on its own.
+ * and clears the session; ProtectedRoute then redirects to /wa-login on its own.
  */
 const listeners = new Set<() => void>();
 

@@ -11,13 +11,12 @@ import { useAnalyticsPageViews } from "@/lib/analytics/use-page-view-tracking";
 // Lazy, not a static import: DashboardLayout pulls in FabMenu, which statically imports 7 full
 // CRUD form dialogs (each with its own react-hook-form + zod schema) — eagerly importing the
 // layout meant that weight shipped in the same chunk as this file, loaded by every visitor
-// including anonymous users who only ever see /login and never reach the dashboard.
+// including anonymous users who only ever see /wa-login and never reach the dashboard.
 const DashboardLayout = lazy(() =>
   import("@/layouts/dashboard-layout").then((m) => ({ default: m.DashboardLayout })),
 );
 const AuthLayout = lazy(() => import("@/layouts/auth-layout").then((m) => ({ default: m.AuthLayout })));
 
-const LoginPage = lazy(() => import("@/pages/login-page"));
 const RegisterPage = lazy(() => import("@/pages/register-page"));
 const WaLoginPage = lazy(() => import("@/pages/wa-login-page"));
 const WaLoginCompletePage = lazy(() => import("@/pages/wa-login-complete-page"));
@@ -88,14 +87,7 @@ export default function App() {
           <Route path="/" element={<RootRoute />} />
 
           <Route element={<AuthLayout />}>
-            <Route
-              path="/login"
-              element={
-                <AuthOnlyRoute redirectTo="/wa-login/home">
-                  <LoginPage />
-                </AuthOnlyRoute>
-              }
-            />
+            <Route path="/login" element={<Navigate to="/wa-login" replace />} />
             <Route
               path="/register"
               element={

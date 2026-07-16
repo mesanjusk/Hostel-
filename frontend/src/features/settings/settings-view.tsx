@@ -122,7 +122,7 @@ export function SettingsView({ categories }: { categories: string[] }) {
 
   function handleLogout() {
     logout();
-    navigate("/login", { replace: true });
+    navigate("/wa-login", { replace: true });
   }
 
   return (
