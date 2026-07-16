@@ -1,15 +1,72 @@
 import { useEffect, useState } from "react";
-import { Eye, EyeOff } from "lucide-react";
+import { ArrowDown, ArrowUp, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { api, ApiError } from "@/lib/api";
-import { DEFAULT_HUB_LAYOUT, hubCardLabel, mergeHubLayout } from "@/features/welcome/hub-widget-registry";
+import {
+  DEFAULT_HUB_LAYOUT,
+  hubCardLabel,
+  mergeHubLayout,
+  moveHubCard,
+  sortedHubLayout,
+  type HubLayoutEntry,
+} from "@/features/welcome/hub-widget-registry";
 import type { WidgetConfig } from "@/features/dashboard/widget-registry";
 
+function HomeCardRow({
+  entry,
+  isFirst,
+  isLast,
+  onToggleVisible,
+  onMove,
+}: {
+  entry: HubLayoutEntry;
+  isFirst: boolean;
+  isLast: boolean;
+  onToggleVisible: () => void;
+  onMove: (direction: -1 | 1) => void;
+}) {
+  return (
+    <div
+      className={`bg-card flex items-center gap-2 rounded-xl border px-3 py-2.5 ${entry.visible ? "" : "opacity-50"}`}
+    >
+      <div className="flex shrink-0 flex-col">
+        <button
+          type="button"
+          onClick={() => onMove(-1)}
+          disabled={isFirst}
+          className="text-muted-foreground hover:text-foreground disabled:pointer-events-none disabled:opacity-30"
+          aria-label="Move up"
+        >
+          <ArrowUp className="size-3.5" />
+        </button>
+        <button
+          type="button"
+          onClick={() => onMove(1)}
+          disabled={isLast}
+          className="text-muted-foreground hover:text-foreground disabled:pointer-events-none disabled:opacity-30"
+          aria-label="Move down"
+        >
+          <ArrowDown className="size-3.5" />
+        </button>
+      </div>
+      <span className="flex-1 truncate text-sm font-medium">{hubCardLabel(entry.id)}</span>
+      <button
+        type="button"
+        onClick={onToggleVisible}
+        className="text-muted-foreground hover:text-foreground shrink-0"
+        aria-label={entry.visible ? "Hide card" : "Show card"}
+      >
+        {entry.visible ? <Eye className="size-5" /> : <EyeOff className="size-5" />}
+      </button>
+    </div>
+  );
+}
+
 export function HomeCardsEditorView() {
-  const [items, setItems] = useState<WidgetConfig[]>(DEFAULT_HUB_LAYOUT);
+  const [entries, setEntries] = useState<HubLayoutEntry[]>(DEFAULT_HUB_LAYOUT);
   const [isDirty, setIsDirty] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -17,7 +74,7 @@ export function HomeCardsEditorView() {
     api
       .get<{ widgets: WidgetConfig[] | null }>("/api/home/layout")
       .then((res) => {
-        setItems(mergeHubLayout(res.widgets));
+        setEntries(mergeHubLayout(res.widgets));
       })
       .catch(() => {
         toast.error("Failed to load the current home card visibility");
@@ -25,14 +82,19 @@ export function HomeCardsEditorView() {
   }, []);
 
   function toggleVisible(id: string) {
-    setItems((current) => current.map((w) => (w.id === id ? { ...w, visible: !w.visible } : w)));
+    setEntries((current) => current.map((e) => (e.id === id ? { ...e, visible: !e.visible } : e)));
+    setIsDirty(true);
+  }
+
+  function handleMove(id: string, direction: -1 | 1) {
+    setEntries((current) => moveHubCard(current, id, direction));
     setIsDirty(true);
   }
 
   async function handleSave() {
     setIsSaving(true);
     try {
-      await api.put("/api/admin/home-layout", { widgets: items });
+      await api.put("/api/admin/home-layout", { widgets: entries });
       toast.success("Home cards saved");
       setIsDirty(false);
     } catch (error) {
@@ -42,6 +104,8 @@ export function HomeCardsEditorView() {
     }
   }
 
+  const sorted = sortedHubLayout(entries);
+
   return (
     <Card>
       <CardHeader>
@@ -49,24 +113,19 @@ export function HomeCardsEditorView() {
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         <p className="text-muted-foreground text-sm">
-          Hide or show cards on the home hub (/wa-login/home) that every student sees after signing in.
+          Hide or show cards on the home hub (/wa-login/home) that every student sees after signing in, and reorder
+          them with the arrows.
         </p>
         <div className="flex flex-col gap-2">
-          {items.map((item) => (
-            <div
-              key={item.id}
-              className={`bg-card flex items-center gap-3 rounded-xl border px-3 py-3 ${item.visible ? "" : "opacity-50"}`}
-            >
-              <span className="flex-1 text-sm font-medium">{hubCardLabel(item.id)}</span>
-              <button
-                type="button"
-                onClick={() => toggleVisible(item.id)}
-                className="text-muted-foreground hover:text-foreground"
-                aria-label={item.visible ? "Hide card" : "Show card"}
-              >
-                {item.visible ? <Eye className="size-5" /> : <EyeOff className="size-5" />}
-              </button>
-            </div>
+          {sorted.map((entry, index) => (
+            <HomeCardRow
+              key={entry.id}
+              entry={entry}
+              isFirst={index === 0}
+              isLast={index === sorted.length - 1}
+              onToggleVisible={() => toggleVisible(entry.id)}
+              onMove={(direction) => handleMove(entry.id, direction)}
+            />
           ))}
         </div>
         <Button onClick={handleSave} disabled={!isDirty || isSaving} className="self-start">

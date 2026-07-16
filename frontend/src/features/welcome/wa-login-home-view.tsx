@@ -25,8 +25,11 @@ const PIN_ROTATIONS = [-8, 6, -4, 7, -6, 5, -5, 8, -3];
 export function WaLoginHomeView() {
   const { user } = useAuth();
   const layout = useHubLayout();
-  const hiddenIds = new Set(layout.filter((w) => !w.visible).map((w) => w.id));
-  const visibleCards = HUB_CARDS.map((card, i) => ({ card, i })).filter(({ card }) => !hiddenIds.has(card.id));
+  const cardsById = new Map(HUB_CARDS.map((card, i) => [card.id, { card, i }]));
+  const visibleCards = layout
+    .filter((entry) => entry.visible)
+    .map((entry) => cardsById.get(entry.id))
+    .filter((c): c is { card: (typeof HUB_CARDS)[number]; i: number } => c !== undefined);
   const isOddCount = visibleCards.length % 2 === 1;
 
   return (

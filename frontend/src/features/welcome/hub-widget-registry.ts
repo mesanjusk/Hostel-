@@ -11,14 +11,20 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
-import type { WidgetConfig } from "@/features/dashboard/widget-registry";
-
 export interface HubCardDef {
   id: string;
   section: string;
   title: string;
   href: string;
   icon: LucideIcon;
+}
+
+/** A home-card layout entry as saved through the shared UiLayout storage: `visible` is
+ * always present, `order` is the admin-chosen position among the cards (gap-free 0..n-1). */
+export interface HubLayoutEntry {
+  id: string;
+  visible: boolean;
+  order: number;
 }
 
 /** One card per Welcome-page ("home page after splash") scrapbook section, carried over
@@ -38,22 +44,66 @@ export const HUB_CARDS: HubCardDef[] = [
   { id: "documents", section: "Final", title: "Documents", href: "/documents", icon: FileText },
 ];
 
-export const DEFAULT_HUB_LAYOUT: WidgetConfig[] = HUB_CARDS.map((card) => ({
+export const DEFAULT_HUB_LAYOUT: HubLayoutEntry[] = HUB_CARDS.map((card, i) => ({
   id: card.id,
   visible: true,
+  order: i,
 }));
 
 export function hubCardLabel(id: string): string {
   return HUB_CARDS.find((card) => card.id === id)?.title ?? id;
 }
 
+/** A layout entry as it comes back from the API — only `id`/`visible` are guaranteed, so
+ * `order` is optional here even though HubLayoutEntry requires it once merged. */
+interface SavedHubWidget {
+  id: string;
+  visible: boolean;
+  order?: number | null;
+}
+
 /** Merges an admin-saved layout onto the current card set: known ids keep their saved
- * visibility, but any card that exists now and wasn't in the saved data (e.g. a card added
- * after the layout was last saved) is kept visible by default instead of silently vanishing.
- * Saved entries for ids that no longer exist are dropped. */
-export function mergeHubLayout(saved: WidgetConfig[] | null | undefined): WidgetConfig[] {
+ * visibility/order, falling back to the default order for a saved entry that predates this
+ * feature (only had `visible`). Any card that exists now and wasn't in the saved data (e.g. a
+ * card added after the layout was last saved) is appended with its default order instead of
+ * silently vanishing. Saved entries for ids that no longer exist are dropped. */
+export function mergeHubLayout(saved: SavedHubWidget[] | null | undefined): HubLayoutEntry[] {
   if (!saved || saved.length === 0) return DEFAULT_HUB_LAYOUT;
 
   const savedById = new Map(saved.map((w) => [w.id, w]));
-  return HUB_CARDS.map((card) => savedById.get(card.id) ?? { id: card.id, visible: true });
+  const defaultById = new Map(DEFAULT_HUB_LAYOUT.map((e) => [e.id, e]));
+
+  return HUB_CARDS.map((card) => {
+    const savedEntry = savedById.get(card.id);
+    const fallback = defaultById.get(card.id)!;
+    if (!savedEntry) return fallback;
+    return {
+      id: card.id,
+      visible: savedEntry.visible,
+      order: savedEntry.order ?? fallback.order,
+    };
+  });
+}
+
+/** Sorts merged entries by their admin-chosen order — the shape every rendering surface
+ * (home hub page, admin editor) should iterate in. */
+export function sortedHubLayout(entries: HubLayoutEntry[]): HubLayoutEntry[] {
+  return [...entries].sort((a, b) => a.order - b.order);
+}
+
+/** Swaps `id` with its neighbor in the given direction and renumbers the whole list to
+ * 0..n-1 so order stays gap-free. */
+export function moveHubCard(entries: HubLayoutEntry[], id: string, direction: -1 | 1): HubLayoutEntry[] {
+  const sorted = sortedHubLayout(entries);
+  const index = sorted.findIndex((e) => e.id === id);
+  if (index === -1) return entries;
+
+  const swapIndex = index + direction;
+  if (swapIndex < 0 || swapIndex >= sorted.length) return entries;
+
+  const reordered = [...sorted];
+  [reordered[index], reordered[swapIndex]] = [reordered[swapIndex], reordered[index]];
+  const orderById = new Map(reordered.map((e, i) => [e.id, i]));
+
+  return entries.map((e) => ({ ...e, order: orderById.get(e.id) ?? e.order }));
 }
