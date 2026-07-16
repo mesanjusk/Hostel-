@@ -94,11 +94,9 @@ export function NotebookView({
   const [groups, setGroups] = useState(initialGroups);
   const [index, setIndex] = useState(0);
   const [direction, setDirection] = useState(1);
-  const [planTypeFilter, setPlanTypeFilter] = useState<ChecklistPlanType | null>(null);
-
-  function togglePlanTypeFilter(type: ChecklistPlanType) {
-    setPlanTypeFilter((prev) => (prev === type ? null : type));
-  }
+  /** Every item starts (and stays) under "Pack it" until the user explicitly moves it to
+   * "Plan it" — so unlike a normal filter, one of these two tabs is always active. */
+  const [planTypeFilter, setPlanTypeFilter] = useState<ChecklistPlanType>("pack");
 
   useEffect(() => {
     setGroups(initialGroups);
@@ -171,15 +169,15 @@ export function NotebookView({
           className="-bottom-4 -left-3 rotate-[12deg] sm:-bottom-5 sm:-left-4"
         />
 
-        <div className="absolute top-1/2 right-0 z-40 flex -translate-y-1/2 translate-x-1/2 flex-col gap-2">
+        <div className="absolute top-1/2 right-0 z-40 flex -translate-y-1/2 translate-x-1/4 flex-col gap-3">
           {PLAN_TYPE_TABS.map(({ type, label }) => (
             <button
               key={type}
               type="button"
-              onClick={() => togglePlanTypeFilter(type)}
+              onClick={() => setPlanTypeFilter(type)}
               aria-pressed={planTypeFilter === type}
               className={cn(
-                "rounded-r-lg border border-l-0 px-1.5 py-2.5 text-xs shadow-sm transition-colors sm:px-2 sm:py-3 sm:text-sm",
+                "rounded-r-xl border border-l-0 px-2.5 py-4 text-base shadow-sm transition-colors sm:px-3.5 sm:py-6 sm:text-lg",
                 planTypeFilter === type
                   ? "border-[#c96b9a] bg-[#c96b9a] text-white"
                   : "border-[#e9ddc9] bg-white text-[#8a7a6a] hover:text-[#3a2e2a]",

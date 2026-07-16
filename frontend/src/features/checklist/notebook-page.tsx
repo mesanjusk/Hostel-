@@ -29,7 +29,7 @@ export function NotebookPage({
   category: string;
   allCategories: string[];
   items: ChecklistItemDTO[];
-  planTypeFilter: ChecklistPlanType | null;
+  planTypeFilter: ChecklistPlanType;
   onItemsChange: (updater: (prev: ChecklistItemDTO[]) => ChecklistItemDTO[]) => void;
 }) {
   const [detailItem, setDetailItem] = useState<ChecklistItemDTO | null>(null);
@@ -67,7 +67,10 @@ export function NotebookPage({
     }
   }
 
-  const visibleItems = planTypeFilter ? items.filter((i) => i.planType === planTypeFilter) : items;
+  // Every item lives under "Pack it" (including anything not yet classified) until the
+  // user explicitly moves it to "Plan it" — so the pack tab is everything minus plan items.
+  const visibleItems =
+    planTypeFilter === "plan" ? items.filter((i) => i.planType === "plan") : items.filter((i) => i.planType !== "plan");
   const pending = visibleItems.filter((i) => !i.completed);
   const completed = visibleItems.filter((i) => i.completed);
   const planTypeLabel = planTypeFilter === "pack" ? "pack it" : "plan it";
@@ -91,7 +94,11 @@ export function NotebookPage({
         {category}
       </h2>
       <p className="relative z-10 mt-1.5 text-sm text-[#8a7a6a] lg:text-base">
-        {visibleItems.length === 0 ? "nothing added yet" : `${completed.length}/${visibleItems.length} packed`}
+        {items.length === 0
+          ? "nothing added yet"
+          : visibleItems.length === 0
+            ? `nothing to ${planTypeLabel} here`
+            : `${completed.length}/${visibleItems.length} packed`}
       </p>
 
       <LayoutGroup>
@@ -99,12 +106,19 @@ export function NotebookPage({
           className="relative z-10 mt-4 flex-1 space-y-0.5 overflow-y-auto lg:mt-8 lg:space-y-1"
           style={{ touchAction: "pan-y" }}
         >
-          {visibleItems.length === 0 ? (
+          {items.length === 0 ? (
             <p
               className="mt-10 text-center text-xl text-[#8a7a6a] lg:text-2xl"
               style={{ fontFamily: "var(--font-caveat-notebook)" }}
             >
-              {planTypeFilter ? `nothing to ${planTypeLabel} here ✨` : "add your first item below ✨"}
+              add your first item below ✨
+            </p>
+          ) : visibleItems.length === 0 ? (
+            <p
+              className="mt-10 text-center text-xl text-[#8a7a6a] lg:text-2xl"
+              style={{ fontFamily: "var(--font-caveat-notebook)" }}
+            >
+              nothing to {planTypeLabel} here ✨
             </p>
           ) : pending.length === 0 ? (
             <p
@@ -143,7 +157,8 @@ export function NotebookPage({
           <button
             type="button"
             onClick={() => setAddOpen(true)}
-            className="mt-2 flex items-center gap-1 text-sm font-semibold text-[#8a7a6a] underline decoration-dashed underline-offset-4 hover:text-[#3a2e2a] lg:text-base"
+            className="mt-2 flex items-center gap-1 text-lg text-[#8a7a6a] underline decoration-dashed underline-offset-4 hover:text-[#3a2e2a] sm:text-xl"
+            style={{ fontFamily: "var(--font-caveat-notebook)" }}
           >
             <Plus className="size-4" />
             Add item
