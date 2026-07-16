@@ -1,20 +1,12 @@
 import { useState } from "react";
 import { motion, AnimatePresence, LayoutGroup } from "framer-motion";
-import { Check, Copy, ListChecks, Pencil, Plus, Trash2 } from "lucide-react";
+import { Check, Plus } from "lucide-react";
 import { toast } from "sonner";
 
-import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { HandDrawnCheckbox } from "@/features/checklist/hand-drawn-checkbox";
 import { ItemFormDialog } from "@/features/checklist/item-form-dialog";
+import { ItemDetailSheet } from "@/features/checklist/item-detail-sheet";
 import { QuickRenameDialog } from "@/features/checklist/quick-rename-dialog";
-import { AddToBagPopover } from "@/features/bags/add-to-bag-popover";
 import { api, ApiError } from "@/lib/api";
 import { emitRefresh } from "@/lib/refresh-bus";
 import type { ChecklistItemDTO } from "@/features/checklist/checklist-item-dto";
@@ -26,85 +18,6 @@ const cornerPeelVariants = {
   center: { opacity: 0 },
   exit: { opacity: 1 },
 };
-
-function ItemRowMenu({
-  item,
-  category,
-  allCategories,
-  onRename,
-  onDuplicate,
-  onDelete,
-}: {
-  item: ChecklistItemDTO;
-  category: string;
-  allCategories: string[];
-  onRename: () => void;
-  onDuplicate: () => void;
-  onDelete: () => void;
-}) {
-  return (
-    <div data-no-flip className="flex shrink-0 items-center gap-1.5">
-      <AddToBagPopover
-        itemId={item.id}
-        bagId={item.bagId}
-        bagName={item.bagName}
-        bagColor={item.bagColor}
-      />
-
-      <div className="flex shrink-0 items-center gap-0.5 opacity-60 transition-opacity group-hover:opacity-100">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="size-7 text-[#8a7a6a] hover:text-[#3a2e2a]"
-              aria-label="Edit item"
-            >
-              <Pencil className="size-3.5" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={onRename}>
-              <Pencil className="size-4" />
-              Edit name
-            </DropdownMenuItem>
-            <ItemFormDialog
-              categories={allCategories}
-              category={category}
-              item={item}
-              trigger={
-                <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                  <ListChecks className="size-4" />
-                  Edit complete details
-                </DropdownMenuItem>
-              }
-            />
-            <DropdownMenuItem onClick={onDuplicate}>
-              <Copy className="size-4" />
-              Duplicate
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-
-        <ConfirmDialog
-          trigger={
-            <Button
-              variant="ghost"
-              size="icon"
-              className="text-destructive hover:text-destructive size-7"
-              aria-label="Delete item"
-            >
-              <Trash2 className="size-3.5" />
-            </Button>
-          }
-          title="Delete this item?"
-          description="This can't be undone."
-          onConfirm={onDelete}
-        />
-      </div>
-    </div>
-  );
-}
 
 export function NotebookPage({
   category,
@@ -118,6 +31,7 @@ export function NotebookPage({
   onItemsChange: (updater: (prev: ChecklistItemDTO[]) => ChecklistItemDTO[]) => void;
 }) {
   const [renameItem, setRenameItem] = useState<ChecklistItemDTO | null>(null);
+  const [detailItem, setDetailItem] = useState<ChecklistItemDTO | null>(null);
   const [addOpen, setAddOpen] = useState(false);
 
   async function toggle(item: ChecklistItemDTO) {
@@ -203,23 +117,17 @@ export function NotebookPage({
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
                   whileHover={{ x: 2 }}
-                  className="group flex items-center gap-3 border-b border-dashed border-[#e9ddc9]/80 py-2 lg:gap-4 lg:py-3"
+                  className="flex items-center gap-3 border-b border-dashed border-[#e9ddc9]/80 py-2 lg:gap-4 lg:py-3"
                 >
                   <HandDrawnCheckbox checked={false} onClick={() => toggle(item)} />
-                  <span
-                    className="min-w-0 flex-1 truncate text-lg text-[#3a2e2a] sm:text-xl lg:text-2xl"
+                  <button
+                    type="button"
+                    onClick={() => setDetailItem(item)}
+                    className="min-w-0 flex-1 truncate text-left text-lg text-[#3a2e2a] sm:text-xl lg:text-2xl"
                     style={{ fontFamily: "var(--font-caveat-notebook)" }}
                   >
                     {item.item}
-                  </span>
-                  <ItemRowMenu
-                    item={item}
-                    category={category}
-                    allCategories={allCategories}
-                    onRename={() => setRenameItem(item)}
-                    onDuplicate={() => handleDuplicate(item.id)}
-                    onDelete={() => handleDelete(item.id)}
-                  />
+                  </button>
                 </motion.div>
               ))}
             </AnimatePresence>
@@ -227,7 +135,6 @@ export function NotebookPage({
 
           <button
             type="button"
-            data-no-flip
             onClick={() => setAddOpen(true)}
             className="mt-2 flex items-center gap-1 text-sm font-semibold text-[#8a7a6a] underline decoration-dashed underline-offset-4 hover:text-[#3a2e2a] lg:text-base"
           >
@@ -246,7 +153,6 @@ export function NotebookPage({
                   layoutId={`item-${item.id}`}
                   layout
                   type="button"
-                  data-no-flip
                   onClick={() => toggle(item)}
                   whileTap={{ scale: 0.94 }}
                   className="flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-xs text-[#8a7a6a] shadow-sm"
@@ -277,6 +183,17 @@ export function NotebookPage({
           setAddOpen(open);
           if (!open) emitRefresh();
         }}
+      />
+
+      <ItemDetailSheet
+        item={detailItem}
+        category={category}
+        allCategories={allCategories}
+        open={detailItem !== null}
+        onOpenChange={(open) => !open && setDetailItem(null)}
+        onRename={(item) => setRenameItem(item)}
+        onDuplicate={(id) => handleDuplicate(id)}
+        onDelete={(id) => handleDelete(id)}
       />
     </div>
   );

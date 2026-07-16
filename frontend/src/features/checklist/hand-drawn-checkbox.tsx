@@ -14,7 +14,6 @@ export function HandDrawnCheckbox({
   return (
     <motion.button
       type="button"
-      data-no-flip
       onClick={onClick}
       aria-pressed={checked}
       aria-label={label ?? (checked ? "Mark as not packed" : "Mark as packed")}

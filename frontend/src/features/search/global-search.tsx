@@ -55,6 +55,7 @@ export function GlobalSearch() {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
@@ -70,9 +71,11 @@ export function GlobalSearch() {
   useEffect(() => {
     if (!query.trim()) {
       setResults([]);
+      setLoading(false);
       return;
     }
     let cancelled = false;
+    setLoading(true);
     const timeout = setTimeout(async () => {
       try {
         const data = await api.get<{ results: SearchResult[] }>(
@@ -81,6 +84,8 @@ export function GlobalSearch() {
         if (!cancelled) setResults([...matchingGuideTopics(query), ...(data.results ?? [])]);
       } catch {
         // ignore failed requests
+      } finally {
+        if (!cancelled) setLoading(false);
       }
     }, 250);
     return () => {
@@ -113,7 +118,7 @@ export function GlobalSearch() {
           onValueChange={setQuery}
         />
         <CommandList className="max-h-none flex-1">
-          <CommandEmpty>No results found.</CommandEmpty>
+          {query.trim() && !loading && <CommandEmpty>No results found.</CommandEmpty>}
           {Object.entries(grouped).map(([type, items]) => (
             <CommandGroup key={type} heading={TYPE_LABELS[type as SearchResult["type"]]}>
               {items.map((item) => (

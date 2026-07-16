@@ -1,4 +1,4 @@
-import { ExternalLink, ImageIcon, Star } from "lucide-react";
+import { ExternalLink, ImageIcon, ListChecks, Pencil, Copy, Star, Trash2 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,16 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { ConfirmDialog } from "@/components/shared/confirm-dialog";
+import { AddToBagPopover } from "@/features/bags/add-to-bag-popover";
+import { ItemFormDialog } from "@/features/checklist/item-form-dialog";
+import type { ChecklistCategory } from "@/types";
 import type { ChecklistItemDTO } from "@/features/checklist/checklist-item-dto";
 
 const PRIORITY_BADGE_VARIANT = {
@@ -20,11 +30,25 @@ const PRIORITY_BADGE_VARIANT = {
 
 interface ItemDetailSheetProps {
   item: ChecklistItemDTO | null;
+  category: ChecklistCategory;
+  allCategories: string[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onRename: (item: ChecklistItemDTO) => void;
+  onDuplicate: (id: string) => void;
+  onDelete: (id: string) => void;
 }
 
-export function ItemDetailSheet({ item, open, onOpenChange }: ItemDetailSheetProps) {
+export function ItemDetailSheet({
+  item,
+  category,
+  allCategories,
+  open,
+  onOpenChange,
+  onRename,
+  onDuplicate,
+  onDelete,
+}: ItemDetailSheetProps) {
   if (!item) return null;
 
   const hasPriceRange = item.priceRangeMin != null || item.priceRangeMax != null;
@@ -38,6 +62,75 @@ export function ItemDetailSheet({ item, open, onOpenChange }: ItemDetailSheetPro
         </SheetHeader>
 
         <div className="flex flex-col gap-5">
+          <div className="flex flex-wrap items-center gap-2">
+            <AddToBagPopover
+              itemId={item.id}
+              bagId={item.bagId}
+              bagName={item.bagName}
+              bagColor={item.bagColor}
+            />
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="icon" className="size-8" aria-label="Edit item">
+                  <Pencil className="size-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start">
+                <DropdownMenuItem
+                  onClick={() => {
+                    onOpenChange(false);
+                    onRename(item);
+                  }}
+                >
+                  <Pencil className="size-4" />
+                  Edit name
+                </DropdownMenuItem>
+                <ItemFormDialog
+                  categories={allCategories}
+                  category={category}
+                  item={item}
+                  trigger={
+                    <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                      <ListChecks className="size-4" />
+                      Edit complete details
+                    </DropdownMenuItem>
+                  }
+                />
+                <DropdownMenuItem
+                  onClick={() => {
+                    onOpenChange(false);
+                    onDuplicate(item.id);
+                  }}
+                >
+                  <Copy className="size-4" />
+                  Duplicate
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            <ConfirmDialog
+              trigger={
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="text-destructive hover:text-destructive size-8"
+                  aria-label="Delete item"
+                >
+                  <Trash2 className="size-4" />
+                </Button>
+              }
+              title="Delete this item?"
+              description="This can't be undone."
+              onConfirm={() => {
+                onOpenChange(false);
+                onDelete(item.id);
+              }}
+            />
+          </div>
+
+          <Separator />
+
           {item.imageUrl ? (
             <div className="relative h-48 w-full overflow-hidden rounded-xl">
               <img

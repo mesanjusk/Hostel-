@@ -1,7 +1,6 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 
-import { BrandName } from "@/components/shared/brand-name";
 import { useAuth } from "@/context/auth-context";
 import { HUB_CARDS } from "@/features/welcome/hub-widget-registry";
 import { useHubLayout } from "@/features/welcome/use-hub-layout";
@@ -39,9 +38,6 @@ export function WaLoginHomeView() {
         >
           {user?.name ? `Hi, ${user.name.split(" ")[0]}!` : "Welcome!"}
         </h1>
-        <p className="text-muted-foreground max-w-md text-sm">
-          Here&apos;s where to start with <BrandName />.
-        </p>
       </div>
 
       <div className="grid grid-cols-2 gap-x-4 gap-y-6 md:grid-cols-3">

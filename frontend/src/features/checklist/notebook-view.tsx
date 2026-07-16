@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence, type Variants } from "framer-motion";
 import { ChevronLeft, ChevronRight, Rows3 } from "lucide-react";
@@ -88,7 +88,6 @@ export function NotebookView({
   const [groups, setGroups] = useState(initialGroups);
   const [index, setIndex] = useState(0);
   const [direction, setDirection] = useState(1);
-  const pageRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setGroups(initialGroups);
@@ -165,9 +164,6 @@ export function NotebookView({
           <AnimatePresence initial={false} custom={direction} mode="popLayout">
             <motion.div
               key={current.category}
-              ref={(node) => {
-                if (node) pageRef.current = node;
-              }}
               custom={direction}
               variants={pageVariants}
               initial="enter"
@@ -181,13 +177,6 @@ export function NotebookView({
                 const power = swipePower(info.offset.x, info.velocity.x);
                 if (power < -SWIPE_THRESHOLD || info.offset.x < -100) goTo(index + 1);
                 else if (power > SWIPE_THRESHOLD || info.offset.x > 100) goTo(index - 1);
-              }}
-              onTap={(event) => {
-                if ((event.target as HTMLElement)?.closest("[data-no-flip]")) return;
-                const rect = pageRef.current?.getBoundingClientRect();
-                if (!rect) return;
-                const clickX = (event as MouseEvent).clientX - rect.left;
-                goTo(clickX > rect.width / 2 ? index + 1 : index - 1);
               }}
               whileHover={{ y: -2 }}
             >

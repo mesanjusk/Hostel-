@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowLeft, Check, Copy, ListChecks, Pencil, Search, Trash2, X } from "lucide-react";
+import { ArrowLeft, Check, Copy, ListChecks, Search, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -15,12 +15,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { PageHeader } from "@/components/shared/page-header";
@@ -29,10 +23,8 @@ import { api, ApiError } from "@/lib/api";
 import { emitRefresh } from "@/lib/refresh-bus";
 import type { ChecklistCategory, ChecklistPriority } from "@/types";
 import type { ChecklistItemDTO } from "@/features/checklist/checklist-item-dto";
-import { ItemFormDialog } from "@/features/checklist/item-form-dialog";
 import { ItemDetailSheet } from "@/features/checklist/item-detail-sheet";
 import { QuickRenameDialog } from "@/features/checklist/quick-rename-dialog";
-import { AddToBagPopover } from "@/features/bags/add-to-bag-popover";
 
 type PriorityFilter = "all" | ChecklistPriority;
 type StatusFilter = "all" | "completed" | "incomplete";
@@ -295,18 +287,18 @@ export function CategoryView({
                     <Checkbox checked={item.completed} onCheckedChange={() => toggleCompleted(item)} />
                   )}
 
-                  <span
-                    className={`flex size-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${PRIORITY_CHIP_CLASS[item.priority]}`}
-                    title={`${item.priority} priority`}
-                  >
-                    {PRIORITY_LETTER[item.priority]}
-                  </span>
-
                   <button
                     type="button"
                     onClick={() => setDetailItem(item)}
                     className="flex min-w-0 flex-1 items-center gap-3 text-left"
                   >
+                    <span
+                      className={`flex size-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${PRIORITY_CHIP_CLASS[item.priority]}`}
+                      title={`${item.priority} priority`}
+                    >
+                      {PRIORITY_LETTER[item.priority]}
+                    </span>
+
                     <div className="min-w-0 flex-1">
                       <p className={item.completed ? "text-muted-foreground truncate line-through" : "truncate font-medium"}>
                         {item.item}
@@ -314,64 +306,6 @@ export function CategoryView({
                       {item.price != null && <p className="text-muted-foreground text-xs">₹{item.price}</p>}
                     </div>
                   </button>
-
-                  {!selectMode && (
-                    <div className="flex shrink-0 items-center gap-2">
-                      <AddToBagPopover
-                        itemId={item.id}
-                        bagId={item.bagId}
-                        bagName={item.bagName}
-                        bagColor={item.bagColor}
-                      />
-
-                      <div className="flex shrink-0 items-center gap-1 opacity-60 transition-opacity hover:opacity-100">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="size-8" aria-label="Edit item">
-                              <Pencil className="size-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => setRenameItem(item)}>
-                              <Pencil className="size-4" />
-                              Edit name
-                            </DropdownMenuItem>
-                            <ItemFormDialog
-                              categories={allCategories}
-                              category={category}
-                              item={item}
-                              trigger={
-                                <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                                  <ListChecks className="size-4" />
-                                  Edit complete details
-                                </DropdownMenuItem>
-                              }
-                            />
-                            <DropdownMenuItem onClick={() => handleDuplicate(item.id)}>
-                              <Copy className="size-4" />
-                              Duplicate
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-
-                        <ConfirmDialog
-                          trigger={
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="text-destructive hover:text-destructive size-8"
-                              aria-label="Delete item"
-                            >
-                              <Trash2 className="size-4" />
-                            </Button>
-                          }
-                          title="Delete this item?"
-                          description="This can't be undone."
-                          onConfirm={() => handleDelete(item.id)}
-                        />
-                      </div>
-                    </div>
-                  )}
                 </motion.div>
               ))}
             </div>
@@ -425,7 +359,16 @@ export function CategoryView({
         </motion.div>
       )}
 
-      <ItemDetailSheet item={detailItem} open={detailItem !== null} onOpenChange={(open) => !open && setDetailItem(null)} />
+      <ItemDetailSheet
+        item={detailItem}
+        category={category}
+        allCategories={allCategories}
+        open={detailItem !== null}
+        onOpenChange={(open) => !open && setDetailItem(null)}
+        onRename={(item) => setRenameItem(item)}
+        onDuplicate={handleDuplicate}
+        onDelete={handleDelete}
+      />
     </div>
   );
 }
