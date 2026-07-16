@@ -1,45 +1,35 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Loader2, Luggage, MoreVertical, Pencil, QrCode, Trash2 } from "lucide-react";
+import { Check, Loader2, Plus } from "lucide-react";
 import { toast } from "sonner";
 
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Progress } from "@/components/ui/progress";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { EmptyState } from "@/components/shared/empty-state";
-import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { PageHeader } from "@/components/shared/page-header";
 import { api, ApiError } from "@/lib/api";
 import { emitRefresh, subscribeRefresh } from "@/lib/refresh-bus";
+import { cn } from "@/lib/utils";
 import { AddBagDialog } from "@/features/bags/add-bag-dialog";
-import { BagQrDialog } from "@/features/bags/bag-qr-dialog";
-import { SuitcaseIcon } from "@/features/bags/suitcase-icon";
 import type { BagSummaryDTO } from "@/features/bags/bag-dto";
+import { BAG_COLOR_PRESETS } from "@/types";
 
-/** How long the lid-open animation plays before we navigate into the bag. */
-const OPEN_ANIMATION_MS = 550;
+/** Common bag types offered as one-tap presets, in the order they're shown. */
+const PRESET_BAGS = [
+  "Backpack",
+  "Camera Bag",
+  "Carry-On",
+  "Checked Bag",
+  "Duffel Bag",
+  "Gym Bag",
+  "Kid Backpack",
+  "Personal Item",
+  "Suitcase",
+  "Toiletry Bag",
+];
 
 export function BagsOverview() {
   const navigate = useNavigate();
   const [bags, setBags] = useState<BagSummaryDTO[] | null>(null);
-  const [openingId, setOpeningId] = useState<string | null>(null);
-  const [renameTarget, setRenameTarget] = useState<BagSummaryDTO | null>(null);
-  const [renameValue, setRenameValue] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [pending, setPending] = useState<string | null>(null);
 
   async function fetchData() {
     try {
@@ -55,161 +45,116 @@ export function BagsOverview() {
     return subscribeRefresh(fetchData);
   }, []);
 
-  function handleOpenBag(bagId: string) {
-    if (openingId) return;
-    setOpeningId(bagId);
-    setTimeout(() => navigate(`/bags/${bagId}`), OPEN_ANIMATION_MS);
-  }
-
-  async function handleRename() {
-    if (!renameTarget) return;
-    const name = renameValue.trim();
-    if (!name) return;
-    setIsSubmitting(true);
-    try {
-      await api.patch(`/api/bags/${renameTarget.id}`, { name });
-      emitRefresh();
-      toast.success("Bag renamed");
-      setRenameTarget(null);
-    } catch (error) {
-      toast.error(error instanceof ApiError ? error.message : "Failed to rename bag");
-    } finally {
-      setIsSubmitting(false);
+  async function handlePresetTap(name: string, existing: BagSummaryDTO | undefined) {
+    if (existing) {
+      navigate(`/bags/${existing.id}`);
+      return;
     }
-  }
-
-  async function handleDelete(id: string) {
+    if (pending) return;
+    setPending(name);
     try {
-      await api.delete(`/api/bags/${id}`);
+      const color = BAG_COLOR_PRESETS[PRESET_BAGS.indexOf(name) % BAG_COLOR_PRESETS.length];
+      await api.post("/api/bags", { name, color });
       emitRefresh();
-      toast.success("Bag deleted");
+      toast.success(`${name} added`);
     } catch (error) {
-      toast.error(error instanceof ApiError ? error.message : "Failed to delete bag");
+      toast.error(error instanceof ApiError ? error.message : "Failed to add bag");
+    } finally {
+      setPending(null);
     }
   }
 
   if (bags === null) return null;
 
+  const isPreset = (name: string) => PRESET_BAGS.some((p) => p.toLowerCase() === name.toLowerCase());
+  const customBags = bags.filter((b) => !isPreset(b.name));
+
   return (
     <div className="pb-24">
       <PageHeader
-        title="Bags"
-        description="Pack your real suitcases digitally — tap a bag to see what's inside."
-        action={<AddBagDialog />}
+        title="Choose Your Bags"
+        description="Select the bags you typically travel with. Tap one to see what's packed inside."
       />
 
-      {bags.length === 0 ? (
-        <EmptyState
-          icon={Luggage}
-          title="No bags yet"
-          description="Create a bag, then assign checklist items to it from the Checklist tab."
-        />
-      ) : (
-        <div className="flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2 sm:grid sm:grid-cols-2 sm:overflow-visible sm:pb-0 lg:grid-cols-3">
-          {bags.map((bag, i) => {
-            const percent = bag.total > 0 ? Math.round((bag.completed / bag.total) * 100) : 0;
-            return (
-              <motion.div
-                key={bag.id}
-                initial={{ opacity: 0, scale: 0.85 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.35, delay: i * 0.04 }}
-                className="border-border/60 bg-card relative w-40 shrink-0 snap-start rounded-2xl border p-3 shadow-sm sm:w-auto"
+      <div className="flex flex-wrap gap-3">
+        {PRESET_BAGS.map((name, i) => {
+          const existing = bags.find((b) => b.name.toLowerCase() === name.toLowerCase());
+          const isPending = pending === name;
+          return (
+            <motion.button
+              key={name}
+              type="button"
+              whileTap={{ scale: 0.95 }}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.25, delay: i * 0.03 }}
+              disabled={isPending}
+              onClick={() => handlePresetTap(name, existing)}
+              className={cn(
+                "flex items-center gap-2 rounded-full border-2 px-4 py-2.5 text-sm font-medium transition-colors",
+                existing
+                  ? "border-primary bg-primary/10 text-foreground"
+                  : "border-border bg-card text-foreground hover:border-primary/50",
+              )}
+            >
+              <span className="font-display">{name}</span>
+              {existing && existing.total > 0 && (
+                <span className="text-muted-foreground text-xs font-normal">
+                  {existing.completed}/{existing.total}
+                </span>
+              )}
+              <span
+                className={cn(
+                  "flex size-5 shrink-0 items-center justify-center rounded-full",
+                  existing ? "bg-success text-success-foreground" : "bg-primary text-primary-foreground",
+                )}
               >
-                <div className="absolute top-2 right-2 z-10">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="size-8"
-                        aria-label="Bag options"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <MoreVertical className="size-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem
-                        onSelect={(e) => {
-                          e.preventDefault();
-                          setRenameTarget(bag);
-                          setRenameValue(bag.name);
-                        }}
-                      >
-                        <Pencil className="size-4" />
-                        Rename
-                      </DropdownMenuItem>
-                      <BagQrDialog
-                        bagId={bag.id}
-                        bagName={bag.name}
-                        trigger={
-                          <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                            <QrCode className="size-4" />
-                            QR code
-                          </DropdownMenuItem>
-                        }
-                      />
-                      <ConfirmDialog
-                        trigger={
-                          <DropdownMenuItem
-                            variant="destructive"
-                            onSelect={(e) => e.preventDefault()}
-                          >
-                            <Trash2 className="size-4" />
-                            Delete
-                          </DropdownMenuItem>
-                        }
-                        title="Delete this bag?"
-                        description="Items assigned to it will become unassigned, not deleted."
-                        onConfirm={() => handleDelete(bag.id)}
-                      />
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
+                {isPending ? (
+                  <Loader2 className="size-3 animate-spin" />
+                ) : existing ? (
+                  <Check className="size-3" />
+                ) : (
+                  <Plus className="size-3" />
+                )}
+              </span>
+            </motion.button>
+          );
+        })}
 
-                <button
-                  type="button"
-                  onClick={() => handleOpenBag(bag.id)}
-                  className="flex w-full flex-col items-center gap-1"
-                >
-                  <SuitcaseIcon color={bag.color} open={openingId === bag.id} size={128} />
-                  <p className="font-display w-full truncate text-center font-semibold">{bag.name}</p>
-                  <p className="text-muted-foreground text-xs">
-                    {bag.completed} / {bag.total} packed
-                  </p>
-                  <Progress value={percent} className="mt-1 w-full" />
-                </button>
-              </motion.div>
-            );
-          })}
-        </div>
-      )}
+        {customBags.map((bag) => (
+          <motion.button
+            key={bag.id}
+            type="button"
+            whileTap={{ scale: 0.95 }}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            onClick={() => navigate(`/bags/${bag.id}`)}
+            className="border-primary bg-primary/10 text-foreground flex items-center gap-2 rounded-full border-2 px-4 py-2.5 text-sm font-medium"
+          >
+            <span className="font-display">{bag.name}</span>
+            {bag.total > 0 && (
+              <span className="text-muted-foreground text-xs font-normal">
+                {bag.completed}/{bag.total}
+              </span>
+            )}
+            <span className="bg-success text-success-foreground flex size-5 shrink-0 items-center justify-center rounded-full">
+              <Check className="size-3" />
+            </span>
+          </motion.button>
+        ))}
 
-      <Dialog open={renameTarget !== null} onOpenChange={(open) => !open && setRenameTarget(null)}>
-        <DialogContent className="sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Rename bag</DialogTitle>
-          </DialogHeader>
-          <Input
-            autoFocus
-            value={renameValue}
-            onChange={(e) => setRenameValue(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.preventDefault();
-                handleRename();
-              }
-            }}
-          />
-          <DialogFooter>
-            <Button onClick={handleRename} disabled={isSubmitting}>
-              {isSubmitting && <Loader2 className="size-4 animate-spin" />}
-              Save
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        <AddBagDialog
+          trigger={
+            <button
+              type="button"
+              className="border-primary text-primary flex items-center gap-2 rounded-full border-2 border-dashed px-4 py-2.5 text-sm font-medium"
+            >
+              <Plus className="size-4" />
+              Add Bag
+            </button>
+          }
+        />
+      </div>
     </div>
   );
 }
