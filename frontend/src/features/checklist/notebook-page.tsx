@@ -144,7 +144,7 @@ export function NotebookPage({
                   <button
                     type="button"
                     onClick={() => setDetailItem(item)}
-                    className="block max-w-full truncate text-left text-lg text-[#3a2e2a] sm:text-xl lg:text-2xl"
+                    className="block max-w-full truncate pr-1 text-left text-lg text-[#3a2e2a] sm:text-xl lg:text-2xl"
                     style={{ fontFamily: "var(--font-caveat-notebook)" }}
                   >
                     {item.item}
@@ -180,7 +180,7 @@ export function NotebookPage({
                   className="flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-xs text-[#8a7a6a] shadow-sm"
                 >
                   <Check className="size-3 shrink-0 text-[#c0392b]" />
-                  <span className="max-w-[120px] truncate line-through">{item.item}</span>
+                  <span className="max-w-[120px] truncate pr-0.5 line-through">{item.item}</span>
                 </motion.button>
               ))}
             </div>

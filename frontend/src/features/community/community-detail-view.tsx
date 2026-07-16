@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { Hash, Megaphone, Plus, Users2 } from "lucide-react";
 
@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { ChatWindow } from "@/features/community/chat-window";
 import { MembersPanel } from "@/features/community/members-panel";
-import { getCommunity, createChannel } from "@/features/community/community-api";
+import { getCommunity, createChannel, leaveCommunity } from "@/features/community/community-api";
 import { useAuth } from "@/context/auth-context";
 import { ApiError } from "@/lib/api";
 import type { ChannelDTO, CommunityDTO, CommunityRole } from "@/types";
@@ -63,11 +63,13 @@ export function CommunityDetailView() {
   const { user } = useAuth();
   const isSiteAdmin = user?.role === "admin";
   const { slug } = useParams<{ slug: string }>();
+  const navigate = useNavigate();
   const [community, setCommunity] = useState<CommunityDTO | null>(null);
   const [myRole, setMyRole] = useState<CommunityRole | null>(null);
   const [channels, setChannels] = useState<ChannelDTO[]>([]);
   const [activeChannelId, setActiveChannelId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [leaving, setLeaving] = useState(false);
 
   async function fetchCommunity() {
     if (!slug) return;
@@ -89,6 +91,20 @@ export function CommunityDetailView() {
     fetchCommunity();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slug]);
+
+  async function handleLeave() {
+    if (!community) return;
+    setLeaving(true);
+    try {
+      await leaveCommunity(community._id);
+      toast.success(`Left ${community.name}`);
+      navigate("/community");
+    } catch (error) {
+      toast.error(error instanceof ApiError ? error.message : "Failed to leave community");
+    } finally {
+      setLeaving(false);
+    }
+  }
 
   // Site admins get full moderation power on every community, not just the ones they've
   // joined or created — mirrors the backend's isSiteAdmin bypass on the member routes.
@@ -125,7 +141,13 @@ export function CommunityDetailView() {
             <SheetHeader>
               <SheetTitle>Members</SheetTitle>
             </SheetHeader>
-            <MembersPanel communityId={community._id} canModerate={canModerate} isSiteAdmin={isSiteAdmin} />
+            <MembersPanel
+              communityId={community._id}
+              canModerate={canModerate}
+              isSiteAdmin={isSiteAdmin}
+              onLeave={myRole ? handleLeave : undefined}
+              leaving={leaving}
+            />
           </SheetContent>
         </Sheet>
       </div>

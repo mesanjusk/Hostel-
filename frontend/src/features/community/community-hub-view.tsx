@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CommunityCard } from "@/features/community/community-card";
 import { CreateCommunityDialog } from "@/features/community/create-community-dialog";
-import { discoverCommunities, joinCommunity, leaveCommunity, listMyCommunities } from "@/features/community/community-api";
+import { discoverCommunities, joinCommunity, listMyCommunities } from "@/features/community/community-api";
 import { useAuth } from "@/context/auth-context";
 import { ApiError } from "@/lib/api";
 import type { CommunityDTO } from "@/types";
@@ -58,20 +58,13 @@ export function CommunityHubView() {
     return () => clearTimeout(handle);
   }, [query]);
 
-  async function handleToggleJoin(community: CommunityDTO, join: boolean) {
-    const update = (list: CommunityDTO[]) =>
-      list.map((c) => (c._id === community._id ? { ...c, joined: join, memberCount: c.memberCount + (join ? 1 : -1) } : c));
-    setDiscover(update);
+  async function handleJoin(community: CommunityDTO) {
+    setDiscover((list) => list.map((c) => (c._id === community._id ? { ...c, joined: true, memberCount: c.memberCount + 1 } : c)));
     try {
-      if (join) {
-        await joinCommunity(community._id);
-        fetchMine();
-      } else {
-        await leaveCommunity(community._id);
-        setMine((prev) => prev.filter((c) => c._id !== community._id));
-      }
+      await joinCommunity(community._id);
+      fetchMine();
     } catch (error) {
-      toast.error(error instanceof ApiError ? error.message : "Failed to update membership");
+      toast.error(error instanceof ApiError ? error.message : "Failed to join community");
       fetchDiscover(query || undefined);
     }
   }
@@ -113,7 +106,7 @@ export function CommunityHubView() {
           ) : (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {mine.map((c) => (
-                <CommunityCard key={c._id} community={{ ...c, joined: true }} onJoinToggle={handleToggleJoin} />
+                <CommunityCard key={c._id} community={{ ...c, joined: true }} />
               ))}
             </div>
           )}
@@ -135,7 +128,7 @@ export function CommunityHubView() {
           ) : (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {discover.map((c) => (
-                <CommunityCard key={c._id} community={c} onJoinToggle={handleToggleJoin} />
+                <CommunityCard key={c._id} community={c} onJoinToggle={handleJoin} />
               ))}
             </div>
           )}

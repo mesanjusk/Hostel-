@@ -11,7 +11,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { MoreVertical } from "lucide-react";
+import { LogOut, MoreVertical } from "lucide-react";
 import { listMembers, removeMember, setMemberModeration, updateMemberRole } from "@/features/community/community-api";
 import { ApiError } from "@/lib/api";
 import type { CommunityRole, PublicUserDTO } from "@/types";
@@ -29,10 +29,16 @@ export function MembersPanel({
   communityId,
   canModerate,
   isSiteAdmin = false,
+  onLeave,
+  leaving = false,
 }: {
   communityId: string;
   canModerate: boolean;
   isSiteAdmin?: boolean;
+  /** Only passed when the current user is actually a member — leaving the community lives
+   * here, inside Members, rather than as a one-tap action on the community card. */
+  onLeave?: () => void;
+  leaving?: boolean;
 }) {
   const [members, setMembers] = useState<MemberRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -139,6 +145,14 @@ export function MembersPanel({
           )}
         </div>
       ))}
+
+      {onLeave && (
+        <div className="mt-2 border-t border-border/70 pt-3">
+          <Button variant="outline" className="text-destructive w-full" onClick={onLeave} disabled={leaving}>
+            <LogOut className="size-4" /> {leaving ? "Leaving..." : "Leave community"}
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
