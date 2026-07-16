@@ -24,7 +24,7 @@ import { emitRefresh, subscribeRefresh } from "@/lib/refresh-bus";
 import { BagQrDialog } from "@/features/bags/bag-qr-dialog";
 import { Suitcase3D } from "@/features/bags/suitcase-3d";
 import { AddItemsToBagDialog } from "@/features/bags/add-items-to-bag-dialog";
-import { QuickPhotoAdd } from "@/features/checklist/quick-photo-add";
+import { PhotoUploadField } from "@/features/checklist/photo-upload-field";
 import {
   toChecklistItemDTO,
   type ChecklistItemDTO,
@@ -36,6 +36,7 @@ interface BagInfo {
   id: string;
   name: string;
   color: string;
+  imageUrl: string | null;
 }
 
 export function BagDetailView({ bagId }: { bagId: string }) {
@@ -113,11 +114,21 @@ export function BagDetailView({ bagId }: { bagId: string }) {
     }
   }
 
+  async function handleBagPhotoChange(imageUrl: string) {
+    setBag((prev) => (prev ? { ...prev, imageUrl: imageUrl || null } : prev));
+    try {
+      await api.patch(`/api/bags/${bagId}`, { imageUrl: imageUrl || null });
+      emitRefresh();
+    } catch (error) {
+      toast.error(error instanceof ApiError ? error.message : "Failed to update bag photo");
+      fetchData();
+    }
+  }
+
   if (loading) return null;
   if (notFound || !bag) return <NotFound />;
 
   const completedCount = items.filter((i) => i.completed).length;
-  const gallery = items.filter((i) => i.imageUrl);
 
   return (
     <div className="pb-24">
@@ -184,6 +195,11 @@ export function BagDetailView({ bagId }: { bagId: string }) {
         }
       />
 
+      <div className="mb-5">
+        <p className="text-muted-foreground mb-2 text-sm font-medium">Bag photo</p>
+        <PhotoUploadField value={bag.imageUrl ?? ""} onChange={handleBagPhotoChange} />
+      </div>
+
       {items.length === 0 ? (
         <EmptyState
           icon={ImageIcon}
@@ -192,24 +208,6 @@ export function BagDetailView({ bagId }: { bagId: string }) {
         />
       ) : (
         <>
-          {gallery.length > 0 && (
-            <div className="mb-5">
-              <p className="text-muted-foreground mb-2 text-sm font-medium">Gallery</p>
-              <div className="flex gap-2 overflow-x-auto pb-1">
-                {gallery.map((item) => (
-                  <img
-                    key={item.id}
-                    src={item.imageUrl!}
-                    alt={item.item}
-                    className="size-16 shrink-0 rounded-lg object-cover"
-                    loading="lazy"
-                    decoding="async"
-                  />
-                ))}
-              </div>
-            </div>
-          )}
-
           <p className="text-muted-foreground mb-2 text-sm font-medium">Items in this bag</p>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             {items.map((item, i) => (
@@ -221,25 +219,6 @@ export function BagDetailView({ bagId }: { bagId: string }) {
               >
                 <Card className="flex-row items-center gap-3 p-3">
                   <Checkbox checked={item.completed} onCheckedChange={() => toggleCompleted(item)} />
-
-                  {item.imageUrl ? (
-                    <img
-                      src={item.imageUrl}
-                      alt={item.item}
-                      className="size-12 shrink-0 rounded-lg object-cover"
-                      loading="lazy"
-                      decoding="async"
-                    />
-                  ) : (
-                    <QuickPhotoAdd
-                      itemId={item.id}
-                      onUploaded={(url) =>
-                        setItems((prev) =>
-                          prev.map((i) => (i.id === item.id ? { ...i, imageUrl: url } : i)),
-                        )
-                      }
-                    />
-                  )}
 
                   <div className="min-w-0 flex-1">
                     <p className={item.completed ? "text-muted-foreground truncate text-sm line-through" : "truncate text-sm font-medium"}>

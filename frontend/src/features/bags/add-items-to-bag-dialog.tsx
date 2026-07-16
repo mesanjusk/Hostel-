@@ -15,7 +15,6 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { CategorySelect } from "@/features/checklist/category-select";
-import { PhotoUploadField } from "@/features/checklist/photo-upload-field";
 import { api, ApiError } from "@/lib/api";
 import { emitRefresh } from "@/lib/refresh-bus";
 import {
@@ -41,7 +40,6 @@ export function AddItemsToBagDialog({ bagId, categories, trigger }: AddItemsToBa
   const [items, setItems] = useState<ChecklistItemDTO[] | null>(null);
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [newName, setNewName] = useState("");
-  const [newPhoto, setNewPhoto] = useState("");
   const [creating, setCreating] = useState(false);
 
   useEffect(() => {
@@ -101,12 +99,10 @@ export function AddItemsToBagDialog({ bagId, categories, trigger }: AddItemsToBa
         category,
         priority: "medium",
         bagId,
-        imageUrl: newPhoto,
       });
       emitRefresh();
       toast.success(`${name} added`);
       setNewName("");
-      setNewPhoto("");
       await fetchItems();
     } catch (error) {
       toast.error(error instanceof ApiError ? error.message : "Failed to add item");
@@ -192,9 +188,6 @@ export function AddItemsToBagDialog({ bagId, categories, trigger }: AddItemsToBa
                     {creating ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />}
                     Add
                   </Button>
-                </div>
-                <div className="mt-2">
-                  <PhotoUploadField value={newPhoto} onChange={setNewPhoto} />
                 </div>
               </div>
             </>

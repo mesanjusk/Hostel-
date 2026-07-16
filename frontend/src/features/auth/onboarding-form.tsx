@@ -20,12 +20,14 @@ import { useAuth } from "@/context/auth-context";
 import { ApiError } from "@/lib/api";
 import { HOME_ROUTE } from "@/lib/nav-items";
 import { ProfileFields } from "@/features/auth/profile-fields";
+import { AvatarUploadField } from "@/features/auth/avatar-upload-field";
 import { profileFieldsSchema, type ProfileFieldsInput } from "@/features/auth/profile-fields-schema";
 
 export function OnboardingForm({ defaultName, viaWaLogin }: { defaultName?: string; viaWaLogin?: boolean }) {
   const navigate = useNavigate();
   const { completeOnboarding } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [avatar, setAvatar] = useState("");
 
   const form = useForm<ProfileFieldsInput>({
     resolver: zodResolver(profileFieldsSchema),
@@ -43,7 +45,7 @@ export function OnboardingForm({ defaultName, viaWaLogin }: { defaultName?: stri
   async function onSubmit(values: ProfileFieldsInput) {
     setIsSubmitting(true);
     try {
-      await completeOnboarding(values);
+      await completeOnboarding({ ...values, avatar: avatar || undefined });
       toast.success("Welcome to Pack with Me!");
       navigate(viaWaLogin ? "/wa-login/home" : HOME_ROUTE, { replace: true });
     } catch (error) {
@@ -68,6 +70,12 @@ export function OnboardingForm({ defaultName, viaWaLogin }: { defaultName?: stri
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-4">
+          <AvatarUploadField
+            value={avatar}
+            onChange={setAvatar}
+            fallback={(form.watch("name") || defaultName || "?").slice(0, 1).toUpperCase()}
+          />
+
           <FormField
             control={form.control}
             name="name"

@@ -41,6 +41,7 @@ bagRouter.get("/:id", async (req, res) => {
       id: String(result.bag._id),
       name: result.bag.name,
       color: result.bag.color ?? BAG_COLOR_PRESETS[0],
+      imageUrl: result.bag.imageUrl ?? null,
     },
     items: result.items,
   });
@@ -73,6 +74,7 @@ bagRouter.patch("/:id", async (req, res) => {
   const result = await updateBag(req.user!._id.toString(), parsed.data.id, {
     name: parsed.data.name,
     color: parsed.data.color,
+    imageUrl: parsed.data.imageUrl,
   });
   if (!result.success) {
     res.status(statusForErrorCode(result.code)).json({ error: result.error });
