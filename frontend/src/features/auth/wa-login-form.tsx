@@ -13,8 +13,7 @@ import { api, ApiError } from "@/lib/api";
 import { normalizeMobile } from "@/lib/phone";
 import type { UserDTO } from "@/types";
 
-// Experimental — kept off the live registration flow. The bot's WhatsApp number this
-// page sends the pre-filled message to.
+// The bot's WhatsApp number this page sends the pre-filled message to.
 const BOT_WHATSAPP_NUMBER = "919370195000";
 // Post-login landing hub for this flow specifically — distinct from the main app's
 // HOME_ROUTE, which registrations reach later via onboarding as normal.

@@ -70,7 +70,7 @@ function PinRevealPanel({ mobile, pin, onDone }: { mobile: string; pin: string; 
       `Mobile: ${formatMobileForDisplay(mobile)}`,
       `Code: ${pin}`,
       "",
-      `Log in at ${window.location.origin}/login`,
+      `Log in at ${window.location.origin}/wa-login`,
     ].join("\n");
     window.open(`https://wa.me/${mobile}?text=${encodeURIComponent(message)}`, "_blank", "noopener,noreferrer");
   }

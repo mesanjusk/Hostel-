@@ -11,7 +11,7 @@ export default function ForgotPasswordPage() {
       submitLabel="Log in"
       requestOtp={requestResetOtp}
       submit={resetWithOtp}
-      footer={{ prompt: "Remembered it?", linkLabel: "Log in", linkTo: "/login" }}
+      footer={{ prompt: "Remembered it?", linkLabel: "Log in", linkTo: "/wa-login" }}
     />
   );
 }

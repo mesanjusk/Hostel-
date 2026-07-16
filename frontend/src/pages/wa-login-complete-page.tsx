@@ -83,7 +83,7 @@ export default function WaLoginCompletePage() {
       {error ? (
         <>
           <p className="text-destructive text-sm">{error}</p>
-          <Link to="/login" className="text-foreground text-sm font-medium underline underline-offset-4">
+          <Link to="/wa-login" className="text-foreground text-sm font-medium underline underline-offset-4">
             Go to login
           </Link>
         </>

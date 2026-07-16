@@ -11,7 +11,7 @@ export default function RegisterPage() {
       submitLabel="Create account"
       requestOtp={requestRegisterOtp}
       submit={registerWithOtp}
-      footer={{ prompt: "Already have an account?", linkLabel: "Log in", linkTo: "/login" }}
+      footer={{ prompt: "Already have an account?", linkLabel: "Log in", linkTo: "/wa-login" }}
       isRegistration
     />
   );

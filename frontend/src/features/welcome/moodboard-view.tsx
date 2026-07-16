@@ -52,7 +52,7 @@ export function MoodboardView() {
         className="fixed right-5 bottom-5 z-50 sm:right-8 sm:bottom-8"
       >
         <Link
-          to="/login"
+          to="/wa-login"
           className="inline-flex items-center gap-1.5 rounded-full bg-[#3a2e2a] px-6 py-3.5 text-sm font-bold text-white shadow-[4px_6px_16px_rgba(0,0,0,0.3)] transition-transform hover:-translate-y-0.5 active:scale-95 sm:px-7 sm:py-4 sm:text-base"
         >
           Open Checklist

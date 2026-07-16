@@ -61,7 +61,7 @@ export function ProfileView() {
 
   function handleLogout() {
     logout();
-    navigate("/login", { replace: true });
+    navigate("/wa-login", { replace: true });
   }
 
   if (!user) return null;
