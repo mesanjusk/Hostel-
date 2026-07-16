@@ -6,7 +6,6 @@ import { toast } from "sonner";
 import { HandDrawnCheckbox } from "@/features/checklist/hand-drawn-checkbox";
 import { ItemFormDialog } from "@/features/checklist/item-form-dialog";
 import { ItemDetailSheet } from "@/features/checklist/item-detail-sheet";
-import { QuickRenameDialog } from "@/features/checklist/quick-rename-dialog";
 import { api, ApiError } from "@/lib/api";
 import { emitRefresh } from "@/lib/refresh-bus";
 import type { ChecklistItemDTO } from "@/features/checklist/checklist-item-dto";
@@ -30,7 +29,6 @@ export function NotebookPage({
   items: ChecklistItemDTO[];
   onItemsChange: (updater: (prev: ChecklistItemDTO[]) => ChecklistItemDTO[]) => void;
 }) {
-  const [renameItem, setRenameItem] = useState<ChecklistItemDTO | null>(null);
   const [detailItem, setDetailItem] = useState<ChecklistItemDTO | null>(null);
   const [addOpen, setAddOpen] = useState(false);
 
@@ -52,16 +50,6 @@ export function NotebookPage({
       emitRefresh();
     } catch (error) {
       toast.error(error instanceof ApiError ? error.message : "Failed to delete item");
-    }
-  }
-
-  async function handleDuplicate(id: string) {
-    try {
-      await api.post("/api/checklist/bulk-action", { ids: [id], action: "duplicate" });
-      emitRefresh();
-      toast.success("Item duplicated");
-    } catch (error) {
-      toast.error(error instanceof ApiError ? error.message : "Failed to duplicate item");
     }
   }
 
@@ -91,7 +79,10 @@ export function NotebookPage({
       </p>
 
       <LayoutGroup>
-        <div className="relative z-10 mt-4 flex-1 space-y-0.5 overflow-y-auto lg:mt-8 lg:space-y-1">
+        <div
+          className="relative z-10 mt-4 flex-1 space-y-0.5 overflow-y-auto lg:mt-8 lg:space-y-1"
+          style={{ touchAction: "pan-y" }}
+        >
           {items.length === 0 ? (
             <p
               className="mt-10 text-center text-xl text-[#8a7a6a] lg:text-2xl"
@@ -123,7 +114,7 @@ export function NotebookPage({
                   <button
                     type="button"
                     onClick={() => setDetailItem(item)}
-                    className="min-w-0 flex-1 truncate text-left text-lg text-[#3a2e2a] sm:text-xl lg:text-2xl"
+                    className="block max-w-full truncate text-left text-lg text-[#3a2e2a] sm:text-xl lg:text-2xl"
                     style={{ fontFamily: "var(--font-caveat-notebook)" }}
                   >
                     {item.item}
@@ -166,15 +157,6 @@ export function NotebookPage({
         )}
       </LayoutGroup>
 
-      {renameItem && (
-        <QuickRenameDialog
-          id={renameItem.id}
-          currentName={renameItem.item}
-          open={renameItem !== null}
-          onOpenChange={(open) => !open && setRenameItem(null)}
-        />
-      )}
-
       <ItemFormDialog
         categories={allCategories}
         category={category}
@@ -187,13 +169,9 @@ export function NotebookPage({
 
       <ItemDetailSheet
         item={detailItem}
-        category={category}
-        allCategories={allCategories}
         open={detailItem !== null}
         onOpenChange={(open) => !open && setDetailItem(null)}
-        onRename={(item) => setRenameItem(item)}
-        onDuplicate={(id) => handleDuplicate(id)}
-        onDelete={(id) => handleDelete(id)}
+        onDelete={handleDelete}
       />
     </div>
   );

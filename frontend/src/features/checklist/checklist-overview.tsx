@@ -155,7 +155,6 @@ export function ChecklistOverview({
               <AccordionContent className="px-1 pb-2">
                 <CategoryView
                   category={category}
-                  allCategories={groups.map((g) => g.category)}
                   initialItems={items}
                   embedded
                   hideToolbar

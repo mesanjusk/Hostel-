@@ -44,5 +44,5 @@ export default function ChecklistCategoryPage() {
   if (loading) return null;
   if (!allCategories?.includes(category)) return <NotFound />;
 
-  return <CategoryView category={category} allCategories={allCategories} initialItems={items} />;
+  return <CategoryView category={category} initialItems={items} />;
 }
