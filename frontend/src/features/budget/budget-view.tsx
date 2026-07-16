@@ -1,9 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { format } from "date-fns";
 import { motion } from "framer-motion";
 import { Pencil, PiggyBank, Trash2, Wallet } from "lucide-react";
 import { toast } from "sonner";
-import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -32,13 +31,11 @@ import {
 } from "@/features/budget/budget-dto";
 import type { BudgetEntryType } from "@/types";
 
-const CHART_COLORS = [
-  "var(--chart-1)",
-  "var(--chart-2)",
-  "var(--chart-3)",
-  "var(--chart-4)",
-  "var(--chart-5)",
-];
+// Deferred: recharts is ~94 KB gzip and only powers the breakdown chart — splitting it out
+// lets the page shell (summary cards, entries table) render while the chart streams in.
+const ExpensePieChart = lazy(() =>
+  import("@/features/budget/expense-pie-chart").then((m) => ({ default: m.ExpensePieChart })),
+);
 
 const EMPTY_SUMMARY: BudgetSummary = { planned: 0, spent: 0, remaining: 0, byCategory: {} };
 
@@ -164,33 +161,9 @@ export function BudgetView() {
                   description="Log an expense to see your spending breakdown by category."
                 />
               ) : (
-                <ResponsiveContainer width="100%" height={280}>
-                  <PieChart>
-                    <Pie
-                      data={chartData}
-                      dataKey="amount"
-                      nameKey="category"
-                      innerRadius={60}
-                      outerRadius={100}
-                      paddingAngle={2}
-                    >
-                      {chartData.map((entry, i) => (
-                        <Cell key={entry.category} fill={CHART_COLORS[i % CHART_COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      formatter={(value?: number | string | ReadonlyArray<number | string>) =>
-                        formatCurrency(Number(value ?? 0))
-                      }
-                      contentStyle={{
-                        borderRadius: "0.75rem",
-                        border: "1px solid var(--border)",
-                        background: "var(--card)",
-                        color: "var(--card-foreground)",
-                      }}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
+                <Suspense fallback={<Skeleton className="h-[280px] w-full rounded-xl" />}>
+                  <ExpensePieChart data={chartData} />
+                </Suspense>
               )}
             </CardContent>
           </Card>

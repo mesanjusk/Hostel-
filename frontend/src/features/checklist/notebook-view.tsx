@@ -177,12 +177,12 @@ export function NotebookView({
               onClick={() => setPlanTypeFilter(type)}
               aria-pressed={planTypeFilter === type}
               className={cn(
-                "rounded-r-xl border border-l-0 px-2.5 py-4 text-base shadow-sm transition-colors sm:px-3.5 sm:py-6 sm:text-lg",
+                "rounded-r-xl border border-l-0 px-3.5 py-2 text-base shadow-sm transition-colors sm:px-4 sm:py-2.5 sm:text-lg",
                 planTypeFilter === type
                   ? "border-[#c96b9a] bg-[#c96b9a] text-white"
                   : "border-[#e9ddc9] bg-white text-[#8a7a6a] hover:text-[#3a2e2a]",
               )}
-              style={{ fontFamily: "var(--font-caveat-notebook)", writingMode: "vertical-rl" }}
+              style={{ fontFamily: "var(--font-caveat-notebook)" }}
             >
               {label}
             </button>

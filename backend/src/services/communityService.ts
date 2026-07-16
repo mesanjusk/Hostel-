@@ -150,10 +150,12 @@ export async function leaveCommunity(userId: string, communityId: string) {
 }
 
 /** Auto-join, run right after onboarding/profile update: joins the student to every
- * community their current profile implies (country, city, college, course, year, plus the
- * fixed global utility communities). Purely additive — never removes a membership the
- * student already has (e.g. an interest community they joined manually), and re-running it
- * after a profile edit (new city, new course) just adds the newly-implied ones. */
+ * community their current profile implies (country, city, college, course, year, plus any
+ * interest communities). The fixed global utility communities (General Discussion, Buy &
+ * Sell, Events, Lost & Found) are deliberately not auto-joined — they stay discoverable and
+ * joinable manually. Purely additive — never removes a membership the student already has
+ * (e.g. an interest community they joined manually), and re-running it after a profile edit
+ * (new city, new course) just adds the newly-implied ones. */
 export async function ensureAutoJoinCommunities(user: AutoJoinableUser) {
   await connectDB();
   const userId = user._id.toString();
@@ -208,23 +210,10 @@ export async function ensureAutoJoinCommunities(user: AutoJoinableUser) {
     }
   }
 
-  const globalCommunities: Array<{ type: CommunityType; name: string; description: string }> = [
-    { type: "general", name: "General Discussion", description: "Campus life, chit-chat, anything goes." },
-    { type: "marketplace", name: "Buy & Sell", description: "Books, electronics, hostel items — buy, sell, exchange, or give away." },
-    { type: "events", name: "Events", description: "Fests, workshops, hackathons, meetups." },
-    { type: "lost_found", name: "Lost & Found", description: "Lost something on campus? Found something? Post it here." },
-  ];
-
-  // Each community below has an independent scopeKey — nothing here depends on another
-  // iteration's result, so these run in parallel instead of one round-trip chain at a time.
-  // ensureCommunity already handles the case where two callers race to create the same
-  // community concurrently (falls back to re-reading what the other one created).
-  await Promise.all(
-    globalCommunities.map(async (g) => {
-      const community = await ensureCommunity(g.type, "global", g.name, { description: g.description });
-      joins.push(joinCommunity(userId, community._id.toString()));
-    }),
-  );
+  // The global utility communities (General Discussion, Buy & Sell, Events, Lost & Found)
+  // are intentionally not auto-joined: they still exist (seeded in
+  // ensureGlobalCommunitiesSeeded) and stay discoverable/joinable manually, but new users
+  // are no longer added to them by default.
 
   await Promise.all(
     (user.interests ?? []).map(async (interest) => {

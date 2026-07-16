@@ -6,6 +6,7 @@ import { ListTodo, Heart, Sparkles, ClipboardList, StickyNote, Wallet as WalletI
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { SuccessBurst } from "@/components/shared/success-burst";
 import { SuitcaseFill, PiggyBankFill } from "@/components/shared/liquid-fill-icons";
 import { StatCard } from "@/components/shared/stat-card";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -15,11 +16,8 @@ import { mergeDashboardLayout, STAT_CARD_IDS, type WidgetConfig } from "@/featur
 import type { ChecklistPriority } from "@/types";
 import type { DashboardDataDTO } from "@/features/dashboard/dashboard-dto";
 
-// Deferred off the dashboard's critical path — lottie-react and recharts together add well
-// over 300kb, too heavy to eagerly ship on the page every user lands on right after login.
-const SuccessLottie = lazy(() =>
-  import("@/components/shared/success-lottie").then((m) => ({ default: m.SuccessLottie })),
-);
+// Deferred off the dashboard's critical path — recharts adds ~94 KB gzip, too heavy to
+// eagerly ship on the page every user lands on right after login.
 const ExpenseMiniChart = lazy(() =>
   import("@/features/dashboard/expense-mini-chart").then((m) => ({ default: m.ExpenseMiniChart })),
 );
@@ -51,9 +49,7 @@ function StatsWidget({ data, visibleStatIds }: { data: DashboardDataDTO; visible
               <SuitcaseFill value={completionPercent} />
               {completionPercent >= 100 && (
                 <div className="pointer-events-none absolute -top-3 -right-3">
-                  <Suspense fallback={null}>
-                    <SuccessLottie size={48} />
-                  </Suspense>
+                  <SuccessBurst size={48} />
                 </div>
               )}
             </div>
