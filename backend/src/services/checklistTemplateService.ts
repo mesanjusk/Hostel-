@@ -4,6 +4,36 @@ import { DefaultChecklistItem } from "@/models/DefaultChecklistItem";
 import { DEFAULT_CHECKLIST_TEMPLATE } from "@/lib/defaultChecklistTemplate";
 import { CHECKLIST_GENDER_OPTIONS } from "@/types";
 
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/** Backfills planType onto rows seeded before the pack-it/plan-it classification existed
+ * (or under an older template revision) — matched by category+title, same as the admin
+ * importer. Only touches rows where planType is still unset, so it never overwrites a
+ * choice made through the admin panel. One bulkWrite round trip regardless of catalog size;
+ * a no-op once every row has been classified. */
+async function backfillPlanTypes(templateId: string) {
+  const ops = DEFAULT_CHECKLIST_TEMPLATE.filter((item) => item.planType).map((item) => ({
+    updateMany: {
+      filter: {
+        templateId,
+        category: item.category,
+        title: { $regex: `^${escapeRegExp(item.item)}$`, $options: "i" },
+        planType: null,
+      },
+      update: { $set: { planType: item.planType } },
+    },
+  }));
+  if (ops.length === 0) return;
+
+  try {
+    await DefaultChecklistItem.bulkWrite(ops, { ordered: false });
+  } catch (error) {
+    console.error(`backfillPlanTypes: bulkWrite failed for template ${templateId}`, error);
+  }
+}
+
 /** Populates a template that has zero DefaultChecklistItem rows with the hardcoded starter
  * checklist, so `findApplicableItems` never comes back empty just because nobody has run the
  * admin taxonomy importer (scripts/seedChecklistTaxonomy.ts) yet. Items are unrestricted
@@ -20,7 +50,10 @@ async function ensureTemplateHasDefaultItems(templateId: string) {
   );
 
   const hasItems = await DefaultChecklistItem.exists({ templateId });
-  if (hasItems) return;
+  if (hasItems) {
+    await backfillPlanTypes(templateId);
+    return;
+  }
 
   const docs = DEFAULT_CHECKLIST_TEMPLATE.map((item, index) => ({
     templateId,
@@ -28,6 +61,7 @@ async function ensureTemplateHasDefaultItems(templateId: string) {
     title: item.item,
     description: item.description ?? "",
     priority: item.priority,
+    planType: item.planType ?? null,
     sortOrder: index,
     isForAllCollegeCategories: true,
     isForAllCourses: true,

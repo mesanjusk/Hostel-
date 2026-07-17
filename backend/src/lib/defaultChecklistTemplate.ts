@@ -1,9 +1,12 @@
-import type { ChecklistCategory, ChecklistPriority } from "@/types";
+import type { ChecklistCategory, ChecklistPlanType, ChecklistPriority } from "@/types";
 
 export interface ChecklistTemplateItem {
   category: ChecklistCategory;
   item: string;
   priority: ChecklistPriority;
+  /** Pack it / Plan it classification — omitted where the source list left it unclassified,
+   * so the item seeds with planType null and the user picks pack or plan themselves. */
+  planType?: ChecklistPlanType;
   description?: string;
 }
 
@@ -14,98 +17,105 @@ export interface ChecklistTemplateItem {
  */
 export const DEFAULT_CHECKLIST_TEMPLATE: ChecklistTemplateItem[] = [
   // Documents
-  { category: "Documents", item: "Admission Documents", priority: "high" },
-  { category: "Documents", item: "ID Proof", priority: "high", description: "Aadhaar, etc." },
+  { category: "Documents", item: "Admission Documents", priority: "high", planType: "pack" },
+  { category: "Documents", item: "ID Proof", priority: "high", planType: "pack", description: "Aadhaar, etc." },
   {
     category: "Documents",
     item: "Passport-Size Photos",
     priority: "high",
+    planType: "pack",
     description: "10-15 copies",
   },
-  { category: "Documents", item: "Fee Receipts", priority: "high" },
-  { category: "Documents", item: "Hostel Allotment Papers", priority: "high" },
-  { category: "Documents", item: "Medical Certificate", priority: "medium", description: "If required" },
+  { category: "Documents", item: "Fee Receipts", priority: "high", planType: "pack" },
+  { category: "Documents", item: "Hostel Allotment Papers", priority: "high", planType: "pack" },
+  { category: "Documents", item: "Medical Certificate", priority: "medium", planType: "pack", description: "If required" },
 
   // Clothes
-  { category: "Clothes", item: "T-Shirts / Tops", priority: "high", description: "Daily wear, 10-12" },
-  { category: "Clothes", item: "Jeans / Pants", priority: "high", description: "4-5" },
-  { category: "Clothes", item: "Shorts / Lowers", priority: "medium", description: "3-4" },
-  { category: "Clothes", item: "Innerwear", priority: "high", description: "10-12 pairs" },
-  { category: "Clothes", item: "Nightwear", priority: "medium", description: "3-4 sets" },
+  { category: "Clothes", item: "T-Shirts / Tops", priority: "high", planType: "pack", description: "Daily wear, 10-12" },
+  { category: "Clothes", item: "Jeans / Pants", priority: "high", planType: "pack", description: "4-5" },
+  { category: "Clothes", item: "Shorts / Lowers", priority: "medium", planType: "pack", description: "3-4" },
+  { category: "Clothes", item: "Innerwear", priority: "high", planType: "pack", description: "10-12 pairs" },
+  { category: "Clothes", item: "Nightwear", priority: "medium", planType: "pack", description: "3-4 sets" },
   {
     category: "Clothes",
     item: "Presentation Outfits",
     priority: "medium",
+    planType: "pack",
     description: "For presentations and college events",
   },
   {
     category: "Clothes",
     item: "Ethnic Wear",
     priority: "medium",
+    planType: "pack",
     description: "2-3 sets, required often at NIFT",
   },
-  { category: "Clothes", item: "Jackets / Hoodies", priority: "medium", description: "2-3" },
+  { category: "Clothes", item: "Jackets / Hoodies", priority: "medium", planType: "pack", description: "2-3" },
 
   // Footwear
-  { category: "Footwear", item: "Daily Sneakers", priority: "high" },
+  { category: "Footwear", item: "Daily Sneakers", priority: "high", planType: "plan" },
   { category: "Footwear", item: "Slippers", priority: "high", description: "Hostel use" },
   { category: "Footwear", item: "Formal Shoes", priority: "medium" },
   { category: "Footwear", item: "Ethnic Footwear", priority: "low" },
 
   // Toiletries
-  { category: "Toiletries", item: "Toothbrush & Toothpaste", priority: "high" },
-  { category: "Toiletries", item: "Face Wash", priority: "high" },
-  { category: "Toiletries", item: "Soap / Body Wash", priority: "high" },
-  { category: "Toiletries", item: "Shampoo & Conditioner", priority: "high" },
-  { category: "Toiletries", item: "Hair Oil / Styling Products", priority: "low" },
-  { category: "Toiletries", item: "Comb / Hairbrush", priority: "medium" },
-  { category: "Toiletries", item: "Trimmer / Razor", priority: "medium" },
-  { category: "Toiletries", item: "Towel", priority: "high", description: "2-3" },
-  { category: "Toiletries", item: "Hand Towel", priority: "low" },
-  { category: "Toiletries", item: "Nail Cutter", priority: "medium" },
-  { category: "Toiletries", item: "Deodorant / Perfume", priority: "medium" },
-  { category: "Toiletries", item: "Sanitary Products", priority: "high" },
+  { category: "Toiletries", item: "Toothbrush & Toothpaste", priority: "high", planType: "pack" },
+  { category: "Toiletries", item: "Face Wash", priority: "high", planType: "pack" },
+  { category: "Toiletries", item: "Soap / Body Wash", priority: "high", planType: "pack" },
+  { category: "Toiletries", item: "Shampoo & Conditioner", priority: "high", planType: "pack" },
+  { category: "Toiletries", item: "Hair Oil / Styling Products", priority: "low", planType: "pack" },
+  { category: "Toiletries", item: "Comb / Hairbrush", priority: "medium", planType: "pack" },
+  { category: "Toiletries", item: "Trimmer / Razor", priority: "medium", planType: "pack" },
+  { category: "Toiletries", item: "Towel", priority: "high", planType: "pack", description: "2-3" },
+  { category: "Toiletries", item: "Hand Towel", priority: "low", planType: "pack" },
+  { category: "Toiletries", item: "Nail Cutter", priority: "medium", planType: "pack" },
+  { category: "Toiletries", item: "Deodorant / Perfume", priority: "medium", planType: "pack" },
+  { category: "Toiletries", item: "Sanitary Products", priority: "high", planType: "pack" },
 
   // Laundry
-  { category: "Laundry", item: "Detergent (Powder/Liquid)", priority: "high" },
+  { category: "Laundry", item: "Detergent (Powder/Liquid)", priority: "high", planType: "plan" },
   {
     category: "Laundry",
     item: "Bucket + Mug",
     priority: "high",
+    planType: "plan",
     description: "Some hostels don't provide these",
   },
-  { category: "Laundry", item: "Cloth Clips", priority: "medium" },
+  { category: "Laundry", item: "Cloth Clips", priority: "medium", planType: "plan" },
   {
     category: "Laundry",
     item: "Foldable Drying Stand",
     priority: "low",
+    planType: "plan",
     description: "Optional but useful",
   },
-  { category: "Laundry", item: "Small Cleaning Brush", priority: "low", description: "For collars/shoes" },
-  { category: "Laundry", item: "Room Cleaning Cloth", priority: "low" },
-  { category: "Laundry", item: "Disinfectant Spray", priority: "medium" },
+  { category: "Laundry", item: "Small Cleaning Brush", priority: "low", planType: "plan", description: "For collars/shoes" },
+  { category: "Laundry", item: "Room Cleaning Cloth", priority: "low", planType: "plan" },
+  { category: "Laundry", item: "Disinfectant Spray", priority: "medium", planType: "plan" },
   {
     category: "Laundry",
     item: "Laundry Bag",
     priority: "medium",
+    planType: "plan",
     description: "Keep dirty clothes separate",
   },
 
   // Kitchen
-  { category: "Kitchen", item: "Water Bottle", priority: "high", description: "1-2" },
+  { category: "Kitchen", item: "Water Bottle", priority: "high", planType: "pack", description: "1-2" },
   { category: "Kitchen", item: "Electric Kettle", priority: "high", description: "Very useful" },
-  { category: "Kitchen", item: "Plate", priority: "medium" },
-  { category: "Kitchen", item: "Bowl", priority: "medium" },
-  { category: "Kitchen", item: "Spoon & Fork", priority: "medium" },
-  { category: "Kitchen", item: "Mug", priority: "medium" },
-  { category: "Kitchen", item: "Airtight Containers", priority: "low", description: "For snacks" },
+  { category: "Kitchen", item: "Plate", priority: "medium", planType: "pack" },
+  { category: "Kitchen", item: "Bowl", priority: "medium", planType: "pack" },
+  { category: "Kitchen", item: "Spoon & Fork", priority: "medium", planType: "pack" },
+  { category: "Kitchen", item: "Mug", priority: "medium", planType: "pack" },
+  { category: "Kitchen", item: "Airtight Containers", priority: "low", planType: "plan", description: "For snacks" },
   {
     category: "Kitchen",
     item: "Instant Food Stash",
     priority: "medium",
+    planType: "plan",
     description: "Maggi / ready-to-eat",
   },
-  { category: "Kitchen", item: "Protein Snacks", priority: "low", description: "For busy days" },
+  { category: "Kitchen", item: "Protein Snacks", priority: "low", planType: "plan", description: "For busy days" },
 
   // Stationery
   { category: "Stationery", item: "Pencils (HB, 2B, 4B, 6B)", priority: "high" },
@@ -139,17 +149,18 @@ export const DEFAULT_CHECKLIST_TEMPLATE: ChecklistTemplateItem[] = [
   { category: "Fashion Design Tools", item: "Measuring Tape", priority: "medium" },
 
   // Electronics
-  { category: "Electronics", item: "Laptop", priority: "high" },
-  { category: "Electronics", item: "Laptop Charger", priority: "high" },
+  { category: "Electronics", item: "Laptop", priority: "high", planType: "pack" },
+  { category: "Electronics", item: "Laptop Charger", priority: "high", planType: "pack" },
   {
     category: "Electronics",
     item: "Extension Board",
     priority: "high",
+    planType: "pack",
     description: "Crucial — limited sockets",
   },
-  { category: "Electronics", item: "Power Bank", priority: "medium" },
-  { category: "Electronics", item: "USB Drive / Hard Disk", priority: "medium" },
-  { category: "Electronics", item: "Headphones / Earbuds", priority: "medium" },
+  { category: "Electronics", item: "Power Bank", priority: "medium", planType: "pack" },
+  { category: "Electronics", item: "USB Drive / Hard Disk", priority: "medium", planType: "pack" },
+  { category: "Electronics", item: "Headphones / Earbuds", priority: "medium", planType: "pack" },
   {
     category: "Electronics",
     item: "Table Lamp",
@@ -158,12 +169,13 @@ export const DEFAULT_CHECKLIST_TEMPLATE: ChecklistTemplateItem[] = [
   },
 
   // Hostel Essentials
-  { category: "Hostel Essentials", item: "Bedsheets", priority: "high", description: "3-4" },
-  { category: "Hostel Essentials", item: "Pillow + Pillow Covers", priority: "high", description: "2-3" },
+  { category: "Hostel Essentials", item: "Bedsheets", priority: "high", planType: "plan", description: "3-4" },
+  { category: "Hostel Essentials", item: "Pillow + Pillow Covers", priority: "high", planType: "plan", description: "2-3" },
   {
     category: "Hostel Essentials",
     item: "Blanket / Comforter",
     priority: "high",
+    planType: "plan",
     description: "Depends on city climate",
   },
   {
@@ -173,11 +185,11 @@ export const DEFAULT_CHECKLIST_TEMPLATE: ChecklistTemplateItem[] = [
     description: "Very important for hygiene",
   },
   { category: "Hostel Essentials", item: "Lightweight Throw / Shawl", priority: "low" },
-  { category: "Hostel Essentials", item: "Storage Boxes", priority: "medium" },
-  { category: "Hostel Essentials", item: "Hangers", priority: "high", description: "10-15 minimum" },
-  { category: "Hostel Essentials", item: "Adhesive Hooks", priority: "low" },
-  { category: "Hostel Essentials", item: "Mirror", priority: "medium", description: "If not provided" },
-  { category: "Hostel Essentials", item: "Bedside Organizer", priority: "medium" },
+  { category: "Hostel Essentials", item: "Storage Boxes", priority: "medium", planType: "plan" },
+  { category: "Hostel Essentials", item: "Hangers", priority: "high", planType: "plan", description: "10-15 minimum" },
+  { category: "Hostel Essentials", item: "Adhesive Hooks", priority: "low", planType: "plan" },
+  { category: "Hostel Essentials", item: "Mirror", priority: "medium", planType: "plan", description: "If not provided" },
+  { category: "Hostel Essentials", item: "Bedside Organizer", priority: "medium", planType: "plan" },
   { category: "Hostel Essentials", item: "Iron", priority: "low", description: "If allowed" },
 
   // Emergency
@@ -187,11 +199,11 @@ export const DEFAULT_CHECKLIST_TEMPLATE: ChecklistTemplateItem[] = [
   { category: "Emergency", item: "Band-Aids", priority: "medium" },
 
   // Medicines
-  { category: "Medicines", item: "Paracetamol", priority: "high" },
-  { category: "Medicines", item: "Cold/Cough Medicine", priority: "medium" },
-  { category: "Medicines", item: "Digestion Tablets", priority: "medium" },
-  { category: "Medicines", item: "ORS Packets", priority: "medium" },
-  { category: "Medicines", item: "Personal Prescriptions", priority: "high" },
+  { category: "Medicines", item: "Paracetamol", priority: "high", planType: "pack" },
+  { category: "Medicines", item: "Cold/Cough Medicine", priority: "medium", planType: "pack" },
+  { category: "Medicines", item: "Digestion Tablets", priority: "medium", planType: "pack" },
+  { category: "Medicines", item: "ORS Packets", priority: "medium", planType: "pack" },
+  { category: "Medicines", item: "Personal Prescriptions", priority: "high", planType: "pack" },
 
   // Miscellaneous
   { category: "Miscellaneous", item: "Earplugs", priority: "low", description: "Hostel noise is real" },

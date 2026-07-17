@@ -10,6 +10,7 @@ import { api, ApiError } from "@/lib/api";
 import { emitRefresh } from "@/lib/refresh-bus";
 import type { ChecklistPlanType } from "@/types";
 import type { ChecklistItemDTO } from "@/features/checklist/checklist-item-dto";
+import type { PlanTypeFilter } from "@/features/checklist/notebook-view";
 
 /** Fades in only during the ancestor page's exit transition — variant state ("enter" /
  * "center" / "exit") propagates down from the flip wrapper in notebook-view.tsx. */
@@ -29,7 +30,7 @@ export function NotebookPage({
   category: string;
   allCategories: string[];
   items: ChecklistItemDTO[];
-  planTypeFilter: ChecklistPlanType;
+  planTypeFilter: PlanTypeFilter;
   onItemsChange: (updater: (prev: ChecklistItemDTO[]) => ChecklistItemDTO[]) => void;
 }) {
   const [detailItem, setDetailItem] = useState<ChecklistItemDTO | null>(null);
@@ -67,13 +68,15 @@ export function NotebookPage({
     }
   }
 
-  // Every item lives under "Pack it" (including anything not yet classified) until the
-  // user explicitly moves it to "Plan it" — so the pack tab is everything minus plan items.
+  // Each tab shows only its own bucket: unclassified items land on "Unsorted" instead of
+  // being folded into Pack it, so the user has to actively choose a side for them.
   const visibleItems =
-    planTypeFilter === "plan" ? items.filter((i) => i.planType === "plan") : items.filter((i) => i.planType !== "plan");
+    planTypeFilter === "unsorted"
+      ? items.filter((i) => i.planType == null)
+      : items.filter((i) => i.planType === planTypeFilter);
   const pending = visibleItems.filter((i) => !i.completed);
   const completed = visibleItems.filter((i) => i.completed);
-  const planTypeLabel = planTypeFilter === "pack" ? "pack it" : "plan it";
+  const planTypeLabel = planTypeFilter === "pack" ? "pack it" : planTypeFilter === "plan" ? "plan it" : "sort";
 
   return (
     <div className="exam-paper relative flex h-full min-h-[70vh] flex-col overflow-hidden rounded-[20px] border border-[#e9ddc9] p-5 shadow-[0_2px_14px_rgba(58,46,42,0.14)] sm:min-h-[560px] sm:p-8 lg:min-h-[calc(100dvh-230px)] lg:p-10">

@@ -101,6 +101,7 @@ async function main() {
 
   let imported = 0;
   let skipped = 0;
+  let planTypeBackfilled = 0;
   for (const [index, templateItem] of DEFAULT_CHECKLIST_TEMPLATE.entries()) {
     const isDesignOnly = templateItem.category === DESIGN_ONLY_CATEGORY;
 
@@ -108,9 +109,16 @@ async function main() {
       templateId: template._id,
       category: templateItem.category,
       title: { $regex: `^${escapeRegExp(templateItem.item)}$`, $options: "i" },
-    }).lean();
+    });
     if (existing) {
       skipped += 1;
+      // Only backfill planType for items an admin never classified — never overwrite a
+      // manual choice made through the admin panel.
+      if (existing.planType == null && templateItem.planType) {
+        existing.planType = templateItem.planType;
+        await existing.save();
+        planTypeBackfilled += 1;
+      }
       continue;
     }
 
@@ -120,6 +128,7 @@ async function main() {
       title: templateItem.item,
       description: templateItem.description ?? "",
       priority: templateItem.priority,
+      planType: templateItem.planType ?? null,
       sortOrder: index,
       applicableCollegeCategories: isDesignOnly && designCategoryId ? [designCategoryId] : [],
       applicableCourses: isDesignOnly && fashionDesignCourseId ? [fashionDesignCourseId] : [],
@@ -131,7 +140,9 @@ async function main() {
     imported += 1;
   }
 
-  console.log(`  Imported ${imported} default items, skipped ${skipped} already present.`);
+  console.log(
+    `  Imported ${imported} default items, skipped ${skipped} already present (${planTypeBackfilled} of those backfilled with a planType).`,
+  );
   console.log("Done. Legacy ChecklistItem / DEFAULT_CHECKLIST_TEMPLATE are untouched.");
 
   await mongoose.disconnect();
