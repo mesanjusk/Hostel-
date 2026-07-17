@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 
 import { Product } from "@/models/Product";
 import { GuideArticle } from "@/models/GuideArticle";
+import type { DEFAULT_CHECKLIST_CATEGORIES } from "@/types";
 
 const guideArticles = [
   {
@@ -275,7 +276,7 @@ const guideArticles = [
   },
 ];
 
-const products = [
+const curatedProducts = [
   {
     name: "Compact Study Table Lamp",
     category: "Hostel Essentials" as const,
@@ -393,6 +394,117 @@ const products = [
     },
     featured: true,
   },
+];
+
+type ProductCategory = (typeof DEFAULT_CHECKLIST_CATEGORIES)[number];
+
+/** Bare-minimum starter entry for a hostel packing-list item, pointing at an Amazon *search*
+ * (not a specific listing) — price/rating are rough, uneditorialized placeholders so the
+ * shopping page has something to show; admins should curate real listings, prices, and
+ * pros/cons for these from the admin Products page over time. */
+function starterProduct(name: string, category: ProductCategory, price: number, amazonSearchUrl: string) {
+  return {
+    name,
+    category,
+    store: "Amazon",
+    price,
+    discountPercent: 0,
+    rating: 4,
+    pros: ["Widely available — a reasonable everyday pick for hostel life"],
+    cons: ["This is an Amazon search link, not a specific listing — compare brand, price, and reviews before buying"],
+    buyLinks: { amazon: amazonSearchUrl },
+    featured: false,
+  };
+}
+
+// [name, category, estimated price (INR), Amazon search URL]
+const starterShoppingItems: Array<[string, ProductCategory, number, string]> = [
+  ["Laptop", "Electronics", 35999, "https://www.amazon.in/s?k=laptop"],
+  ["Laptop Charger", "Electronics", 999, "https://www.amazon.in/s?k=laptop+charger"],
+  ["USB Drive", "Electronics", 399, "https://www.amazon.in/s?k=usb+flash+drive"],
+  ["External Hard Disk", "Electronics", 3499, "https://www.amazon.in/s?k=external+hard+disk"],
+  ["Headphones / Earbuds", "Electronics", 1299, "https://www.amazon.in/s?k=wireless+earbuds"],
+  ["Table Lamp", "Hostel Essentials", 599, "https://www.amazon.in/s?k=study+table+lamp"],
+  ["Extension Board", "Electronics", 549, "https://www.amazon.in/s?k=extension+board"],
+  ["Power Bank", "Electronics", 999, "https://www.amazon.in/s?k=power+bank"],
+  ["Toothbrush", "Toiletries", 49, "https://www.amazon.in/s?k=toothbrush"],
+  ["Toothpaste", "Toiletries", 99, "https://www.amazon.in/s?k=toothpaste"],
+  ["Face Wash", "Toiletries", 199, "https://www.amazon.in/s?k=face+wash"],
+  ["Soap / Body Wash", "Toiletries", 149, "https://www.amazon.in/s?k=body+wash"],
+  ["Shampoo", "Toiletries", 199, "https://www.amazon.in/s?k=shampoo"],
+  ["Conditioner", "Toiletries", 199, "https://www.amazon.in/s?k=conditioner"],
+  ["Hair Oil", "Toiletries", 149, "https://www.amazon.in/s?k=hair+oil"],
+  ["Comb", "Toiletries", 49, "https://www.amazon.in/s?k=comb"],
+  ["Hair Brush", "Toiletries", 199, "https://www.amazon.in/s?k=hair+brush"],
+  ["Trimmer", "Electronics", 799, "https://www.amazon.in/s?k=trimmer"],
+  ["Razor", "Toiletries", 149, "https://www.amazon.in/s?k=razor"],
+  ["Towel", "Toiletries", 349, "https://www.amazon.in/s?k=bath+towel"],
+  ["Hand Towel", "Toiletries", 149, "https://www.amazon.in/s?k=hand+towel"],
+  ["Nail Cutter", "Toiletries", 99, "https://www.amazon.in/s?k=nail+cutter"],
+  ["Deodorant", "Toiletries", 199, "https://www.amazon.in/s?k=deodorant"],
+  ["Perfume", "Toiletries", 499, "https://www.amazon.in/s?k=perfume"],
+  ["Sanitary Pads", "Toiletries", 199, "https://www.amazon.in/s?k=sanitary+pads"],
+  ["Laundry Bag", "Laundry", 249, "https://www.amazon.in/s?k=laundry+bag"],
+  ["Detergent", "Laundry", 199, "https://www.amazon.in/s?k=laundry+detergent"],
+  ["Bucket", "Toiletries", 249, "https://www.amazon.in/s?k=plastic+bucket"],
+  ["Mug", "Toiletries", 79, "https://www.amazon.in/s?k=plastic+mug"],
+  ["Cloth Clips", "Laundry", 99, "https://www.amazon.in/s?k=cloth+clips"],
+  ["Foldable Drying Stand", "Laundry", 899, "https://www.amazon.in/s?k=foldable+clothes+drying+stand"],
+  ["Disinfectant Spray", "Hostel Essentials", 199, "https://www.amazon.in/s?k=disinfectant+spray"],
+  ["Water Bottle", "Hostel Essentials", 299, "https://www.amazon.in/s?k=water+bottle"],
+  ["Electric Kettle", "Kitchen", 799, "https://www.amazon.in/s?k=electric+kettle"],
+  ["Bowl", "Kitchen", 299, "https://www.amazon.in/s?k=stainless+steel+bowl"],
+  ["Spoon & Fork Set", "Kitchen", 249, "https://www.amazon.in/s?k=spoon+fork+set"],
+  ["Airtight Containers", "Kitchen", 499, "https://www.amazon.in/s?k=airtight+food+containers"],
+  ["Plate", "Kitchen", 249, "https://www.amazon.in/s?k=stainless+steel+plate"],
+  ["Bedsheets", "Hostel Essentials", 599, "https://www.amazon.in/s?k=single+bed+bedsheet"],
+  ["Pillow", "Hostel Essentials", 399, "https://www.amazon.in/s?k=pillow"],
+  ["Pillow Covers", "Hostel Essentials", 199, "https://www.amazon.in/s?k=pillow+covers"],
+  ["Blanket", "Hostel Essentials", 899, "https://www.amazon.in/s?k=blanket"],
+  ["Comforter", "Hostel Essentials", 1499, "https://www.amazon.in/s?k=comforter"],
+  ["Mattress Protector", "Hostel Essentials", 599, "https://www.amazon.in/s?k=mattress+protector+single+bed"],
+  ["Storage Boxes", "Hostel Essentials", 499, "https://www.amazon.in/s?k=storage+box"],
+  ["Hangers", "Hostel Essentials", 199, "https://www.amazon.in/s?k=clothes+hangers"],
+  ["Adhesive Hooks", "Hostel Essentials", 149, "https://www.amazon.in/s?k=adhesive+wall+hooks"],
+  ["Mirror", "Hostel Essentials", 299, "https://www.amazon.in/s?k=table+mirror"],
+  ["Bedside Organizer", "Hostel Essentials", 349, "https://www.amazon.in/s?k=bedside+organizer"],
+  ["Iron", "Electronics", 899, "https://www.amazon.in/s?k=travel+steam+iron"],
+  ["Sketchbook A3", "Fashion Design Tools", 349, "https://www.amazon.in/s?k=a3+sketchbook"],
+  ["Sketchbook A4", "Fashion Design Tools", 199, "https://www.amazon.in/s?k=a4+sketchbook"],
+  ["Drawing Sheets", "Fashion Design Tools", 249, "https://www.amazon.in/s?k=drawing+sheets"],
+  ["Color Pencils", "Fashion Design Tools", 199, "https://www.amazon.in/s?k=color+pencils"],
+  ["Watercolors", "Fashion Design Tools", 299, "https://www.amazon.in/s?k=watercolor+set"],
+  ["Poster Colors", "Fashion Design Tools", 249, "https://www.amazon.in/s?k=poster+colors"],
+  ["Paint Brushes", "Fashion Design Tools", 349, "https://www.amazon.in/s?k=artist+paint+brush+set"],
+  ["Cutting Mat", "Fashion Design Tools", 599, "https://www.amazon.in/s?k=a3+cutting+mat"],
+  ["Portfolio File", "Fashion Design Tools", 499, "https://www.amazon.in/s?k=portfolio+file"],
+  ["Submission Folder", "Fashion Design Tools", 299, "https://www.amazon.in/s?k=presentation+folder"],
+  ["Sewing Kit", "Fashion Design Tools", 299, "https://www.amazon.in/s?k=sewing+kit"],
+  ["Measuring Tape", "Fashion Design Tools", 99, "https://www.amazon.in/s?k=tailor+measuring+tape"],
+  ["Scale", "Fashion Design Tools", 49, "https://www.amazon.in/s?k=30cm+scale"],
+  ["Cutter", "Fashion Design Tools", 149, "https://www.amazon.in/s?k=paper+cutter"],
+  ["Scissors", "Fashion Design Tools", 99, "https://www.amazon.in/s?k=craft+scissors"],
+  ["Glue / Fevicol", "Fashion Design Tools", 49, "https://www.amazon.in/s?k=fevicol"],
+  ["Fineliner Pens", "Fashion Design Tools", 349, "https://www.amazon.in/s?k=fineliner+pens"],
+  ["Pencils", "Fashion Design Tools", 199, "https://www.amazon.in/s?k=drawing+pencils+set"],
+  ["Eraser", "Fashion Design Tools", 29, "https://www.amazon.in/s?k=eraser"],
+  ["Sharpener", "Fashion Design Tools", 49, "https://www.amazon.in/s?k=pencil+sharpener"],
+  ["First Aid Kit", "Medicines", 399, "https://www.amazon.in/s?k=first+aid+kit"],
+  ["Band-Aids", "Medicines", 49, "https://www.amazon.in/s?k=band+aid"],
+  ["Small Lock", "Hostel Essentials", 199, "https://www.amazon.in/s?k=padlock"],
+  ["Extra Lock", "Hostel Essentials", 199, "https://www.amazon.in/s?k=padlock"],
+  ["Umbrella", "Miscellaneous", 399, "https://www.amazon.in/s?k=compact+umbrella"],
+  ["Daily Backpack", "Miscellaneous", 999, "https://www.amazon.in/s?k=college+backpack"],
+  ["Journal", "Stationery", 199, "https://www.amazon.in/s?k=journal+notebook"],
+  ["Eye Mask", "Hostel Essentials", 149, "https://www.amazon.in/s?k=sleep+eye+mask"],
+  ["Earplugs", "Hostel Essentials", 99, "https://www.amazon.in/s?k=earplugs"],
+];
+
+const products = [
+  ...curatedProducts,
+  ...starterShoppingItems.map(([name, category, price, amazonSearchUrl]) =>
+    starterProduct(name, category, price, amazonSearchUrl),
+  ),
 ];
 
 async function seed() {
