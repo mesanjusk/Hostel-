@@ -84,5 +84,5 @@ export default function ChecklistPage() {
     return <ChecklistOverview groups={groups} overall={overall} initialBulkEdit={bulkEdit === "1"} />;
   }
 
-  return <NotebookView groups={groups} overall={overall} allCategories={allCategories} />;
+  return <NotebookView groups={groups} allCategories={allCategories} />;
 }
