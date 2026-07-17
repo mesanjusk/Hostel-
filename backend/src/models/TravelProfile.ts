@@ -16,7 +16,7 @@ const TravelProfileSchema = new Schema(
   {
     userId: { type: Schema.Types.ObjectId, ref: "User", required: true, unique: true, index: true },
 
-    currentCity: { type: String, required: true, trim: true, maxlength: 80, index: true },
+    currentCity: { type: String, default: null, trim: true, maxlength: 80, index: true },
     destinationCity: { type: String, required: true, trim: true, maxlength: 80, index: true },
 
     college: { type: String, default: null, trim: true, maxlength: 120 },

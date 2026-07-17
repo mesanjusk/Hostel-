@@ -7,7 +7,6 @@ import { z } from "zod";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -25,10 +24,11 @@ const budgetField = (message: string) =>
 
 const travelProfileSchema = z
   .object({
-    currentCity: z.string().trim().min(1, "Enter your current city").max(80),
+    // Not required — only destination city, budget, accommodation type and gender preference
+    // are hard requirements for roommate matching (see findRoommates).
+    currentCity: z.string().trim().max(80).optional(),
     destinationCity: z.string().trim().min(1, "Enter your destination city").max(80),
     college: z.string().trim().max(120).optional(),
-    // Required — roommate matching won't show anyone without these (see findRoommates).
     budgetMin: budgetField("Enter your minimum budget"),
     budgetMax: budgetField("Enter your maximum budget"),
     // Both default to "Any", so neither can actually arrive empty — these guard against a
@@ -37,11 +37,7 @@ const travelProfileSchema = z
     genderPreference: z.string().trim().min(1, "Pick a gender preference"),
     ageRangeMin: z.coerce.number().min(16).max(100).optional(),
     ageRangeMax: z.coerce.number().min(16).max(100).optional(),
-    interests: z.array(z.string()).optional(),
-    languages: z.array(z.string()).optional(),
-    lifestyleTags: z.array(z.string()).optional(),
     hideProfile: z.boolean(),
-    onlyShowVerified: z.boolean(),
     onlyShowSameGender: z.boolean(),
   })
   .refine((v) => v.budgetMax >= v.budgetMin, {
@@ -50,10 +46,6 @@ const travelProfileSchema = z
   });
 
 type FormInput = z.infer<typeof travelProfileSchema>;
-
-function toLines(value: string) {
-  return value.split(",").map((v) => v.trim()).filter(Boolean);
-}
 
 /** @param divided - Draws a rule above the heading. Skip it on the first section, where there's
  * nothing to divide from. */
@@ -82,11 +74,7 @@ function buildDefaults(profile: TravelProfileDTO | null): DefaultValues<FormInpu
     genderPreference: profile?.genderPreference ?? "Any",
     ageRangeMin: profile?.ageRangeMin ?? undefined,
     ageRangeMax: profile?.ageRangeMax ?? undefined,
-    interests: profile?.interests ?? [],
-    languages: profile?.languages ?? [],
-    lifestyleTags: profile?.lifestyleTags ?? [],
     hideProfile: profile?.visibility.hideProfile ?? false,
-    onlyShowVerified: profile?.visibility.onlyShowVerified ?? false,
     onlyShowSameGender: profile?.visibility.onlyShowSameGender ?? false,
   };
 }
@@ -137,7 +125,6 @@ function TravelProfileFields({
         ...values,
         visibility: {
           hideProfile: values.hideProfile,
-          onlyShowVerified: values.onlyShowVerified,
           onlyShowSameGender: values.onlyShowSameGender,
         },
       });
@@ -153,7 +140,7 @@ function TravelProfileFields({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>My travel profile</CardTitle>
+        <CardTitle>My profile</CardTitle>
       </CardHeader>
       <CardContent>
         <Form {...form}>
@@ -163,34 +150,19 @@ function TravelProfileFields({
               hint="Roomie matching only suggests people you line up with on every one of these."
             />
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              <FormField
-                control={form.control}
-                name="currentCity"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Current city</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Nagpur" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="destinationCity"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Destination city</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Pune" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
+            <FormField
+              control={form.control}
+              name="destinationCity"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Destination city</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Pune" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             <div className="grid gap-4 sm:grid-cols-2">
               <FormField
@@ -280,19 +252,34 @@ function TravelProfileFields({
               divided
             />
 
-            <FormField
-              control={form.control}
-              name="college"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>College</FormLabel>
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="grid gap-4 sm:grid-cols-2">
+              <FormField
+                control={form.control}
+                name="currentCity"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Current city</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Nagpur" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="college"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>College</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
               <FormField
@@ -321,57 +308,6 @@ function TravelProfileFields({
               />
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-3">
-              <FormField
-                control={form.control}
-                name="interests"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Interests (comma-separated)</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        rows={2}
-                        value={field.value?.join(", ") ?? ""}
-                        onChange={(e) => field.onChange(toLines(e.target.value))}
-                      />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="languages"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Languages</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        rows={2}
-                        value={field.value?.join(", ") ?? ""}
-                        onChange={(e) => field.onChange(toLines(e.target.value))}
-                      />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="lifestyleTags"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Lifestyle tags</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        rows={2}
-                        value={field.value?.join(", ") ?? ""}
-                        onChange={(e) => field.onChange(toLines(e.target.value))}
-                      />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
-            </div>
-
             <SectionHeading
               title="Privacy"
               hint="Who gets to see your profile in Find a Roomie and Discover."
@@ -392,22 +328,10 @@ function TravelProfileFields({
               />
               <FormField
                 control={form.control}
-                name="onlyShowVerified"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-center justify-between rounded-xl border border-border/60 px-4 py-3">
-                    <FormLabel>Only show my profile to verified users</FormLabel>
-                    <FormControl>
-                      <Switch checked={field.value} onCheckedChange={field.onChange} />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
                 name="onlyShowSameGender"
                 render={({ field }) => (
                   <FormItem className="flex flex-row items-center justify-between rounded-xl border border-border/60 px-4 py-3">
-                    <FormLabel>Only show my profile to my own gender</FormLabel>
+                    <FormLabel>Only show my profile to same gender</FormLabel>
                     <FormControl>
                       <Switch checked={field.value} onCheckedChange={field.onChange} />
                     </FormControl>

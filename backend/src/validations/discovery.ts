@@ -4,7 +4,7 @@ import { ACCOMMODATION_TYPES, DISCOVERY_CONTEXTS, GENDER_OPTIONS } from "@/types
 
 export const travelProfileSchema = z
   .object({
-    currentCity: z.string().trim().min(1, "Enter your current city").max(80),
+    currentCity: z.string().trim().max(80).optional().nullable(),
     destinationCity: z.string().trim().min(1, "Enter your destination city").max(80),
     college: z.string().trim().max(120).optional().nullable(),
     // Budget, accommodation type and gender preference are mandatory: roommate matching treats
