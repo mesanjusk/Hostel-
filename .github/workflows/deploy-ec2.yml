@@ -13,45 +13,49 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      # EC2_SSH_KEY_B64 is the private key, base64-encoded to one line — plain
-      # multi-line key secrets kept getting mangled in transit (missing/duplicated
-      # lines), which ssh-action reported as "no key found".
+      # Deliberately not using a third-party Docker-based ssh action here: those run in
+      # their own container, which only mounts the workspace/temp dirs — not /tmp — so a
+      # key file written in an earlier step is invisible to it. Plain ssh on the runner
+      # itself avoids that entirely.
+      #
+      # EC2_SSH_KEY_B64 is the private key, base64-encoded to one line — a plain
+      # multi-line key secret kept getting mangled in transit (missing/duplicated lines).
       - name: Decode deploy key
         run: |
-          echo "${{ secrets.EC2_SSH_KEY_B64 }}" | base64 -d > /tmp/deploy_key
+          echo "${{ secrets.EC2_SSH_KEY_B64 }}" | base64 -d -i > /tmp/deploy_key
           chmod 600 /tmp/deploy_key
+          ssh-keygen -y -f /tmp/deploy_key > /dev/null || {
+            echo "::error::Decoded EC2_SSH_KEY_B64 is not a valid private key — re-copy 'base64 -w0 ~/.ssh/gha_deploy' on the box and update the secret."
+            exit 1
+          }
 
       - name: Deploy over SSH
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USER }}
-          key_path: /tmp/deploy_key
-          script_stop: true
-          script: |
-            set -euo pipefail
-            # 1GB box: tsc/vite OOM under the default V8 heap without this.
-            export NODE_OPTIONS=--max-old-space-size=1536
+        run: |
+          ssh -o StrictHostKeyChecking=accept-new -i /tmp/deploy_key "${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}" bash -s <<'REMOTE'
+          set -euo pipefail
+          # 1GB box: tsc/vite OOM under the default V8 heap without this.
+          export NODE_OPTIONS=--max-old-space-size=1536
 
-            cd ~/hostel-git
-            git fetch origin main
-            git reset --hard origin/main
+          cd ~/hostel-git
+          git fetch origin main
+          git reset --hard origin/main
 
-            cd ~/hostel-git/backend
-            npm ci --no-audit --no-fund
-            npm run build
+          cd ~/hostel-git/backend
+          npm ci --no-audit --no-fund
+          npm run build
 
-            cd ~/hostel-git/frontend
-            npm ci --no-audit --no-fund
-            npm run build
+          cd ~/hostel-git/frontend
+          npm ci --no-audit --no-fund
+          npm run build
 
-            sudo mkdir -p /var/www/hostel/dist
-            sudo rm -rf /var/www/hostel/dist/*
-            sudo cp -r dist/. /var/www/hostel/dist/
+          sudo mkdir -p /var/www/hostel/dist
+          sudo rm -rf /var/www/hostel/dist/*
+          sudo cp -r dist/. /var/www/hostel/dist/
 
-            cd ~/hostel-git/backend
-            pm2 restart hostel-api --update-env || pm2 start dist/index.js --name hostel-api --time
-            pm2 save
+          cd ~/hostel-git/backend
+          pm2 restart hostel-api --update-env || pm2 start dist/index.js --name hostel-api --time
+          pm2 save
 
-            sudo nginx -t
-            sudo systemctl reload nginx
+          sudo nginx -t
+          sudo systemctl reload nginx
+          REMOTE
