@@ -44,6 +44,15 @@ jobs:
           npm ci --no-audit --no-fund
           npm run build
 
+          # Both scripts upsert by a stable key (name+store / city+name) and touch only their
+          # own collection, so they're safe to re-run on every deploy — unlike `npm run seed`,
+          # which also overwrites Guide article content and would stomp an admin's edits if it
+          # ran unattended like this. Without this step, a fresh production database never gets
+          # products/places at all: nothing else runs these after a deploy. See ensureCitiesSeeded
+          # in cityService.ts for the same gap already fixed for the City collection.
+          npm run seed:products
+          npm run seed:places
+
           cd ~/hostel-git/frontend
           npm ci --no-audit --no-fund
           npm run build
