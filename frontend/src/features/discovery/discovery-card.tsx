@@ -54,18 +54,28 @@ export function DiscoveryCard({ card, context }: { card: DiscoveryCardDTO; conte
           <MapPin className="size-3" />
           {card.currentCity} → {card.destinationCity}
         </span>
-        {card.arrivalDate ? (
-          <span className="flex items-center gap-1">
-            <Calendar className="size-3" />
-            {new Date(card.arrivalDate).toLocaleDateString()}
-          </span>
-        ) : (
-          <span className="flex items-center gap-1">
-            <Calendar className="size-3" />
-            {card.travelMonth}
+        {/* Dates are a co-packer concern: that match is built on travelling together, so when
+            someone arrives is the point. Roommate matching ignores travel month and arrival
+            date entirely, so showing them here would only invite a judgement the match didn't
+            make. */}
+        {context === "co_packer" &&
+          (card.arrivalDate ? (
+            <span className="flex items-center gap-1">
+              <Calendar className="size-3" />
+              {new Date(card.arrivalDate).toLocaleDateString()}
+            </span>
+          ) : (
+            <span className="flex items-center gap-1">
+              <Calendar className="size-3" />
+              {card.travelMonth}
+            </span>
+          ))}
+        {card.accommodationType && <Badge variant="outline">{card.accommodationType}</Badge>}
+        {context === "roommate" && card.budgetMin != null && card.budgetMax != null && (
+          <span>
+            ₹{card.budgetMin.toLocaleString("en-IN")}–{card.budgetMax.toLocaleString("en-IN")}/mo
           </span>
         )}
-        {card.accommodationType && <Badge variant="outline">{card.accommodationType}</Badge>}
       </div>
 
       {(card.interests.length > 0 || card.languages.length > 0 || card.lifestyleTags.length > 0) && (

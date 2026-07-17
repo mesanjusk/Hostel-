@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useForm, type Resolver } from "react-hook-form";
+import { useForm, type DefaultValues, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -16,27 +16,38 @@ import { api, ApiError } from "@/lib/api";
 import { ACCOMMODATION_TYPES, GENDER_OPTIONS } from "@/types";
 import { toTravelProfileDTO, type TravelProfileDTO, type TravelProfileRaw } from "@/features/discovery/discovery-dto";
 
-const NONE = "__none__";
+/** A required rupee amount. `z.coerce.number()` alone won't do: an empty input arrives as "",
+ * and Number("") is 0 — so a student who skipped the field would silently be saved as
+ * budgeting ₹0 rather than being asked for it. Mapping blank to undefined first keeps a
+ * deliberate 0 valid while still catching the empty case. */
+const budgetField = (message: string) =>
+  z.preprocess((v) => (v === "" || v == null ? undefined : Number(v)), z.number({ error: message }).min(0, message));
 
-const travelProfileSchema = z.object({
-  currentCity: z.string().trim().min(1, "Enter your current city").max(80),
-  destinationCity: z.string().trim().min(1, "Enter your destination city").max(80),
-  travelMonth: z.string().trim().regex(/^\d{4}-\d{2}$/, "Pick a month"),
-  arrivalDate: z.string().optional(),
-  college: z.string().trim().max(120).optional(),
-  budgetMin: z.coerce.number().min(0).optional(),
-  budgetMax: z.coerce.number().min(0).optional(),
-  accommodationType: z.string().optional(),
-  genderPreference: z.string().optional(),
-  ageRangeMin: z.coerce.number().min(16).max(100).optional(),
-  ageRangeMax: z.coerce.number().min(16).max(100).optional(),
-  interests: z.array(z.string()).optional(),
-  languages: z.array(z.string()).optional(),
-  lifestyleTags: z.array(z.string()).optional(),
-  hideProfile: z.boolean(),
-  onlyShowVerified: z.boolean(),
-  onlyShowSameGender: z.boolean(),
-});
+const travelProfileSchema = z
+  .object({
+    currentCity: z.string().trim().min(1, "Enter your current city").max(80),
+    destinationCity: z.string().trim().min(1, "Enter your destination city").max(80),
+    travelMonth: z.string().trim().regex(/^\d{4}-\d{2}$/, "Pick a month"),
+    arrivalDate: z.string().optional(),
+    college: z.string().trim().max(120).optional(),
+    // Required — roommate matching won't show anyone without these (see findRoommates).
+    budgetMin: budgetField("Enter your minimum budget"),
+    budgetMax: budgetField("Enter your maximum budget"),
+    accommodationType: z.string().trim().min(1, "Pick an accommodation type"),
+    genderPreference: z.string().trim().min(1, "Pick a gender preference"),
+    ageRangeMin: z.coerce.number().min(16).max(100).optional(),
+    ageRangeMax: z.coerce.number().min(16).max(100).optional(),
+    interests: z.array(z.string()).optional(),
+    languages: z.array(z.string()).optional(),
+    lifestyleTags: z.array(z.string()).optional(),
+    hideProfile: z.boolean(),
+    onlyShowVerified: z.boolean(),
+    onlyShowSameGender: z.boolean(),
+  })
+  .refine((v) => v.budgetMax >= v.budgetMin, {
+    message: "Max budget can't be less than the minimum",
+    path: ["budgetMax"],
+  });
 
 type FormInput = z.infer<typeof travelProfileSchema>;
 
@@ -57,7 +68,10 @@ export function TravelProfileForm({ onSaved }: { onSaved?: (profile: TravelProfi
       .finally(() => setLoaded(true));
   }, []);
 
-  function buildDefaults(): FormInput {
+  /** DefaultValues, not FormInput: budget is required in the parsed output, but a profile that
+   * hasn't set one has to start the field *empty* so the student is asked for it — seeding 0
+   * would both look like an answer and quietly pass validation. */
+  function buildDefaults(): DefaultValues<FormInput> {
     return {
       currentCity: profile?.currentCity ?? "",
       destinationCity: profile?.destinationCity ?? "",
@@ -66,7 +80,9 @@ export function TravelProfileForm({ onSaved }: { onSaved?: (profile: TravelProfi
       college: profile?.college ?? "",
       budgetMin: profile?.budgetMin ?? undefined,
       budgetMax: profile?.budgetMax ?? undefined,
-      accommodationType: profile?.accommodationType ?? NONE,
+      // Empty rather than a sentinel: accommodation type is required now, so an unset one has
+      // to fail validation and show the placeholder, not quietly mean "Any".
+      accommodationType: profile?.accommodationType ?? "",
       genderPreference: profile?.genderPreference ?? "Any",
       ageRangeMin: profile?.ageRangeMin ?? undefined,
       ageRangeMax: profile?.ageRangeMax ?? undefined,
@@ -94,7 +110,6 @@ export function TravelProfileForm({ onSaved }: { onSaved?: (profile: TravelProfi
     try {
       const { profile: saved } = await api.put<{ profile: TravelProfileRaw }>("/api/discovery/profile", {
         ...values,
-        accommodationType: values.accommodationType === NONE ? null : values.accommodationType,
         visibility: {
           hideProfile: values.hideProfile,
           onlyShowVerified: values.onlyShowVerified,
@@ -170,7 +185,9 @@ export function TravelProfileForm({ onSaved }: { onSaved?: (profile: TravelProfi
                 name="arrivalDate"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Arrival date (for roommate matching)</FormLabel>
+                    {/* No longer "for roommate matching" — roomie matching ignores dates
+                        entirely now. It only shows on your Co-Packer card. */}
+                    <FormLabel>Arrival date (optional)</FormLabel>
                     <FormControl>
                       <Input type="date" {...field} />
                     </FormControl>
@@ -204,6 +221,7 @@ export function TravelProfileForm({ onSaved }: { onSaved?: (profile: TravelProfi
                     <FormControl>
                       <Input type="number" {...field} value={field.value ?? ""} />
                     </FormControl>
+                    <FormMessage />
                   </FormItem>
                 )}
               />
@@ -216,6 +234,7 @@ export function TravelProfileForm({ onSaved }: { onSaved?: (profile: TravelProfi
                     <FormControl>
                       <Input type="number" {...field} value={field.value ?? ""} />
                     </FormControl>
+                    <FormMessage />
                   </FormItem>
                 )}
               />
@@ -228,11 +247,10 @@ export function TravelProfileForm({ onSaved }: { onSaved?: (profile: TravelProfi
                     <Select value={field.value} onValueChange={field.onChange}>
                       <FormControl>
                         <SelectTrigger className="w-full">
-                          <SelectValue />
+                          <SelectValue placeholder="Pick one" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value={NONE}>Any</SelectItem>
                         {ACCOMMODATION_TYPES.map((t) => (
                           <SelectItem key={t} value={t}>
                             {t}
@@ -240,6 +258,7 @@ export function TravelProfileForm({ onSaved }: { onSaved?: (profile: TravelProfi
                         ))}
                       </SelectContent>
                     </Select>
+                    <FormMessage />
                   </FormItem>
                 )}
               />
