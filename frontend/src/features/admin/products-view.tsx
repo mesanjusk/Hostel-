@@ -17,6 +17,7 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { PageHeader } from "@/components/shared/page-header";
 import { ProductFormDialog } from "@/features/admin/product-form-dialog";
+import { BulkAddProductsDialog } from "@/features/admin/bulk-add-products-dialog";
 import { api, ApiError } from "@/lib/api";
 import { emitRefresh } from "@/lib/refresh-bus";
 import type { AdminProductDTO } from "@/features/admin/product-dto";
@@ -39,7 +40,12 @@ export function ProductsView({ products: initialProducts }: { products: AdminPro
       <PageHeader
         title="Products"
         description="Shopping recommendations shown to students"
-        action={<ProductFormDialog products={products} />}
+        action={
+          <div className="flex gap-2">
+            <BulkAddProductsDialog />
+            <ProductFormDialog products={products} />
+          </div>
+        }
       />
 
       {products.length === 0 ? (

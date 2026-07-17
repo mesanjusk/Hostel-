@@ -29,6 +29,12 @@ export const productUpdateSchema = productSchema.partial().extend({
   id: z.string().min(1),
 });
 
+// Admin "bulk add" (CSV import) — same shape as a single product, just many at once.
+export const bulkImportProductsSchema = z.object({
+  products: z.array(productSchema).min(1).max(500),
+});
+export type BulkImportProductsInput = z.infer<typeof bulkImportProductsSchema>;
+
 export const guideArticleSchema = z.object({
   title: z.string().trim().min(1).max(150),
   slug: z
