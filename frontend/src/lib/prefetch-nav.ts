@@ -62,18 +62,35 @@ export function prefetchNavDestinations(visibleHrefs: string[]) {
     ...ALWAYS_PREFETCH,
   ];
 
-  const run = () => {
+  const run = async () => {
+    // Chunk warming can happen all at once — hashed assets come from the CDN (and the
+    // service worker's cache on repeat visits), so it never competes with the API.
     for (const target of targets) {
       target.page().catch(() => {});
+    }
+    // Data warming is strictly one request at a time. Firing a dozen authenticated GETs in
+    // parallel contended with the requests the current page actually needs — on a small
+    // single-instance backend they queue server-side, so the user-visible fetches were
+    // waiting behind speculative ones.
+    for (const target of targets) {
       for (const path of target.data ?? []) {
-        api.get(path).catch(() => {});
+        try {
+          await api.get(path);
+        } catch {
+          // Best-effort warm-up — never surface an error for a page the user hasn't opened.
+        }
       }
     }
   };
 
-  if (typeof window.requestIdleCallback === "function") {
-    window.requestIdleCallback(run);
-  } else {
-    setTimeout(run, 1500);
-  }
+  // Idle isn't enough on its own: the main thread goes idle long before the page's own API
+  // calls (seconds on this backend) have finished, so a flat delay keeps the warm-up out of
+  // the window where it can slow down what the user is actually looking at.
+  setTimeout(() => {
+    if (typeof window.requestIdleCallback === "function") {
+      window.requestIdleCallback(() => void run());
+    } else {
+      void run();
+    }
+  }, 4000);
 }

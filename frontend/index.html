@@ -14,6 +14,10 @@
     <meta name="apple-mobile-web-app-title" content="Pack with Me" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!-- Open the API origin's DNS+TLS+TCP handshake in parallel with JS parsing, so the very
+         first fetch (auth/me) starts on a warm connection instead of paying it serially.
+         %VITE_API_URL% is substituted at build time from the same env var lib/api.ts uses. -->
+    <link rel="preconnect" href="%VITE_API_URL%" crossorigin />
     <!-- Load fonts without blocking first paint: fetch as a print stylesheet (non-blocking),
          then flip to `all` once it arrives. display=swap already renders text in a fallback
          face meanwhile, so the swap is seamless. <noscript> keeps it working without JS. -->

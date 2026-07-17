@@ -11,6 +11,7 @@ import { toast } from "sonner";
 
 import { api, ApiError, setAuthToken, getAuthToken } from "@/lib/api";
 import { subscribeUnauthorized } from "@/lib/auth-events";
+import { readPersistedUser, writePersistedUser, clearPersistedUser } from "@/lib/user-cache";
 import { clearPersistedChecklist } from "@/features/checklist/checklist-cache";
 import type { Gender, UserDTO } from "@/types";
 
@@ -57,24 +58,47 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<UserDTO | null>(null);
-  const [loading, setLoading] = useState(true);
+  // Boot from the persisted session when we have both a token and a cached user: the app
+  // shell renders immediately and /api/auth/me revalidates in the background, instead of
+  // every load blanking on that round-trip (see lib/user-cache.ts). `loading` is only true
+  // on a genuinely unknown session — token present but nothing cached yet.
+  const [user, setUser] = useState<UserDTO | null>(() => (getAuthToken() ? readPersistedUser() : null));
+  const [loading, setLoading] = useState(() => getAuthToken() !== null && readPersistedUser() === null);
+
+  /** Single write path for the session user — keeps the persisted copy in lockstep with
+   * state so a stale profile can never outlive the session that wrote it. */
+  const applyUser = useCallback((next: UserDTO | null) => {
+    if (next) {
+      writePersistedUser(next);
+    } else {
+      clearPersistedUser();
+    }
+    setUser(next);
+  }, []);
 
   const refreshUser = useCallback(async () => {
     if (!getAuthToken()) {
-      setUser(null);
+      applyUser(null);
       return;
     }
     try {
       const { user } = await api.get<{ user: UserDTO }>("/api/auth/me");
-      setUser(user);
+      applyUser(user);
     } catch (error) {
       if (error instanceof ApiError && error.status === 401) {
         setAuthToken(null);
+        applyUser(null);
+        return;
       }
-      setUser(null);
+      // Transient failure (offline, 5xx, cold backend): keep rendering the persisted
+      // session rather than bouncing a logged-in user to the login page — any real
+      // session death surfaces as a 401 on the next request and is handled above.
+      setUser((prev) => {
+        if (!prev) clearPersistedUser();
+        return prev;
+      });
     }
-  }, []);
+  }, [applyUser]);
 
   useEffect(() => {
     refreshUser().finally(() => setLoading(false));
@@ -85,6 +109,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // i.e. the session died server-side (expired/rotated), not a bad login attempt.
     return subscribeUnauthorized(() => {
       setAuthToken(null);
+      clearPersistedUser();
       disconnectSocket();
       setUser((prev) => {
         if (prev) {
@@ -101,18 +126,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       pin,
     });
     setAuthToken(token);
-    setUser(user);
-  }, []);
+    applyUser(user);
+  }, [applyUser]);
 
   const logout = useCallback(() => {
     setAuthToken(null);
-    setUser(null);
+    applyUser(null);
     // Drop the persisted checklist so the next student on a shared device doesn't briefly see
     // this one's list on their first load (the payload is user-scoped, but on explicit logout
     // there's no reason to keep it lying around).
     clearPersistedChecklist();
     disconnectSocket();
-  }, []);
+  }, [applyUser]);
 
   const completeOnboarding = useCallback(async (input: OnboardingInput) => {
     const { token, user } = await api.post<{ token: string; user: UserDTO }>(
@@ -120,8 +145,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       input,
     );
     setAuthToken(token);
-    setUser(user);
-  }, []);
+    applyUser(user);
+  }, [applyUser]);
 
   const checkMobile = useCallback(async (mobile: string) => {
     const { exists } = await api.post<{ exists: boolean }>("/api/auth/check-mobile", { mobile });
@@ -130,10 +155,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Used by the /wa-login flow once the backend confirms the WhatsApp registration message
   // arrived — the token/user are already issued server-side, this just adopts the session.
-  const loginWithToken = useCallback((token: string, user: UserDTO) => {
-    setAuthToken(token);
-    setUser(user);
-  }, []);
+  const loginWithToken = useCallback(
+    (token: string, user: UserDTO) => {
+      setAuthToken(token);
+      applyUser(user);
+    },
+    [applyUser],
+  );
 
   const loginWithWidget = useCallback(async (accessToken: string) => {
     const { token, user } = await api.post<{ token: string; user: UserDTO }>(
@@ -141,8 +169,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       { accessToken },
     );
     setAuthToken(token);
-    setUser(user);
-  }, []);
+    applyUser(user);
+  }, [applyUser]);
 
   const requestRegisterOtp = useCallback(async (mobile: string) => {
     return api.post<OtpRequestResult>("/api/auth/register/request-otp", { mobile });
@@ -154,8 +182,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       { mobile, code, pin },
     );
     setAuthToken(token);
-    setUser(user);
-  }, []);
+    applyUser(user);
+  }, [applyUser]);
 
   const requestResetOtp = useCallback(async (mobile: string) => {
     return api.post<OtpRequestResult>("/api/auth/forgot-password/request-otp", { mobile });
@@ -167,8 +195,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       { mobile, code, pin },
     );
     setAuthToken(token);
-    setUser(user);
-  }, []);
+    applyUser(user);
+  }, [applyUser]);
 
   const value = useMemo<AuthContextValue>(
     () => ({
@@ -178,7 +206,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       logout,
       completeOnboarding,
       refreshUser,
-      setUser,
+      // Exposed as `setUser` so profile edits etc. keep the persisted copy current too.
+      setUser: applyUser,
       checkMobile,
       loginWithToken,
       loginWithWidget,
@@ -194,6 +223,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       logout,
       completeOnboarding,
       refreshUser,
+      applyUser,
       checkMobile,
       loginWithToken,
       loginWithWidget,

@@ -145,6 +145,12 @@ app.use(
       callback(new Error(`Origin ${origin} not allowed by CORS`));
     },
     credentials: true,
+    // Cache preflight responses client-side. Every API call from the cross-origin frontend
+    // carries an Authorization header, which forces an OPTIONS round-trip first — and
+    // browsers only cache that verdict for 5 seconds by default, so effectively every
+    // request paid double latency to a backend that may be a continent away. 24h asked;
+    // Chromium caps it at 2h, which is still a 1440x improvement.
+    maxAge: 86400,
   }),
 );
 // `verify` stashes the raw request bytes on `req.rawBody` — needed by the Metabsp
