@@ -22,7 +22,9 @@ export function PlacesView({ city }: { city: string }) {
   const [category, setCategory] = useState("");
   const [search, setSearch] = useState("");
   const [showFavorites, setShowFavorites] = useState(false);
-  const [places, setPlaces] = useState<PlaceDTO[]>([]);
+  // null (not []) until the first fetch for the current view resolves, so the page doesn't
+  // flash "No places found" before the real data arrives — same pattern as roomie-matches-view.
+  const [places, setPlaces] = useState<PlaceDTO[] | null>(null);
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
 
   async function fetchFavorites() {
@@ -108,7 +110,7 @@ export function PlacesView({ city }: { city: string }) {
         </Button>
       </div>
 
-      {places.length === 0 ? (
+      {places === null ? null : places.length === 0 ? (
         <EmptyState
           icon={Compass}
           title={empty.title}
