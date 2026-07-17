@@ -5,6 +5,7 @@ import { mobileSchema } from "@/validations/auth";
 
 export const productSchema = z.object({
   name: z.string().trim().min(1).max(120),
+  icon: z.string().trim().max(40).optional().or(z.literal("")),
   imageUrl: z.string().trim().url().optional().or(z.literal("")),
   category: z.enum(DEFAULT_CHECKLIST_CATEGORIES),
   store: z.string().trim().min(1).max(80),

@@ -3,6 +3,7 @@ import type { ProductCategory } from "@/types";
 export interface AdminProductDTO {
   id: string;
   name: string;
+  icon: string | null;
   imageUrl: string | null;
   category: ProductCategory;
   store: string;
@@ -27,6 +28,7 @@ export interface AdminProductDTO {
 export interface AdminProductRaw {
   _id: string;
   name: string;
+  icon?: string | null;
   imageUrl?: string | null;
   category: ProductCategory;
   store: string;
@@ -51,6 +53,7 @@ export function toAdminProductDTO(raw: AdminProductRaw): AdminProductDTO {
   return {
     id: raw._id,
     name: raw.name,
+    icon: raw.icon ?? null,
     imageUrl: raw.imageUrl ?? null,
     category: raw.category,
     store: raw.store,

@@ -5,6 +5,7 @@ import { Loader2, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
 
+import { getProductIcon, PRODUCT_ICON_NAMES } from "@/lib/product-icons";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -42,6 +43,7 @@ const NONE_VALUE = "__none__";
 
 const productSchema = z.object({
   name: z.string().trim().min(1).max(120),
+  icon: z.string().trim().max(40).optional().or(z.literal("")),
   imageUrl: z.string().trim().url().optional().or(z.literal("")),
   category: z.enum(DEFAULT_CHECKLIST_CATEGORIES),
   store: z.string().trim().min(1).max(80),
@@ -85,6 +87,7 @@ export function ProductFormDialog({ product, products, trigger }: ProductFormDia
   function buildDefaults(): ProductInput {
     return {
       name: product?.name ?? "",
+      icon: product?.icon ?? "",
       imageUrl: product?.imageUrl ?? "",
       category: product?.category ?? DEFAULT_CHECKLIST_CATEGORIES[0],
       store: product?.store ?? "",
@@ -206,6 +209,47 @@ export function ProductFormDialog({ product, products, trigger }: ProductFormDia
                   )}
                 />
               </div>
+
+              <FormField
+                control={form.control}
+                name="icon"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Icon</FormLabel>
+                    {/* The sentinel only exists to give the "no icon" row a non-empty value
+                        (Radix forbids an empty SelectItem value) — it must never reach the
+                        API, so it's mapped back to "" here. */}
+                    <Select
+                      value={field.value || NONE_VALUE}
+                      onValueChange={(v) => field.onChange(v === NONE_VALUE ? "" : v)}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Default (shopping bag)" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value={NONE_VALUE}>Default (shopping bag)</SelectItem>
+                        {PRODUCT_ICON_NAMES.map((name) => {
+                          const Icon = getProductIcon(name);
+                          return (
+                            <SelectItem key={name} value={name}>
+                              {/* SelectItem renders children inside ItemText, which isn't a
+                                  flex container — and preflight makes svg display:block, so
+                                  without this wrapper the icon sits above its label. */}
+                              <span className="flex items-center gap-2">
+                                <Icon className="size-4" />
+                                {name}
+                              </span>
+                            </SelectItem>
+                          );
+                        })}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
               <FormField
                 control={form.control}

@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/select";
 import { EmptyState } from "@/components/shared/empty-state";
 import { PageHeader } from "@/components/shared/page-header";
+import { getProductIcon } from "@/lib/product-icons";
 import { DEFAULT_CHECKLIST_CATEGORIES } from "@/types";
 import type { ProductDTO } from "@/features/shopping/product-dto";
 
@@ -69,6 +70,7 @@ export function ShoppingView({ products }: { products: ProductDTO[] }) {
         <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
           {filtered.map((product, i) => {
             const final = discountedPrice(product.price, product.discountPercent);
+            const Icon = getProductIcon(product.icon);
             const availableStores = (Object.keys(product.buyLinks) as (keyof ProductDTO["buyLinks"])[]).filter(
               (key) => product.buyLinks[key],
             );
@@ -91,7 +93,7 @@ export function ShoppingView({ products }: { products: ProductDTO[] }) {
                         decoding="async"
                       />
                     ) : (
-                      <ShoppingBag className="text-muted-foreground size-10" />
+                      <Icon className="text-muted-foreground size-10" aria-hidden="true" />
                     )}
                     {product.featured && (
                       <Badge className="absolute top-2 left-2" variant="accent">

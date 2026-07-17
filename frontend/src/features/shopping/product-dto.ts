@@ -10,6 +10,7 @@ export interface ProductAltDTO {
 export interface ProductDTO {
   id: string;
   name: string;
+  icon: string | null;
   imageUrl: string | null;
   category: ProductCategory;
   store: string;
@@ -34,6 +35,7 @@ export interface ProductDTO {
 export interface ProductRaw {
   _id: string;
   name: string;
+  icon?: string | null;
   imageUrl?: string | null;
   category: ProductCategory;
   store: string;
@@ -58,6 +60,7 @@ export function toProductDTO(raw: ProductRaw): ProductDTO {
   return {
     id: raw._id,
     name: raw.name,
+    icon: raw.icon ?? null,
     imageUrl: raw.imageUrl ?? null,
     category: raw.category,
     store: raw.store,
