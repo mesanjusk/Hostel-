@@ -1,12 +1,9 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
 import { motion, AnimatePresence, type Variants } from "framer-motion";
-import { ChevronLeft, ChevronRight, Rows3 } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
-import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import { NotebookPage } from "@/features/checklist/notebook-page";
-import { DownloadPdfButton } from "@/features/checklist/download-pdf-button";
 import type { ChecklistPlanType } from "@/types";
 import type { ChecklistItemDTO } from "@/features/checklist/checklist-item-dto";
 
@@ -56,11 +53,6 @@ interface CategoryGroup {
   items: ChecklistItemDTO[];
 }
 
-interface OverallProgress {
-  total: number;
-  completed: number;
-}
-
 const SWIPE_THRESHOLD = 8000;
 function swipePower(offset: number, velocity: number) {
   return Math.abs(offset) * velocity;
@@ -84,11 +76,9 @@ const pageVariants: Variants = {
 
 export function NotebookView({
   groups: initialGroups,
-  overall,
   allCategories,
 }: {
   groups: CategoryGroup[];
-  overall: OverallProgress;
   allCategories: string[];
 }) {
   const [groups, setGroups] = useState(initialGroups);
@@ -104,7 +94,6 @@ export function NotebookView({
 
   const total = groups.length;
   const current = groups[index];
-  const overallPercent = overall.total > 0 ? Math.round((overall.completed / overall.total) * 100) : 0;
 
   function updateCategoryItems(category: string, updater: (prev: ChecklistItemDTO[]) => ChecklistItemDTO[]) {
     setGroups((prev) => prev.map((g) => (g.category === category ? { ...g, items: updater(g.items) } : g)));
@@ -123,27 +112,6 @@ export function NotebookView({
 
   return (
     <div>
-      <div className="mb-5 flex items-center justify-between gap-3">
-        <div className="min-w-0 flex-1">
-          <p className="text-sm font-medium text-[#3a2e2a]">Overall progress</p>
-          <p className="text-xs text-[#8a7a6a]">
-            {overall.completed} / {overall.total} items packed
-          </p>
-          <Progress value={overallPercent} className="mt-1.5 h-1.5" />
-        </div>
-        <div className="flex shrink-0 items-center gap-2">
-          <DownloadPdfButton groups={groups} overall={overall} iconOnly />
-          <Link
-            to="/checklist?view=list"
-            aria-label="List view"
-            title="List view"
-            className="flex size-9 shrink-0 items-center justify-center rounded-full border border-[#e9ddc9] bg-white text-[#8a7a6a] transition-colors hover:text-[#3a2e2a]"
-          >
-            <Rows3 className="size-3.5" />
-          </Link>
-        </div>
-      </div>
-
       <div className="relative mx-auto w-full max-w-md lg:max-w-4xl xl:max-w-5xl">
         <div
           aria-hidden
