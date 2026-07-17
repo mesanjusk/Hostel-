@@ -6,10 +6,17 @@ import { HomeSectionCanvas } from "@/features/welcome/home-section-canvas";
 import { HOME_SECTIONS } from "@/features/welcome/home-sections";
 import { useHomeDesign } from "@/features/welcome/use-home-elements";
 import { SlideContainer } from "@/components/shared/slide-container";
+import { useMediaQuery } from "@/lib/use-media-query";
 
 export function MoodboardView() {
   const { elements, sectionBackgrounds, loading } = useHomeDesign();
   const [activeSection, setActiveSection] = useState<string>(HOME_SECTIONS[0].id);
+  // Renders only the active breakpoint's tree instead of mounting both and hiding one with
+  // CSS — every image element shares the same `src` across breakpoints (only position/scale
+  // differ), so mounting both used to fetch every image on the page twice on first load.
+  // Same fix as SurvivalGuideView.
+  const isDesktop = useMediaQuery("(min-width: 640px)");
+  const breakpoint = isDesktop ? "desktop" : "mobile";
 
   if (loading) {
     // Plain backdrop instead of the hardcoded defaults — avoids a flash of stale gradient/copy
@@ -24,22 +31,12 @@ export function MoodboardView() {
       <SlideContainer activeId={activeSection} onActiveChange={setActiveSection}>
         {HOME_SECTIONS.map((section) => (
           <div key={section.id} id={section.id} className="relative">
-            <div className="block sm:hidden">
-              <HomeSectionCanvas
-                section={section}
-                elements={elements}
-                breakpoint="mobile"
-                background={sectionBackgrounds[section.id]}
-              />
-            </div>
-            <div className="hidden sm:block">
-              <HomeSectionCanvas
-                section={section}
-                elements={elements}
-                breakpoint="desktop"
-                background={sectionBackgrounds[section.id]}
-              />
-            </div>
+            <HomeSectionCanvas
+              section={section}
+              elements={elements}
+              breakpoint={breakpoint}
+              background={sectionBackgrounds[section.id]}
+            />
           </div>
         ))}
       </SlideContainer>
