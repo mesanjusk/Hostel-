@@ -5,7 +5,7 @@ import { COMMUNITY_ROLES } from "@/types";
 const CommunityMemberSchema = new Schema(
   {
     communityId: { type: Schema.Types.ObjectId, ref: "Community", required: true, index: true },
-    userId: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },
+    userId: { type: Schema.Types.ObjectId, ref: "User", required: true },
     role: { type: String, enum: COMMUNITY_ROLES, default: "member" },
     muted: { type: Boolean, default: false },
     banned: { type: Boolean, default: false },

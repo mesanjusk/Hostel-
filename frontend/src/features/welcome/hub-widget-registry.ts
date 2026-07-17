@@ -3,7 +3,6 @@ import {
   BookOpen,
   Compass,
   FileText,
-  Globe2,
   Heart,
   ListChecks,
   Luggage,
@@ -12,6 +11,8 @@ import {
   Wallet,
   type LucideIcon,
 } from "lucide-react";
+
+import { CommunityIcon } from "@/components/shared/community-icon";
 
 export interface HubCardDef {
   id: string;
@@ -41,7 +42,7 @@ export const HUB_CARDS: HubCardDef[] = [
   { id: "toiletries", section: "Bathroom Reality", title: "Toiletries", href: "/checklist", icon: ListChecks },
   { id: "budget", section: "Food Survival", title: "Budget", href: "/budget", icon: Wallet },
   { id: "discover", section: "Roommate Vibes", title: "Discover", href: "/discover", icon: Users },
-  { id: "community", section: "Roommate Vibes", title: "Community", href: "/community", icon: Globe2 },
+  { id: "community", section: "Roommate Vibes", title: "Community", href: "/community", icon: CommunityIcon },
   { id: "wishlist", section: "Underrated Essentials", title: "Wishlist", href: "/wishlist", icon: Heart },
   { id: "documents", section: "Final", title: "Documents", href: "/documents", icon: FileText },
   // Appended rather than slotted next to Discover under "Roommate Vibes", despite belonging

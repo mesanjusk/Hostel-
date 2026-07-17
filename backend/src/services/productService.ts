@@ -52,6 +52,21 @@ export async function deleteProduct(id: string) {
   return Product.deleteOne({ _id: id });
 }
 
+/** Admin CSV bulk-add — upserts by (name, store) so re-importing the same file updates
+ * existing rows instead of creating duplicates, matching the seed script's convention. */
+export async function bulkUpsertProducts(inputs: ProductInput[]) {
+  await connectDB();
+  let created = 0;
+  let updated = 0;
+  for (const input of inputs) {
+    const existing = await Product.exists({ name: input.name, store: input.store });
+    await Product.findOneAndUpdate({ name: input.name, store: input.store }, input, { upsert: true });
+    if (existing) updated++;
+    else created++;
+  }
+  return { created, updated };
+}
+
 export async function countProducts() {
   await connectDB();
   return Product.countDocuments();

@@ -16,10 +16,11 @@ import {
   Users,
   Ticket,
   Compass,
-  Globe2,
   MessageCircle,
   BedDouble,
 } from "lucide-react";
+
+import { CommunityIcon } from "@/components/shared/community-icon";
 
 export { HOME_ROUTE } from "@/lib/routes";
 
@@ -32,7 +33,7 @@ export interface NavItem {
 export const PRIMARY_NAV_ITEMS: NavItem[] = [
   { href: "/wa-login/home", label: "Home", icon: Home },
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/community", label: "Community", icon: Globe2 },
+  { href: "/community", label: "Community", icon: CommunityIcon },
   { href: "/chat", label: "Messages", icon: MessageCircle },
   { href: "/checklist", label: "Checklist", icon: ListChecks },
   { href: "/bags", label: "Bags", icon: Luggage },

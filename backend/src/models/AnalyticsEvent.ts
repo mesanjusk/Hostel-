@@ -70,7 +70,8 @@ const AnalyticsEventSchema = new Schema(
     },
     ipHash: { type: String, default: null },
     metadata: { type: Schema.Types.Mixed, default: null },
-    timestamp: { type: Date, default: Date.now, index: true },
+    // No inline `index: true` here — the TTL index below already covers {timestamp: 1}.
+    timestamp: { type: Date, default: Date.now },
   },
   { timestamps: false, versionKey: false },
 );

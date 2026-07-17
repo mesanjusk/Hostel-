@@ -11,6 +11,7 @@ import {
   regeneratePin,
 } from "@/services/userService";
 import {
+  bulkUpsertProducts,
   createProduct,
   deleteProduct,
   updateProduct,
@@ -33,6 +34,7 @@ import {
   createUserByAdminSchema,
   citySchema,
   cityUpdateSchema,
+  bulkImportProductsSchema,
   guideArticleSchema,
   guideArticleUpdateSchema,
   landingDesignSchema,
@@ -210,6 +212,16 @@ adminRouter.patch("/products/:id", async (req, res) => {
 adminRouter.delete("/products/:id", async (req, res) => {
   await deleteProduct(req.params.id);
   res.json({ success: true });
+});
+
+adminRouter.post("/products/bulk-import", async (req, res) => {
+  const parsed = bulkImportProductsSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.issues[0]?.message ?? "Invalid input" });
+    return;
+  }
+  const result = await bulkUpsertProducts(parsed.data.products);
+  res.json({ success: true, ...result });
 });
 
 adminRouter.post("/guide", async (req, res) => {
