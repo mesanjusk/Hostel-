@@ -46,8 +46,24 @@ jobs:
         run: |
           ssh -o StrictHostKeyChecking=accept-new -i /tmp/deploy_key "${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}" bash -s <<'REMOTE'
           set -euo pipefail
-          # 1GB box: tsc/vite OOM under the default V8 heap without this.
-          export NODE_OPTIONS=--max-old-space-size=1536
+
+          # 1GB box has no swap by default, so a single tsc/vite build spiking memory
+          # OOMs the whole instance (and drops this SSH session with it) rather than
+          # just the node process. 2G swapfile gives the kernel room to page instead
+          # of killing sshd. Idempotent: only created once, persisted via fstab so it
+          # survives a reboot too.
+          if [ ! -f /swapfile ]; then
+            sudo fallocate -l 2G /swapfile || sudo dd if=/dev/zero of=/swapfile bs=1M count=2048
+            sudo chmod 600 /swapfile
+            sudo mkswap /swapfile
+            sudo swapon /swapfile
+            echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab > /dev/null
+          fi
+
+          # Heap capped below physical RAM (not 1536, which exceeded it and still
+          # invited OOM) now that swap is here as a safety net rather than the only
+          # thing standing between a build and a killed SSH session.
+          export NODE_OPTIONS=--max-old-space-size=768
 
           cd ~/hostel-git
           git fetch origin main
