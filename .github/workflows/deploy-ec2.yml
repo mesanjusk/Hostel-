@@ -9,6 +9,19 @@ on:
     branches: [main]
   workflow_dispatch: {}
 
+# The remote step SSHes into one 1GB EC2 box and does `git reset --hard` + npm ci + tsc/vite
+# builds for both apps in the SAME ~/hostel-git checkout. A burst of pushes to main used to
+# fire one of these per push with no coordination, so several would run at once, stomping on
+# each other's checkout/build/dist directory and failing outright on a box that struggles to
+# fit even one such build in memory. Queuing them (not cancelling) lets an in-flight deploy
+# finish untouched; since `git reset --hard origin/main` always deploys whatever's newest
+# regardless of which push triggered it, only the latest queued run actually needs to happen —
+# GitHub drops any earlier *pending* runs in the group automatically, without touching one
+# that's already running remotely.
+concurrency:
+  group: deploy-ec2
+  cancel-in-progress: false
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
