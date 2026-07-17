@@ -3,6 +3,7 @@ import {
   BookOpen,
   Compass,
   FileText,
+  GraduationCap,
   Heart,
   ListChecks,
   Luggage,
@@ -55,6 +56,8 @@ export const HUB_CARDS: HubCardDef[] = [
   // array index, so inserting it mid-array would collide with an order a saved layout already
   // assigned elsewhere.
   { id: "explore", section: "Explore", title: "Explore", href: "/explore", icon: Compass },
+  // Appended for the same order-collision reason as the two cards above.
+  { id: "know-your-campus", section: "Campus Life", title: "Know Your Campus", href: "/know-your-campus", icon: GraduationCap },
 ];
 
 export const DEFAULT_HUB_LAYOUT: HubLayoutEntry[] = HUB_CARDS.map((card, i) => ({
