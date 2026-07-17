@@ -50,6 +50,7 @@ import {
   updateCollegeCategory,
 } from "@/services/collegeCategoryService";
 import { createCourse, deleteCourse, listAllCourses, updateCourse } from "@/services/courseService";
+import { createCollege, deleteCollege, listAllColleges, updateCollege } from "@/services/collegeService";
 import {
   createChecklistTemplate,
   listChecklistTemplates,
@@ -78,6 +79,8 @@ import {
   checklistTemplateUpdateSchema,
   collegeCategorySchema,
   collegeCategoryUpdateSchema,
+  collegeSchema,
+  collegeUpdateSchema,
   courseSchema,
   courseUpdateSchema,
   defaultChecklistItemSchema,
@@ -441,6 +444,53 @@ adminRouter.patch("/courses/:id", async (req, res) => {
 
 adminRouter.delete("/courses/:id", async (req, res) => {
   const result = await deleteCourse(req.params.id);
+  if (!result.success) {
+    res.status(400).json({ error: result.error });
+    return;
+  }
+  res.json({ success: true });
+});
+
+// --- Colleges ---
+
+adminRouter.get("/colleges", async (req, res) => {
+  const city = typeof req.query.city === "string" ? req.query.city : undefined;
+  const collegeCategoryId = typeof req.query.collegeCategoryId === "string" ? req.query.collegeCategoryId : undefined;
+  const search = typeof req.query.search === "string" ? req.query.search : undefined;
+  res.json({ colleges: await listAllColleges({ city, collegeCategoryId, search }) });
+});
+
+adminRouter.post("/colleges", async (req, res) => {
+  const parsed = collegeSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.issues[0]?.message ?? "Invalid input" });
+    return;
+  }
+  const result = await createCollege(parsed.data);
+  if (!result.success) {
+    res.status(400).json({ error: result.error });
+    return;
+  }
+  res.json({ college: result.college });
+});
+
+adminRouter.patch("/colleges/:id", async (req, res) => {
+  const parsed = collegeUpdateSchema.safeParse({ ...req.body, id: req.params.id });
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.issues[0]?.message ?? "Invalid input" });
+    return;
+  }
+  const { id, ...rest } = parsed.data;
+  const result = await updateCollege(id, rest);
+  if (!result.success) {
+    res.status(400).json({ error: result.error });
+    return;
+  }
+  res.json({ college: result.college });
+});
+
+adminRouter.delete("/colleges/:id", async (req, res) => {
+  const result = await deleteCollege(req.params.id);
   if (!result.success) {
     res.status(400).json({ error: result.error });
     return;

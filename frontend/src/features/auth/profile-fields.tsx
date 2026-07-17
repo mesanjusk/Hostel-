@@ -13,14 +13,19 @@ import type { ProfileFieldsInput } from "@/features/auth/profile-fields-schema";
 import {
   toCityOptionDTO,
   toCollegeCategoryDTO,
+  toCollegeDTO,
   toCourseDTO,
   type CityOptionDTO,
   type CityOptionRaw,
   type CollegeCategoryDTO,
   type CollegeCategoryRaw,
+  type CollegeDTO,
+  type CollegeRaw,
   type CourseDTO,
   type CourseRaw,
 } from "@/features/auth/college-taxonomy-dto";
+
+const OTHER_COLLEGE = "__other__";
 
 /** Gender + college name + college category + city (+ course/home town on the profile-edit
  * form) — shared by the onboarding form and the profile-edit form so both stay in sync.
@@ -38,6 +43,10 @@ export function ProfileFields({
   const [categories, setCategories] = useState<CollegeCategoryDTO[]>([]);
   const [courses, setCourses] = useState<CourseDTO[]>([]);
   const [cities, setCities] = useState<CityOptionDTO[]>([]);
+  const [colleges, setColleges] = useState<CollegeDTO[]>([]);
+  const [collegesLoaded, setCollegesLoaded] = useState(false);
+  const [collegeIsOther, setCollegeIsOther] = useState(false);
+  const city = form.watch("city");
   const collegeCategoryId = form.watch("collegeCategoryId");
   const showCourse = variant === "profile";
 
@@ -65,6 +74,35 @@ export function ProfileFields({
       .then(({ courses: raw }) => setCourses(raw.map(toCourseDTO)))
       .catch((error) => toast.error(error instanceof ApiError ? error.message : "Failed to load courses"));
   }, [showCourse, collegeCategoryId]);
+
+  useEffect(() => {
+    if (!city || !collegeCategoryId) {
+      setColleges([]);
+      setCollegesLoaded(false);
+      return;
+    }
+    setCollegesLoaded(false);
+    api
+      .get<{ colleges: CollegeRaw[] }>(
+        `/api/colleges?city=${encodeURIComponent(city)}&collegeCategoryId=${collegeCategoryId}`,
+      )
+      .then(({ colleges: raw }) => setColleges(raw.map(toCollegeDTO)))
+      .catch((error) => toast.error(error instanceof ApiError ? error.message : "Failed to load colleges"))
+      .finally(() => setCollegesLoaded(true));
+  }, [city, collegeCategoryId]);
+
+  /** Reconciles the "Other" text-input toggle whenever the fetched shortlist changes — covers
+   * both a fresh city/category pick (college gets cleared, so this resolves to "not other") and
+   * loading an existing profile whose saved college isn't in the curated shortlist (resolves to
+   * "other", pre-filling the text input instead of silently losing the value). Deliberately
+   * doesn't depend on the college value itself, so it never fights the user while they're typing
+   * a custom name or picking "Other" from the dropdown. */
+  useEffect(() => {
+    if (!collegesLoaded) return;
+    const value = form.getValues("college");
+    setCollegeIsOther(Boolean(value) && !colleges.some((c) => c.name === value));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [collegesLoaded, colleges]);
 
   return (
     <>
@@ -104,7 +142,13 @@ export function ProfileFields({
           <FormItem>
             <FormLabel>City</FormLabel>
             <FormControl>
-              <Select value={field.value} onValueChange={field.onChange}>
+              <Select
+                value={field.value}
+                onValueChange={(value) => {
+                  field.onChange(value);
+                  form.setValue("college", "");
+                }}
+              >
                 <SelectTrigger className="w-full">
                   <MapPin className="text-muted-foreground size-4" />
                   <SelectValue placeholder="Select your city" />
@@ -124,22 +168,6 @@ export function ProfileFields({
       />
       <FormField
         control={form.control}
-        name="college"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>College name</FormLabel>
-            <FormControl>
-              <div className="relative">
-                <School className="text-muted-foreground absolute top-1/2 left-4 size-4 -translate-y-1/2" />
-                <Input className="pl-11" placeholder="IIT Bombay" {...field} />
-              </div>
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
-      <FormField
-        control={form.control}
         name="collegeCategoryId"
         render={({ field }) => (
           <FormItem>
@@ -150,6 +178,7 @@ export function ProfileFields({
                 onValueChange={(value) => {
                   field.onChange(value);
                   form.setValue("courseId", "");
+                  form.setValue("college", "");
                 }}
               >
                 <SelectTrigger className="w-full">
@@ -167,6 +196,58 @@ export function ProfileFields({
             <FormMessage />
           </FormItem>
         )}
+      />
+      <FormField
+        control={form.control}
+        name="college"
+        render={({ field }) => {
+          const selectValue = !field.value ? "" : collegeIsOther ? OTHER_COLLEGE : field.value;
+          const disabled = !city || !collegeCategoryId;
+          return (
+            <FormItem>
+              <FormLabel>College name</FormLabel>
+              <FormControl>
+                <div className="flex flex-col gap-2">
+                  <Select
+                    value={selectValue}
+                    disabled={disabled}
+                    onValueChange={(value) => {
+                      if (value === OTHER_COLLEGE) {
+                        setCollegeIsOther(true);
+                        field.onChange("");
+                      } else {
+                        setCollegeIsOther(false);
+                        field.onChange(value);
+                      }
+                    }}
+                  >
+                    <SelectTrigger className="w-full">
+                      <School className="text-muted-foreground size-4" />
+                      <SelectValue
+                        placeholder={disabled ? "Pick a city and category first" : "Select your college"}
+                      />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {colleges.map((c) => (
+                        <SelectItem key={c.id} value={c.name}>
+                          {c.name}
+                        </SelectItem>
+                      ))}
+                      <SelectItem value={OTHER_COLLEGE}>Other (not listed)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {collegeIsOther && (
+                    <div className="relative">
+                      <School className="text-muted-foreground absolute top-1/2 left-4 size-4 -translate-y-1/2" />
+                      <Input className="pl-11" placeholder="Enter your college name" {...field} />
+                    </div>
+                  )}
+                </div>
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          );
+        }}
       />
       {showCourse && (
         <FormField

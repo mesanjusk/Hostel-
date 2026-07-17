@@ -69,3 +69,35 @@ export interface CityOptionRaw {
 export function toCityOptionDTO(raw: CityOptionRaw): CityOptionDTO {
   return { id: raw._id, name: raw.name };
 }
+
+export interface CollegeDTO {
+  id: string;
+  city: string;
+  collegeCategoryId: string;
+  name: string;
+  nirfRank: number | null;
+  active: boolean;
+  sortOrder: number;
+}
+
+export interface CollegeRaw {
+  _id: string;
+  city: string;
+  collegeCategoryId: string;
+  name: string;
+  nirfRank?: number | null;
+  active: boolean;
+  sortOrder: number;
+}
+
+export function toCollegeDTO(raw: CollegeRaw): CollegeDTO {
+  return {
+    id: raw._id,
+    city: raw.city,
+    collegeCategoryId: String(raw.collegeCategoryId),
+    name: raw.name,
+    nirfRank: raw.nirfRank ?? null,
+    active: raw.active,
+    sortOrder: raw.sortOrder,
+  };
+}

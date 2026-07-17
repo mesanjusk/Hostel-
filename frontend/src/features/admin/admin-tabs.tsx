@@ -13,6 +13,7 @@ const TABS = [
   { href: "/admin/reported-contacts", label: "Reported Contacts" },
   { href: "/admin/college-categories", label: "College Categories" },
   { href: "/admin/courses", label: "Courses" },
+  { href: "/admin/colleges", label: "Colleges" },
   { href: "/admin/checklist-templates", label: "Checklist Templates" },
   { href: "/admin/default-checklist", label: "Default Checklist" },
   { href: "/admin/checklist-health", label: "Checklist Health" },

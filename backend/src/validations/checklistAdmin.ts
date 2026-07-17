@@ -28,6 +28,19 @@ export const courseUpdateSchema = courseSchema.partial().extend({
   active: z.boolean().optional(),
 });
 
+export const collegeSchema = z.object({
+  city: z.string().trim().min(1, "City is required").max(80),
+  collegeCategoryId: objectIdSchema,
+  name: z.string().trim().min(1, "Name is required").max(160),
+  nirfRank: z.coerce.number().int().min(1).optional().nullable(),
+  sortOrder: z.coerce.number().optional(),
+});
+
+export const collegeUpdateSchema = collegeSchema.partial().extend({
+  id: objectIdSchema,
+  active: z.boolean().optional(),
+});
+
 export const checklistTemplateSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(120),
   description: z.string().trim().max(500).optional().or(z.literal("")),
@@ -109,6 +122,8 @@ export type CollegeCategoryInput = z.infer<typeof collegeCategorySchema>;
 export type CollegeCategoryUpdateInput = z.infer<typeof collegeCategoryUpdateSchema>;
 export type CourseInput = z.infer<typeof courseSchema>;
 export type CourseUpdateInput = z.infer<typeof courseUpdateSchema>;
+export type CollegeInput = z.infer<typeof collegeSchema>;
+export type CollegeUpdateInput = z.infer<typeof collegeUpdateSchema>;
 export type ChecklistTemplateInput = z.infer<typeof checklistTemplateSchema>;
 export type ChecklistTemplateUpdateInput = z.infer<typeof checklistTemplateUpdateSchema>;
 export type DefaultChecklistItemFormInput = z.infer<typeof defaultChecklistItemSchema>;
