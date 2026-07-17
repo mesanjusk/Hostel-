@@ -52,6 +52,20 @@ export function toTravelProfileDTO(raw: TravelProfileRaw | null): TravelProfileD
   };
 }
 
+/** Whether a profile carries everything roommate matching treats as mandatory. Mirrors
+ * `isRoommateProfileComplete` in the backend's discoveryService — the server won't return any
+ * roomies without these, and this lets the page say why instead of showing a bare "none
+ * found". Gender preference isn't checked: it defaults to "Any", which is a real answer. */
+export function isRoommateProfileComplete(profile: TravelProfileDTO | null): boolean {
+  return (
+    profile != null &&
+    profile.destinationCity.trim() !== "" &&
+    profile.budgetMin != null &&
+    profile.budgetMax != null &&
+    profile.accommodationType != null
+  );
+}
+
 export interface DiscoveryCardDTO {
   userId: string;
   name: string | null;

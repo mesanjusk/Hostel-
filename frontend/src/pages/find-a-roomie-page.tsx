@@ -6,20 +6,30 @@ import { api, peekCache } from "@/lib/api";
 import { TravelProfileForm } from "@/features/discovery/travel-profile-form";
 import { RoommateView } from "@/features/discovery/roommate-view";
 import { ConnectionsView } from "@/features/discovery/connections-view";
-import { type TravelProfileRaw } from "@/features/discovery/discovery-dto";
+import {
+  isRoommateProfileComplete,
+  toTravelProfileDTO,
+  type TravelProfileDTO,
+  type TravelProfileRaw,
+} from "@/features/discovery/discovery-dto";
 
 const DISCOVERY_PROFILE_PATH = "/api/discovery/profile";
 
+/** toTravelProfileDTO fills blanks for a missing profile, which would read as "has a profile,
+ * just an empty one" — keep the null so the two states stay distinguishable. */
+const readProfile = (raw: TravelProfileRaw | null | undefined): TravelProfileDTO | null =>
+  raw ? toTravelProfileDTO(raw) : null;
+
 export default function FindARoomiePage() {
   const cachedProfile = peekCache<{ profile: TravelProfileRaw | null }>(DISCOVERY_PROFILE_PATH);
-  const [hasProfile, setHasProfile] = useState(() => Boolean(cachedProfile?.profile));
+  const [profile, setProfile] = useState<TravelProfileDTO | null>(() => readProfile(cachedProfile?.profile));
   const [loaded, setLoaded] = useState(() => cachedProfile !== undefined);
   const [tab, setTab] = useState("matches");
 
   useEffect(() => {
     api
       .get<{ profile: TravelProfileRaw | null }>(DISCOVERY_PROFILE_PATH)
-      .then(({ profile }) => setHasProfile(Boolean(profile)))
+      .then(({ profile }) => setProfile(readProfile(profile)))
       .finally(() => setLoaded(true));
   }, []);
 
@@ -40,15 +50,19 @@ export default function FindARoomiePage() {
         </TabsList>
 
         <TabsContent value="matches">
-          <RoommateView hasProfile={hasProfile} onEditProfile={() => setTab("profile")} />
+          <RoommateView
+            hasProfile={profile != null}
+            profileComplete={isRoommateProfileComplete(profile)}
+            onEditProfile={() => setTab("profile")}
+          />
         </TabsContent>
         <TabsContent value="requests">
           <ConnectionsView context="roommate" />
         </TabsContent>
         <TabsContent value="profile">
           <TravelProfileForm
-            onSaved={() => {
-              setHasProfile(true);
+            onSaved={(saved) => {
+              setProfile(saved);
               // Saving from the empty state is only ever a means to an end — drop them back on
               // the matches they came here for rather than leaving them staring at the form.
               setTab("matches");

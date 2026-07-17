@@ -9,7 +9,6 @@ export interface DiscoveryFilterState {
   college: string;
   budgetMax: string;
   accommodationType: string;
-  arrivalWeek: string;
 }
 
 export const EMPTY_FILTERS: DiscoveryFilterState = {
@@ -19,11 +18,13 @@ export const EMPTY_FILTERS: DiscoveryFilterState = {
   college: "",
   budgetMax: "",
   accommodationType: "",
-  arrivalWeek: "",
 };
 
 const ANY = "__any__";
 
+/** @param showRoommateFilters - Find a Roomie's filter set: adds budget and accommodation type,
+ * and drops the age inputs, which are no longer part of roommate matching. Age stays for
+ * Co-Packer. The arrival-week filter is gone entirely — it only ever served Find a Roomie. */
 export function DiscoveryFilters({
   value,
   onChange,
@@ -55,20 +56,22 @@ export function DiscoveryFilters({
         onChange={(e) => onChange({ ...value, college: e.target.value })}
       />
 
-      <div className="flex gap-2">
-        <Input
-          type="number"
-          placeholder="Age min"
-          value={value.ageMin}
-          onChange={(e) => onChange({ ...value, ageMin: e.target.value })}
-        />
-        <Input
-          type="number"
-          placeholder="Age max"
-          value={value.ageMax}
-          onChange={(e) => onChange({ ...value, ageMax: e.target.value })}
-        />
-      </div>
+      {!showRoommateFilters && (
+        <div className="flex gap-2">
+          <Input
+            type="number"
+            placeholder="Age min"
+            value={value.ageMin}
+            onChange={(e) => onChange({ ...value, ageMin: e.target.value })}
+          />
+          <Input
+            type="number"
+            placeholder="Age max"
+            value={value.ageMax}
+            onChange={(e) => onChange({ ...value, ageMax: e.target.value })}
+          />
+        </div>
+      )}
 
       {showRoommateFilters && (
         <>
@@ -94,12 +97,6 @@ export function DiscoveryFilters({
               ))}
             </SelectContent>
           </Select>
-          <Input
-            type="date"
-            placeholder="Arrival week"
-            value={value.arrivalWeek}
-            onChange={(e) => onChange({ ...value, arrivalWeek: e.target.value })}
-          />
         </>
       )}
     </div>
@@ -114,6 +111,5 @@ export function buildDiscoveryQuery(filters: DiscoveryFilterState): string {
   if (filters.college) params.set("college", filters.college);
   if (filters.budgetMax) params.set("budgetMax", filters.budgetMax);
   if (filters.accommodationType) params.set("accommodationType", filters.accommodationType);
-  if (filters.arrivalWeek) params.set("arrivalWeek", filters.arrivalWeek);
   return params.toString();
 }
