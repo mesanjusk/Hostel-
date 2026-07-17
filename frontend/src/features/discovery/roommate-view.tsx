@@ -47,7 +47,6 @@ export function RoommateView({
       <EmptyState
         icon={Home}
         title="Save your travel profile first"
-        description="Tell us where you're headed, your budget and the kind of place you want, and we'll match you with roomies looking for the same."
         action={
           onEditProfile && (
             <Button size="sm" onClick={onEditProfile}>
