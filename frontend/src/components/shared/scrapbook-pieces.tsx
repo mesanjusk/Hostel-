@@ -104,7 +104,7 @@ export function Polaroid({
       <div className="flex aspect-square items-center justify-center rounded-sm bg-gradient-to-br from-[#fdf6ee] to-[#f3e6d5] p-6 text-6xl lg:text-7xl">
         {stickerSlug ? (
           <img
-            src={`/stickers/${stickerSlug}.png`}
+            src={`/stickers/${stickerSlug}.webp`}
             alt={caption}
             className="h-full w-full object-contain drop-shadow-[1px_4px_8px_rgba(58,46,42,0.25)]"
             draggable={false}
@@ -262,7 +262,7 @@ export function StickerField({
       stickers.map(({ slug }, i) => {
         const [topMin, topMax, leftMin, leftMax] = order[i % order.length].pocket;
         return {
-          src: `/stickers/${slug}.png`,
+          src: `/stickers/${slug}.webp`,
           top: topMin + rand() * (topMax - topMin),
           left: leftMin + rand() * (leftMax - leftMin),
           size: STICKER_SIZES[Math.floor(rand() * STICKER_SIZES.length)],

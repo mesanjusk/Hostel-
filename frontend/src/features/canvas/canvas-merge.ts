@@ -2,6 +2,13 @@ import type { CanvasElement, ElementOverride, SectionBackgroundOverride } from "
 
 const DEFAULT_CUSTOM_LAYOUT = { x: 50, y: 50, scale: 1, rotation: 0, visible: true, zIndex: 0 };
 
+/** The bundled sticker PNGs were converted to WebP — rewrite any bundled-sticker path an
+ * older admin-saved design may still carry in Mongo, for every canvas page (home, guide).
+ * Uploaded custom stickers (data: URLs) and external URLs pass through untouched. */
+function normalizeStickerSrc(src: string | undefined): string | undefined {
+  return src?.replace(/^\/stickers\/([^/]+)\.png$/, "/stickers/$1.webp");
+}
+
 /** Builds a full CanvasElement from an admin-added custom element's override — there's no
  * default to merge onto, so the override must already carry everything needed. */
 function customElementFromOverride(o: ElementOverride): CanvasElement | null {
@@ -10,7 +17,7 @@ function customElementFromOverride(o: ElementOverride): CanvasElement | null {
     id: o.id,
     section: o.section ?? 0,
     kind: o.kind,
-    src: o.src,
+    src: normalizeStickerSrc(o.src),
     alt: o.alt,
     emoji: o.emoji,
     lines: o.lines,

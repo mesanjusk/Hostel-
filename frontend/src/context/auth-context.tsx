@@ -11,6 +11,7 @@ import { toast } from "sonner";
 
 import { api, ApiError, setAuthToken, getAuthToken } from "@/lib/api";
 import { subscribeUnauthorized } from "@/lib/auth-events";
+import { clearPersistedChecklist } from "@/features/checklist/checklist-cache";
 import type { Gender, UserDTO } from "@/types";
 
 // Dynamic: lib/socket pulls in socket.io-client, which only ever connects from lazy-loaded
@@ -103,6 +104,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = useCallback(() => {
     setAuthToken(null);
     setUser(null);
+    // Drop the persisted checklist so the next student on a shared device doesn't briefly see
+    // this one's list on their first load (the payload is user-scoped, but on explicit logout
+    // there's no reason to keep it lying around).
+    clearPersistedChecklist();
     disconnectSocket();
   }, []);
 

@@ -48,20 +48,7 @@ async function ensureTemplateHasDefaultItems(templateId: string) {
   }
 }
 
-/** Idempotent bootstrap: every environment needs at least one active template with default
- * items before checklist generation can produce anything. Safe to call on every request that
- * needs it — only creates "Default Template" v1 the first time, and self-heals a template left
- * empty by a skipped/failed taxonomy import.
- *
- * Two near-simultaneous first-ever calls (no template exists yet) could previously each create
- * their own "active" template, and `findOne({active:true}).sort({version:-1})` has no tiebreaker
- * for same-version ties — so different requests could non-deterministically resolve to different
- * duplicate templates, and items seeded under one wouldn't be visible to a call that landed on
- * the other. Sorting by `_id` as a deterministic tiebreaker, and collapsing any duplicates found
- * down to that one canonical template, closes that gap. */
-export async function getOrCreateActiveTemplate() {
-  await connectDB();
-
+async function resolveActiveTemplate() {
   const activeTemplates = await ChecklistTemplate.find({ active: true }).sort({ version: -1, _id: 1 }).lean();
   if (activeTemplates.length > 0) {
     const [canonical, ...duplicates] = activeTemplates;
@@ -72,14 +59,59 @@ export async function getOrCreateActiveTemplate() {
     return canonical;
   }
 
-  const template = await ChecklistTemplate.create({
+  const created = await ChecklistTemplate.create({
     name: "Default Template",
     version: 1,
     description: "Master packing checklist template",
     published: true,
     active: true,
   });
-  await ensureTemplateHasDefaultItems(String(template._id));
+  await ensureTemplateHasDefaultItems(String(created._id));
+  return created.toObject();
+}
+
+type ResolvedTemplate = Awaited<ReturnType<typeof resolveActiveTemplate>>;
+
+/** The active template is effectively static admin config, but every checklist read
+ * (getAllItemsByCategory, getCategorySummaries, getOverallProgress) resolves it — and doing so
+ * un-cached costs three sequential Atlas round-trips: the `find active` query, the gender-repair
+ * `updateMany` (a WRITE on every read), and the default-seed `exists` check. At ~200ms per
+ * round-trip that's ~600ms added to every checklist request for data that changes only when an
+ * admin edits templates. Cache the resolved canonical template briefly so the hot read path
+ * skips all of it. The item catalog itself is NOT cached — findApplicableItems still queries
+ * DefaultChecklistItem live — so catalog edits show up immediately; only the template document
+ * is memoized. Explicitly invalidated when an admin creates/activates a template below. */
+let activeTemplateCache: ResolvedTemplate | null = null;
+let activeTemplateCacheExpiry = 0;
+const ACTIVE_TEMPLATE_TTL_MS = 60_000;
+
+export function invalidateActiveTemplateCache() {
+  activeTemplateCache = null;
+  activeTemplateCacheExpiry = 0;
+}
+
+/** Idempotent bootstrap: every environment needs at least one active template with default
+ * items before checklist generation can produce anything. Safe to call on every request that
+ * needs it — only creates "Default Template" v1 the first time, and self-heals a template left
+ * empty by a skipped/failed taxonomy import.
+ *
+ * Two near-simultaneous first-ever calls (no template exists yet) could previously each create
+ * their own "active" template, and `findOne({active:true}).sort({version:-1})` has no tiebreaker
+ * for same-version ties — so different requests could non-deterministically resolve to different
+ * duplicate templates, and items seeded under one wouldn't be visible to a call that landed on
+ * the other. Sorting by `_id` as a deterministic tiebreaker, and collapsing any duplicates found
+ * down to that one canonical template, closes that gap. Result is cached (see above) — a cache
+ * hit skips the seed/repair self-heal, which is fine since it already ran on the populating miss. */
+export async function getOrCreateActiveTemplate(): Promise<ResolvedTemplate> {
+  await connectDB();
+
+  if (activeTemplateCache && activeTemplateCacheExpiry > Date.now()) {
+    return activeTemplateCache;
+  }
+
+  const template = await resolveActiveTemplate();
+  activeTemplateCache = template;
+  activeTemplateCacheExpiry = Date.now() + ACTIVE_TEMPLATE_TTL_MS;
   return template;
 }
 
@@ -99,6 +131,9 @@ export async function createChecklistTemplate(input: { name: string; description
     published: false,
     active: false,
   });
+  // A new template starts inactive so it can't change what's currently served — but invalidate
+  // anyway to stay correct if that ever changes, and it's a cold, rare admin path regardless.
+  invalidateActiveTemplateCache();
   return { success: true as const, template };
 }
 
@@ -118,5 +153,8 @@ export async function updateChecklistTemplate(
   if (!template) {
     return { success: false as const, error: "Template not found" };
   }
+  // This may have flipped which template is active (or renamed/republished the active one), so
+  // the memoized copy in getOrCreateActiveTemplate is now potentially stale — drop it.
+  invalidateActiveTemplateCache();
   return { success: true as const, template };
 }

@@ -40,7 +40,7 @@ function pickSticker(seed: number) {
 function CornerSticker({ slug, alt, className }: { slug: string; alt: string; className: string }) {
   return (
     <img
-      src={`/stickers/${slug}.png`}
+      src={`/stickers/${slug}.webp`}
       alt={alt}
       draggable={false}
       className={cn(

@@ -66,15 +66,20 @@ function materializeDefaults(
 async function loadChecklistContext(userId: string) {
   await connectDB();
 
-  const user = await User.findById(userId).select("collegeCategoryId courseId gender").lean();
-  const template = await getOrCreateActiveTemplate();
+  // These three are mutually independent, so issue them together instead of four sequential
+  // Atlas round-trips — on a remote DB each hop is ~200ms, and only findApplicableItems needs
+  // the user + template results, so it's the sole query that has to wait.
+  const [user, template, allRows] = await Promise.all([
+    User.findById(userId).select("collegeCategoryId courseId gender").lean(),
+    getOrCreateActiveTemplate(),
+    UserChecklist.find({ userId }).lean(),
+  ]);
   const applicableItems = await findApplicableItems(
     String(template._id),
     user?.collegeCategoryId ? String(user.collegeCategoryId) : null,
     user?.courseId ? String(user.courseId) : null,
     user?.gender ?? null,
   );
-  const allRows = await UserChecklist.find({ userId }).lean();
 
   return { applicableItems, allRows };
 }

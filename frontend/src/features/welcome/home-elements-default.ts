@@ -9,7 +9,7 @@ function el(partial: Omit<CanvasElement, "section"> & { section: string }): Canv
   return { ...partial, section: sectionIndex(partial.section) };
 }
 
-const STICKER = (slug: string) => `/stickers/${slug}.png`;
+const STICKER = (slug: string) => `/stickers/${slug}.webp`;
 
 /** The full default arrangement of every draggable unit on the home screen, approximating
  * today's live layout. Nothing changes for visitors until an admin edits and saves a layout

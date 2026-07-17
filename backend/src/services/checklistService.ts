@@ -73,11 +73,17 @@ export async function listItemsByCategory(userId: string, category: ChecklistCat
 export async function getAllItemsByCategory(userId: string) {
   await connectDB();
 
-  const isLegacy = await userChecklistService.isLegacyChecklistUser(userId);
-  const [categories, items, bags] = await Promise.all([
+  // The legacy check and the bag lookup don't depend on each other, so overlap them rather than
+  // paying for the legacy round-trip on its own before anything else can start. Only the items
+  // query's shape depends on the legacy result, so it runs in the second batch alongside the
+  // (independent) category load.
+  const [isLegacy, bags] = await Promise.all([
+    userChecklistService.isLegacyChecklistUser(userId),
+    Bag.find({ userId }).select("name color").lean(),
+  ]);
+  const [categories, items] = await Promise.all([
     listCategories(userId),
     isLegacy ? ChecklistItem.find({ userId }).sort({ createdAt: -1 }).lean() : userChecklistService.listItemsForUser(userId),
-    Bag.find({ userId }).select("name color").lean(),
   ]);
 
   const bagById = new Map(bags.map((b) => [String(b._id), b]));
