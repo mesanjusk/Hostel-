@@ -87,10 +87,16 @@ app.use(
   }),
 );
 
-const allowedOrigins = (process.env.CORS_ORIGIN ?? "")
-  .split(",")
-  .map((origin) => origin.trim())
-  .filter(Boolean);
+// FRONTEND_URL (set as a plain, non-secret value in render.yaml) is always the canonical
+// deployed frontend, so it's trusted for CORS unconditionally — CORS_ORIGIN below is a
+// Render dashboard secret (sync: false) that can drift out of sync or be left unset, and
+// when it does, the production frontend must not get silently CORS-blocked.
+const allowedOrigins = [
+  process.env.FRONTEND_URL,
+  ...(process.env.CORS_ORIGIN ?? "").split(","),
+]
+  .map((origin) => origin?.trim())
+  .filter((origin): origin is string => Boolean(origin));
 
 const isProduction = process.env.NODE_ENV === "production";
 
