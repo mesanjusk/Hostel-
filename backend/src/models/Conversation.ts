@@ -13,7 +13,8 @@ const ConversationSchema = new Schema(
     createdBy: { type: Schema.Types.ObjectId, ref: "User", required: true },
     /** Sorted, joined member-id pair — only set for type "dm", used to enforce one conversation
      * per pair of students instead of a slower $all/$size query on every DM open. */
-    dmKey: { type: String, default: null, index: true },
+    // No inline `index: true` here — the unique partial index below already covers it.
+    dmKey: { type: String, default: null },
     lastMessageAt: { type: Date, default: Date.now, index: true },
     lastMessagePreview: { type: String, default: "", maxlength: 140 },
   },
