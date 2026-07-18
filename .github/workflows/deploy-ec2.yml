@@ -82,6 +82,19 @@ jobs:
           npm run seed:products
           npm run seed:places
 
+          # Imports any DEFAULT_CHECKLIST_TEMPLATE item (e.g. the "Hobbies" category added
+          # after launch) that isn't yet in the live DefaultChecklistItem catalog, matched by
+          # template+category+title — never duplicates or overwrites an admin edit, so it's a
+          # no-op once caught up. Without this, new template items never reach production:
+          # ensureTemplateHasDefaultItems only seeds a template that has zero items at all.
+          npm run seed:checklist-taxonomy
+
+          # Category.ts only seeds a user's default folders once (existingCount === 0), so a
+          # category added to the template after a user already onboarded — like Hobbies —
+          # never reaches them on its own. Backfills that folder onto existing users; skips
+          # anyone who already has it, so also a no-op once caught up.
+          npm run categories:add-hobbies
+
           # Fills imageUrl on any place seedPlaces.ts just created (or left) with none, from
           # Wikipedia — no API key needed. Only touches places where imageUrl is still null,
           # so on a caught-up DB this is a single no-op query; only newly-added placeless
