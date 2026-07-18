@@ -43,7 +43,7 @@ export function LandingView() {
     <motion.div
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
-      className="glass relative w-full max-w-md overflow-visible rounded-[2rem] p-8 text-center shadow-[0_25px_60px_-20px_rgba(201,107,154,0.45)]"
+      className="glass relative w-full max-w-md overflow-visible rounded-[2rem] p-8 text-center shadow-[0_25px_60px_-20px_var(--shadow-brand)]"
     >
       {/* Top visual: a little "packing checklist" badge with stickers bobbing around it */}
       <div className="relative mx-auto mb-5 flex h-24 w-24 items-center justify-center">

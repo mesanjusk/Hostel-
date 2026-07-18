@@ -96,7 +96,7 @@ export default function OtpLoginPage() {
   }
 
   return (
-    <div className="glass relative w-full max-w-md overflow-hidden rounded-[2rem] p-8 shadow-[0_25px_60px_-20px_rgba(201,107,154,0.45)]">
+    <div className="glass relative w-full max-w-md overflow-hidden rounded-[2rem] p-8 shadow-[0_25px_60px_-20px_var(--shadow-brand)]">
       <div className="mb-8 flex flex-col items-center gap-3 text-center">
         <img src="/logo.png" alt="" width={64} height={64} />
         <h1 className="text-2xl">

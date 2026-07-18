@@ -1,6 +1,8 @@
 import { Link } from "react-router-dom";
 
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/context/auth-context";
+import { resolveStickerSrc } from "@/lib/gender-stickers";
 import {
   Highlight,
   NOTE_COLORS,
@@ -152,6 +154,7 @@ function CtaLink({ href, children }: { href: string; children: React.ReactNode }
 }
 
 function CardContent({ element }: { element: CanvasElement }) {
+  const { user } = useAuth();
   const isHeading = element.textStyle === "heading";
   const isHeroCard = element.isHero === true;
   const hasArrow = element.decoration === "arrow";
@@ -164,7 +167,7 @@ function CardContent({ element }: { element: CanvasElement }) {
           <div className="mb-1 flex aspect-square items-center justify-center overflow-hidden rounded-sm bg-gradient-to-br from-[#fdf6ee] to-[#f3e6d5] text-5xl">
             {element.src ? (
               <img
-                src={element.src}
+                src={resolveStickerSrc(element.src, user?.gender)}
                 alt={element.alt ?? ""}
                 className="h-full w-full object-contain drop-shadow-[1px_4px_8px_rgba(58,46,42,0.25)]"
                 draggable={false}
@@ -179,7 +182,7 @@ function CardContent({ element }: { element: CanvasElement }) {
       )}
       {isHeroCard && element.lines && (
         <>
-          <p className="text-sm font-semibold tracking-[0.3em] text-[#c96b9a] uppercase">{element.lines[0]}</p>
+          <p className="text-primary text-sm font-semibold tracking-[0.3em] uppercase">{element.lines[0]}</p>
           <h1
             className="mt-2 text-4xl leading-[1.05] font-bold text-[#3a2e2a] sm:text-6xl"
             style={{ fontFamily: "var(--font-caveat-mood)" }}
@@ -227,10 +230,11 @@ function CardContent({ element }: { element: CanvasElement }) {
  * page (percent + translate centering) and the admin editor (plain pixel transform, for
  * Moveable compatibility). */
 export function ElementBody({ element }: { element: CanvasElement }) {
+  const { user } = useAuth();
   if (element.kind === "image") {
     return (
       <img
-        src={element.src}
+        src={element.src ? resolveStickerSrc(element.src, user?.gender) : element.src}
         alt={element.alt ?? ""}
         className="h-full w-full object-contain drop-shadow-[2px_6px_10px_rgba(58,46,42,0.35)]"
         draggable={false}

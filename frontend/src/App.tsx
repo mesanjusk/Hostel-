@@ -8,6 +8,7 @@ import { RouteFallback } from "@/components/shared/route-fallback";
 import { HOME_ROUTE } from "@/lib/nav-items";
 import { hasSelectedGender } from "@/lib/onboarding-gender";
 import { useAnalyticsPageViews } from "@/lib/analytics/use-page-view-tracking";
+import { useGenderTheme } from "@/lib/use-gender-theme";
 import { lazyRetry } from "@/lib/lazy-retry";
 
 // Lazy, not a static import: DashboardLayout pulls in FabMenu, which statically imports 7 full
@@ -53,6 +54,7 @@ const AdminHomeCardsPage = lazyRetry(() => import("@/pages/admin-home-cards-page
 const AdminHomeScreenPage = lazyRetry(() => import("@/pages/admin-home-screen-page"));
 const AdminGuideScreenPage = lazyRetry(() => import("@/pages/admin-guide-screen-page"));
 const AdminCitiesPage = lazyRetry(() => import("@/pages/admin-cities-page"));
+const AdminGenderThemePage = lazyRetry(() => import("@/pages/admin-gender-theme-page"));
 const AdminCommunitiesPage = lazyRetry(() => import("@/pages/admin-communities-page"));
 const AdminPlacesPage = lazyRetry(() => import("@/pages/admin-places-page"));
 const AdminContactsPage = lazyRetry(() => import("@/pages/admin-contacts-page"));
@@ -86,6 +88,7 @@ function RootRoute() {
 
 export default function App() {
   useAnalyticsPageViews();
+  useGenderTheme();
 
   return (
     <>
@@ -244,6 +247,14 @@ export default function App() {
               element={
                 <AdminRoute>
                   <AdminCitiesPage />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/admin/gender-theme"
+              element={
+                <AdminRoute>
+                  <AdminGenderThemePage />
                 </AdminRoute>
               }
             />

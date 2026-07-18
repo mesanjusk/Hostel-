@@ -56,6 +56,59 @@
   --sidebar-border: #e9ddc9;
 
   --gradient-brand: linear-gradient(135deg, #c96b9a 0%, #e0956b 100%);
+  /** Ambient card shadow tint on the pre-login auth screens (landing-view.tsx,
+   * otp-login-page.tsx, onboarding-form.tsx) — pulled out as its own token so those screens
+   * pick up the male palette's cooler shadow too, not just the login/gender-pick components. */
+  --shadow-brand: rgba(201, 107, 154, 0.45);
+}
+
+/** "Boy" theme — navy/steel/charcoal, applied only when <html data-gender="male">. Set/cleared
+ * reactively by useGenderTheme() (frontend/src/lib/use-gender-theme.ts) from the logged-in
+ * user's own gender (Male only — Female/Other/null all keep the default palette above,
+ * unchanged) or, pre-login, the gender picked on /welcome. Only overrides the tokens that
+ * actually change; --success/--warning/--destructive and everything else fall through to the
+ * default :root block since they're semantic colors, not brand colors. Admin-configured hex
+ * overrides (see the Gender Theme admin panel) layer on top of these as inline styles on
+ * <html>, which win over this block by CSS specificity/origin — these values are just the
+ * shipped defaults so the app looks right even if no admin doc has ever been saved. */
+:root[data-gender="male"] {
+  --background: #f2f5f9;
+  --foreground: #1e2a38;
+
+  --card: #ffffff;
+  --card-foreground: #1e2a38;
+
+  --popover: #ffffff;
+  --popover-foreground: #1e2a38;
+
+  --primary: #1e3a5f;
+  --primary-foreground: #ffffff;
+
+  --secondary: #3e5c76;
+  --secondary-foreground: #f2f5f9;
+
+  --accent: #2e8bc0;
+  --accent-foreground: #ffffff;
+
+  --muted: #e2e8f0;
+  --muted-foreground: #57708a;
+
+  --border: #d7e0ea;
+  --input: #d7e0ea;
+  --ring: #1e3a5f;
+
+  --chart-1: #1e3a5f;
+  --chart-2: #2e8bc0;
+  --chart-3: #748cab;
+  --chart-4: #3e5c76;
+  --chart-5: #4a90d9;
+
+  --sidebar: #ffffff;
+  --sidebar-foreground: #1e2a38;
+  --sidebar-border: #d7e0ea;
+
+  --gradient-brand: linear-gradient(135deg, #1e3a5f 0%, #2e8bc0 100%);
+  --shadow-brand: rgba(30, 58, 95, 0.45);
 }
 
 @theme inline {

@@ -70,7 +70,7 @@ export function OnboardingForm({
     <motion.div
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
-      className="glass w-full max-w-md rounded-[2rem] p-8 shadow-[0_25px_60px_-20px_rgba(201,107,154,0.45)]"
+      className="glass w-full max-w-md rounded-[2rem] p-8 shadow-[0_25px_60px_-20px_var(--shadow-brand)]"
     >
       <div className="mb-6 text-center">
         <h1 className="font-display text-2xl font-bold">What should we call you?</h1>
