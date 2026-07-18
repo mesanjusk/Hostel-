@@ -144,7 +144,7 @@ async function main() {
       isForAllCollegeCategories: !isDesignOnly,
       isForAllCourses: !isDesignOnly,
       active: true,
-      gender: "All",
+      gender: templateItem.gender ?? "All",
     });
     imported += 1;
   }

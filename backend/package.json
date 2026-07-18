@@ -14,6 +14,7 @@
     "images:places": "tsx scripts/fetchPlaceImages.ts",
     "make-admin": "tsx scripts/make-admin.ts",
     "seed:checklist-taxonomy": "tsx scripts/seedChecklistTaxonomy.ts",
+    "migrate:checklist-gender": "tsx scripts/retagChecklistGender.ts",
     "categories:add-hobbies": "tsx scripts/addHobbiesCategory.ts",
     "seed:cities": "tsx scripts/seedCities.ts",
     "seed:colleges": "tsx scripts/seedColleges.ts",

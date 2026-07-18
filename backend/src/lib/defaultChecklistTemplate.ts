@@ -1,4 +1,4 @@
-import type { ChecklistCategory, ChecklistPlanType, ChecklistPriority } from "@/types";
+import type { ChecklistCategory, ChecklistGender, ChecklistPlanType, ChecklistPriority } from "@/types";
 
 export interface ChecklistTemplateItem {
   category: ChecklistCategory;
@@ -8,6 +8,12 @@ export interface ChecklistTemplateItem {
    * so the item seeds with planType null and the user picks pack or plan themselves. */
   planType?: ChecklistPlanType;
   description?: string;
+  /** Omitted means "All" (unisex) — the vast majority of items. Only set this for something
+   * clearly and exclusively for one gender (e.g. sanitary products, a razor/trimmer); anything
+   * ambiguous (ethnic wear, styling products, jewelry-adjacent accessories) is deliberately left
+   * unisex rather than guessed at. See scripts/retagChecklistGender.ts for how this reaches
+   * already-seeded production documents. */
+  gender?: ChecklistGender;
 }
 
 /**
@@ -65,12 +71,12 @@ export const DEFAULT_CHECKLIST_TEMPLATE: ChecklistTemplateItem[] = [
   { category: "Toiletries", item: "Shampoo & Conditioner", priority: "high", planType: "pack" },
   { category: "Toiletries", item: "Hair Oil / Styling Products", priority: "low", planType: "pack" },
   { category: "Toiletries", item: "Comb / Hairbrush", priority: "medium", planType: "pack" },
-  { category: "Toiletries", item: "Trimmer / Razor", priority: "medium", planType: "pack" },
+  { category: "Toiletries", item: "Trimmer / Razor", priority: "medium", planType: "pack", gender: "Male" },
   { category: "Toiletries", item: "Towel", priority: "high", planType: "pack", description: "2-3" },
   { category: "Toiletries", item: "Hand Towel", priority: "low", planType: "pack" },
   { category: "Toiletries", item: "Nail Cutter", priority: "medium", planType: "pack" },
   { category: "Toiletries", item: "Deodorant / Perfume", priority: "medium", planType: "pack" },
-  { category: "Toiletries", item: "Sanitary Products", priority: "high", planType: "pack" },
+  { category: "Toiletries", item: "Sanitary Products", priority: "high", planType: "pack", gender: "Female" },
 
   // Laundry
   { category: "Laundry", item: "Detergent (Powder/Liquid)", priority: "high", planType: "plan" },

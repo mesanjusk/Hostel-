@@ -67,9 +67,10 @@ async function ensureTemplateHasDefaultItems(templateId: string) {
     isForAllCourses: true,
     active: true,
     // Explicit rather than relying on the schema default: findApplicableItems's gender clause
-    // only matches an exact "All" (or the student's own gender) — an empty/undefined value
-    // here silently excludes every item from every user's checklist generation.
-    gender: "All" as const,
+    // only matches an exact "All"/the student's own gender — an empty/undefined value here
+    // silently excludes every item from every user's checklist generation. Falls back to "All"
+    // (unisex) except for the handful of items the template itself tags Male/Female.
+    gender: item.gender ?? "All",
   }));
 
   try {

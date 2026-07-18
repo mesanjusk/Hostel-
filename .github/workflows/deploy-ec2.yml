@@ -89,6 +89,15 @@ jobs:
           # ensureTemplateHasDefaultItems only seeds a template that has zero items at all.
           npm run seed:checklist-taxonomy
 
+          # Retags the handful of DefaultChecklistItem docs (e.g. "Trimmer / Razor",
+          # "Sanitary Products") that defaultChecklistTemplate.ts now targets at a specific
+          # gender, matched by template+category+title — only flips a doc whose gender is
+          # CURRENTLY exactly "All" (the untouched default), so it never overwrites an admin's
+          # manual gender edit. Safe/no-op to rerun every deploy once every matching doc is
+          # caught up. See scripts/retagChecklistGender.ts for the one known limitation (an
+          # admin manually resetting one back to "All" gets re-tagged on the next deploy).
+          npm run migrate:checklist-gender
+
           # Category.ts only seeds a user's default folders once (existingCount === 0), so a
           # category added to the template after a user already onboarded — like Hobbies —
           # never reaches them on its own. Backfills that folder onto existing users; skips
