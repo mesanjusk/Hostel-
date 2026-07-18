@@ -64,8 +64,12 @@ export function OverflowMenu({ isAdmin, items }: { isAdmin: boolean; items: NavI
             Share
           </DropdownMenuItem>
         )}
-        <DropdownMenuSeparator />
-        <DropdownMenuLabel className="font-normal">{__APP_VERSION__}</DropdownMenuLabel>
+        {isAdmin && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuLabel className="font-normal">{__APP_VERSION__}</DropdownMenuLabel>
+          </>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );
