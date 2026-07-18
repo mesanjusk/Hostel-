@@ -2,16 +2,7 @@ import { useEffect, useState } from "react";
 
 import { cn } from "@/lib/utils";
 import { NotebookCategorySection } from "@/features/checklist/notebook-category-section";
-import { PackWithMe } from "@/features/checklist/pack-with-me";
-import type { ChecklistPlanType } from "@/types";
 import type { ChecklistItemDTO } from "@/features/checklist/checklist-item-dto";
-
-export type PlanTypeFilter = ChecklistPlanType;
-
-const PLAN_TYPE_TABS: { type: PlanTypeFilter; label: string }[] = [
-  { type: "pack", label: "Pack it" },
-  { type: "plan", label: "Plan it" },
-];
 
 /** Curated for a plain notebook margin doodle feel — no event-specific stickers. */
 const PAGE_STICKERS = [
@@ -62,9 +53,6 @@ export function NotebookView({
   allCategories: string[];
 }) {
   const [groups, setGroups] = useState(initialGroups);
-  // Unclassified items (planType not yet set) default into "Pack it" rather than a separate
-  // "Unsorted" bucket — see notebook-category-section.tsx's visibleItems fold-in.
-  const [planTypeFilter, setPlanTypeFilter] = useState<PlanTypeFilter>("pack");
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
   useEffect(() => {
@@ -118,34 +106,13 @@ export function NotebookView({
         <CornerSticker {...pickSticker(1)} className="-top-4 -left-3 rotate-[-10deg] sm:-top-5 sm:-left-4" />
         <CornerSticker {...pickSticker(2)} className="-bottom-4 -left-3 rotate-[12deg] sm:-bottom-5 sm:-left-4" />
 
-        <div className="absolute top-6 right-0 z-40 flex translate-x-1/4 flex-col gap-3">
-          {PLAN_TYPE_TABS.map(({ type, label }) => (
-            <button
-              key={type}
-              type="button"
-              onClick={() => setPlanTypeFilter(type)}
-              aria-pressed={planTypeFilter === type}
-              className={cn(
-                "rounded-r-xl border border-l-0 px-3.5 py-2 text-base shadow-sm transition-colors sm:px-4 sm:py-2.5 sm:text-lg",
-                planTypeFilter === type
-                  ? "border-[#c96b9a] bg-[#c96b9a] text-white"
-                  : "border-[#e9ddc9] bg-white text-[#8a7a6a] hover:text-[#3a2e2a]",
-              )}
-              style={{ fontFamily: "var(--font-caveat-notebook)" }}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-
-        <div className="exam-paper relative flex flex-col overflow-hidden rounded-[20px] border border-[#e9ddc9] p-5 pr-20 shadow-[0_2px_14px_rgba(58,46,42,0.14)] sm:p-8 sm:pr-24 lg:p-10 lg:pr-28">
+        <div className="exam-paper relative flex flex-col overflow-hidden rounded-[20px] border border-[#e9ddc9] p-5 shadow-[0_2px_14px_rgba(58,46,42,0.14)] sm:p-8 lg:p-10">
           {groups.map((group, i) => (
             <NotebookCategorySection
               key={group.category}
               category={group.category}
               allCategories={allCategories}
               items={group.items}
-              planTypeFilter={planTypeFilter}
               expanded={expanded.has(group.category)}
               onToggleExpanded={() => toggleExpanded(group.category)}
               onItemsChange={(u) => updateCategoryItems(group.category, u)}
@@ -154,8 +121,6 @@ export function NotebookView({
           ))}
         </div>
       </div>
-
-      <PackWithMe />
     </div>
   );
 }

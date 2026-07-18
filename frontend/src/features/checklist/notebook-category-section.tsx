@@ -18,7 +18,6 @@ import { api, ApiError } from "@/lib/api";
 import { emitRefresh } from "@/lib/refresh-bus";
 import type { ChecklistPlanType } from "@/types";
 import type { ChecklistItemDTO } from "@/features/checklist/checklist-item-dto";
-import type { PlanTypeFilter } from "@/features/checklist/notebook-view";
 
 /** One category's notebook page, collapsed to a header row until tapped open — same paper
  * look and item styling as before, just no longer paginated one category at a time. */
@@ -26,7 +25,6 @@ export function NotebookCategorySection({
   category,
   allCategories,
   items,
-  planTypeFilter,
   expanded,
   onToggleExpanded,
   onItemsChange,
@@ -35,7 +33,6 @@ export function NotebookCategorySection({
   category: string;
   allCategories: string[];
   items: ChecklistItemDTO[];
-  planTypeFilter: PlanTypeFilter;
   expanded: boolean;
   onToggleExpanded: () => void;
   onItemsChange: (updater: (prev: ChecklistItemDTO[]) => ChecklistItemDTO[]) => void;
@@ -75,15 +72,8 @@ export function NotebookCategorySection({
     }
   }
 
-  // Unclassified items (planType not yet set) default into "Pack it" rather than a separate
-  // "Unsorted" bucket.
-  const visibleItems =
-    planTypeFilter === "pack"
-      ? items.filter((i) => i.planType !== "plan")
-      : items.filter((i) => i.planType === planTypeFilter);
-  const pending = visibleItems.filter((i) => !i.completed);
-  const completed = visibleItems.filter((i) => i.completed);
-  const planTypeLabel = planTypeFilter === "pack" ? "pack it" : "plan it";
+  const pending = items.filter((i) => !i.completed);
+  const completed = items.filter((i) => i.completed);
 
   return (
     <div className={cn("relative border-b border-dashed border-[#e9ddc9]/80 py-4 sm:py-5", isLast && "border-b-0")}>
@@ -127,10 +117,6 @@ export function NotebookCategorySection({
                 {items.length === 0 ? (
                   <p className="text-center text-xl text-[#8a7a6a] lg:text-2xl" style={{ fontFamily: "var(--font-caveat-notebook)" }}>
                     add your first item below ✨
-                  </p>
-                ) : visibleItems.length === 0 ? (
-                  <p className="text-center text-xl text-[#8a7a6a] lg:text-2xl" style={{ fontFamily: "var(--font-caveat-notebook)" }}>
-                    nothing to {planTypeLabel} here ✨
                   </p>
                 ) : pending.length === 0 ? (
                   <p className="text-center text-xl text-[#8a7a6a] lg:text-2xl" style={{ fontFamily: "var(--font-caveat-notebook)" }}>
