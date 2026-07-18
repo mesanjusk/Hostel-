@@ -34,10 +34,14 @@ interface OverallProgress {
 
 export function ChecklistOverview({
   groups,
+  onGroupsChange,
   overall,
   initialBulkEdit = false,
 }: {
   groups: CategoryGroup[];
+  // Passed straight through to each category's CategoryView so per-item edits write back to
+  // ChecklistPage's own `groups` state rather than a local copy — see category-view.tsx.
+  onGroupsChange: (updater: (prev: CategoryGroup[]) => CategoryGroup[]) => void;
   overall: OverallProgress;
   initialBulkEdit?: boolean;
 }) {
@@ -47,6 +51,10 @@ export function ChecklistOverview({
   const [bulkActionLoading, setBulkActionLoading] = useState(false);
 
   const allItemIds = useMemo(() => new Set(groups.flatMap((g) => g.items.map((i) => i.id))), [groups]);
+
+  function updateCategoryItems(category: ChecklistCategory, updater: (prev: ChecklistItemDTO[]) => ChecklistItemDTO[]) {
+    onGroupsChange((prev) => prev.map((g) => (g.category === category ? { ...g, items: updater(g.items) } : g)));
+  }
 
   function toggleSelected(id: string) {
     setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
@@ -155,7 +163,8 @@ export function ChecklistOverview({
               <AccordionContent className="px-1 pb-2">
                 <CategoryView
                   category={category}
-                  initialItems={items}
+                  items={items}
+                  onItemsChange={(u) => updateCategoryItems(category, u)}
                   embedded
                   hideToolbar
                   selectMode={bulkEditMode}

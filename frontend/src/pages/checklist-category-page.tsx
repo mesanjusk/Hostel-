@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -34,19 +34,27 @@ export default function ChecklistCategoryPage() {
   const [items, setItems] = useState<ChecklistItemDTO[]>(() => cached?.items ?? []);
   const [loading, setLoading] = useState(() => !cached);
 
+  // Guards against a fetch that started earlier (e.g. the initial mount load) resolving *after*
+  // a later one (e.g. the refetch right after checking an item) and clobbering fresher data with
+  // a stale, pre-mutation snapshot — same fix as checklist-page.tsx's fetchData.
+  const fetchIdRef = useRef(0);
+
   async function fetchData() {
+    const fetchId = ++fetchIdRef.current;
     try {
       const [{ categories }, { categories: grouped }] = await Promise.all([
         api.get<{ categories: { id: string; name: string; icon: string | null }[] }>(CATEGORIES_PATH),
         api.get<{ categories: { category: string; items: ChecklistItemRaw[] }[] }>(CHECKLIST_PATH),
       ]);
+      if (fetchId !== fetchIdRef.current) return;
       setAllCategories(categories.map((c) => c.name));
       const group = grouped.find((g) => g.category === category);
       setItems(group ? group.items.map(toChecklistItemDTO) : []);
     } catch (error) {
+      if (fetchId !== fetchIdRef.current) return;
       toast.error(error instanceof ApiError ? error.message : "Failed to load category");
     } finally {
-      setLoading(false);
+      if (fetchId === fetchIdRef.current) setLoading(false);
     }
   }
 
@@ -61,5 +69,5 @@ export default function ChecklistCategoryPage() {
   if (loading) return null;
   if (!allCategories?.includes(category)) return <NotFound />;
 
-  return <CategoryView category={category} initialItems={items} />;
+  return <CategoryView category={category} items={items} onItemsChange={setItems} />;
 }

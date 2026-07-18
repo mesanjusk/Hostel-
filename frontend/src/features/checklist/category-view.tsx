@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ArrowLeft, Calendar, Check, Copy, ListChecks, MoreVertical, Search, Trash2, X } from "lucide-react";
@@ -55,7 +55,8 @@ const PRIORITY_WEIGHT: Record<ChecklistPriority, number> = {
 
 export function CategoryView({
   category,
-  initialItems,
+  items,
+  onItemsChange,
   embedded = false,
   hideToolbar = false,
   selectMode: controlledSelectMode,
@@ -63,17 +64,22 @@ export function CategoryView({
   onToggleSelected,
 }: {
   category: ChecklistCategory;
-  initialItems: ChecklistItemDTO[];
+  items: ChecklistItemDTO[];
+  // Writes through to whichever parent owns the real checklist state (ChecklistCategoryPage
+  // standalone, or ChecklistOverview's per-category slice of ChecklistPage's `groups`), instead
+  // of a local copy here. A local copy — even one resynced via a useEffect — meant an item's
+  // first-ever toggle (which materializes it server-side from a virtual template item into a
+  // real document with a new id) could transiently show up twice: the optimistic update landing
+  // in this component's local state under the old id, while the following refetch's fresh,
+  // correctly-id'd data raced it. See the same fix already applied to the notebook view
+  // (NotebookView / notebook-view.tsx).
+  onItemsChange: (updater: (prev: ChecklistItemDTO[]) => ChecklistItemDTO[]) => void;
   embedded?: boolean;
   hideToolbar?: boolean;
   selectMode?: boolean;
   selectedIds?: string[];
   onToggleSelected?: (id: string) => void;
 }) {
-  const [items, setItems] = useState(initialItems);
-  useEffect(() => {
-    setItems(initialItems);
-  }, [initialItems]);
   const [search, setSearch] = useState("");
   const [priorityFilter, setPriorityFilter] = useState<PriorityFilter>("all");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
@@ -125,18 +131,18 @@ export function CategoryView({
   }
 
   async function toggleCompleted(item: ChecklistItemDTO) {
-    setItems((prev) => prev.map((i) => (i.id === item.id ? { ...i, completed: !i.completed } : i)));
+    onItemsChange((prev) => prev.map((i) => (i.id === item.id ? { ...i, completed: !i.completed } : i)));
     try {
       await api.patch(`/api/checklist/${item.id}`, { completed: !item.completed });
       emitRefresh();
     } catch (error) {
       toast.error(error instanceof ApiError ? error.message : "Failed to update item");
-      setItems((prev) => prev.map((i) => (i.id === item.id ? { ...i, completed: item.completed } : i)));
+      onItemsChange((prev) => prev.map((i) => (i.id === item.id ? { ...i, completed: item.completed } : i)));
     }
   }
 
   async function handleDelete(id: string) {
-    setItems((prev) => prev.filter((i) => i.id !== id));
+    onItemsChange((prev) => prev.filter((i) => i.id !== id));
     try {
       await api.delete(`/api/checklist/${id}`);
       emitRefresh();
@@ -146,7 +152,7 @@ export function CategoryView({
   }
 
   async function handlePlanTypeChange(item: ChecklistItemDTO, planType: ChecklistPlanType | null) {
-    setItems((prev) => prev.map((i) => (i.id === item.id ? { ...i, planType } : i)));
+    onItemsChange((prev) => prev.map((i) => (i.id === item.id ? { ...i, planType } : i)));
     try {
       await api.patch(`/api/checklist/${item.id}`, { planType });
       emitRefresh();
@@ -160,9 +166,9 @@ export function CategoryView({
     const ids = selectedIds;
 
     if (action === "complete" || action === "incomplete") {
-      setItems((prev) => prev.map((i) => (ids.includes(i.id) ? { ...i, completed: action === "complete" } : i)));
+      onItemsChange((prev) => prev.map((i) => (ids.includes(i.id) ? { ...i, completed: action === "complete" } : i)));
     } else if (action === "delete") {
-      setItems((prev) => prev.filter((i) => !ids.includes(i.id)));
+      onItemsChange((prev) => prev.filter((i) => !ids.includes(i.id)));
     }
 
     try {

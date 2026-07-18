@@ -89,7 +89,7 @@ export default function ChecklistPage() {
   const bulkEdit = searchParams.get("bulkEdit");
 
   if (view === "list" || bulkEdit === "1") {
-    return <ChecklistOverview groups={groups} overall={overall} initialBulkEdit={bulkEdit === "1"} />;
+    return <ChecklistOverview groups={groups} onGroupsChange={setGroups} overall={overall} initialBulkEdit={bulkEdit === "1"} />;
   }
 
   return <NotebookView groups={groups} onGroupsChange={setGroups} allCategories={allCategories} />;
