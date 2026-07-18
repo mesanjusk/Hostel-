@@ -5,6 +5,8 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
@@ -32,6 +34,8 @@ export function OverflowMenu({ isAdmin, items }: { isAdmin: boolean; items: NavI
             </DropdownMenuItem>
           );
         })}
+        <DropdownMenuSeparator />
+        <DropdownMenuLabel className="font-normal">{__APP_VERSION__}</DropdownMenuLabel>
       </DropdownMenuContent>
     </DropdownMenu>
   );

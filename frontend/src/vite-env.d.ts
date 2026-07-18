@@ -12,3 +12,6 @@ interface ImportMetaEnv {
 interface ImportMeta {
   readonly env: ImportMetaEnv;
 }
+
+// Injected by vite.config.ts's `define` at build time — see readAppVersion() there.
+declare const __APP_VERSION__: string;
