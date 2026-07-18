@@ -52,7 +52,7 @@ export function OverflowMenu({ isAdmin, items }: { isAdmin: boolean; items: NavI
               {item.href === "/profile" && (
                 <DropdownMenuItem onSelect={sharePage}>
                   <Share2 className="size-4" />
-                  Share this page
+                  Share
                 </DropdownMenuItem>
               )}
             </div>
@@ -61,7 +61,7 @@ export function OverflowMenu({ isAdmin, items }: { isAdmin: boolean; items: NavI
         {!hasProfileItem && (
           <DropdownMenuItem onSelect={sharePage}>
             <Share2 className="size-4" />
-            Share this page
+            Share
           </DropdownMenuItem>
         )}
         <DropdownMenuSeparator />
