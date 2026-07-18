@@ -3,9 +3,16 @@
  * name. Shared by the manual `seed:colleges` script and the auto-seed run at server startup
  * (see collegeService.ensureCollegesSeeded) so both stay in sync with one source of truth.
  *
- * This is a curated starting point, not an exhaustive directory — the picker always offers an
- * "Other" fallback for anything missing, and admins can add more colleges for other cities from
- * the admin panel at any time.
+ * Complete national systems (all 23 IITs, all 31 NITs, all 20 IIMs, every operational AIIMS, VIT's
+ * Vellore/Chennai/AP/Bhopal campuses) are enumerated in full here, even where a campus sits in a
+ * small town — students search by the brand name, not city size. `indianCities.ts` gained a
+ * handful of smaller towns (Ropar, Mandi, Palakkad, Goa, Rohtak, Kashipur, Rishikesh, Deoghar,
+ * Raebareli, Karaikal) specifically so those campuses' actual city has a matching City record; a
+ * few campuses in towns still not worth cataloguing as a full city (e.g. NIT Andhra Pradesh at
+ * Tadepalligudem, IIM Sirmaur) are filed under the nearest catalogued city instead. Beyond the
+ * named national systems this stays a curated shortlist, not an exhaustive directory of every
+ * college in India — the picker always offers an "Other" fallback for anything missing, and
+ * admins can add more colleges for other cities from the admin panel at any time.
  *
  * `nirfRank` is only set where a college's #1 spot in its NIRF category ranking has been
  * essentially unchanged for years (the seven oldest IITs in Engineering, AIIMS Delhi in
@@ -35,6 +42,18 @@ export const ENGINEERING_COLLEGE_SEEDS: SeedCollege[] = [
   { city: "Varanasi", name: "IIT (BHU) Varanasi", sortOrder: 1 },
   { city: "Indore", name: "IIT Indore", sortOrder: 1 },
   { city: "Dhanbad", name: "Indian Institute of Technology (Indian School of Mines), Dhanbad", sortOrder: 1 },
+  { city: "Bhubaneswar", name: "IIT Bhubaneswar", sortOrder: 2 },
+  { city: "Gandhinagar", name: "IIT Gandhinagar", sortOrder: 2 },
+  { city: "Jodhpur", name: "IIT Jodhpur", sortOrder: 2 },
+  { city: "Patna", name: "IIT Patna", sortOrder: 2 },
+  { city: "Tirupati", name: "IIT Tirupati", sortOrder: 2 },
+  { city: "Bhilai", name: "IIT Bhilai", sortOrder: 2 },
+  { city: "Jammu", name: "IIT Jammu", sortOrder: 2 },
+  { city: "Dharwad", name: "IIT Dharwad", sortOrder: 2 },
+  { city: "Goa", name: "IIT Goa", sortOrder: 2 },
+  { city: "Ropar", name: "IIT Ropar", sortOrder: 2 },
+  { city: "Mandi", name: "IIT Mandi", sortOrder: 2 },
+  { city: "Palakkad", name: "IIT Palakkad", sortOrder: 2 },
 
   { city: "Mumbai", name: "Institute of Chemical Technology (ICT)", sortOrder: 10 },
   { city: "Mumbai", name: "Veermata Jijabai Technological Institute (VJTI)", sortOrder: 20 },
@@ -80,8 +99,32 @@ export const ENGINEERING_COLLEGE_SEEDS: SeedCollege[] = [
   { city: "Nagpur", name: "Visvesvaraya National Institute of Technology (VNIT)", sortOrder: 5 },
   { city: "Bhopal", name: "Maulana Azad National Institute of Technology (MANIT)", sortOrder: 5 },
   { city: "Rourkela", name: "NIT Rourkela", sortOrder: 5 },
+  { city: "Prayagraj", name: "Motilal Nehru National Institute of Technology (MNNIT) Allahabad", sortOrder: 5 },
+  { city: "Agartala", name: "NIT Agartala", sortOrder: 10 },
+  { city: "Delhi", name: "NIT Delhi", sortOrder: 10 },
+  { city: "Durgapur", name: "NIT Durgapur", sortOrder: 10 },
+  { city: "Goa", name: "NIT Goa", sortOrder: 10 },
+  { city: "Hamirpur", name: "NIT Hamirpur", sortOrder: 10 },
+  { city: "Jalandhar", name: "NIT Jalandhar", sortOrder: 10 },
+  { city: "Jamshedpur", name: "NIT Jamshedpur", sortOrder: 10 },
+  { city: "Kurukshetra", name: "NIT Kurukshetra", sortOrder: 10 },
+  { city: "Imphal", name: "NIT Manipur", sortOrder: 10 },
+  { city: "Shillong", name: "NIT Meghalaya", sortOrder: 10 },
+  { city: "Aizawl", name: "NIT Mizoram", sortOrder: 10 },
+  { city: "Dimapur", name: "NIT Nagaland", sortOrder: 10 },
+  { city: "Patna", name: "NIT Patna", sortOrder: 10 },
+  { city: "Puducherry", name: "NIT Puducherry", sortOrder: 10 },
+  { city: "Raipur", name: "NIT Raipur", sortOrder: 10 },
+  { city: "Silchar", name: "NIT Silchar", sortOrder: 10 },
+  { city: "Srinagar", name: "NIT Srinagar (J&K)", sortOrder: 10 },
+  { city: "Srinagar", name: "NIT Uttarakhand (Srinagar, Garhwal)", sortOrder: 20 },
+  { city: "Gangtok", name: "NIT Sikkim", sortOrder: 10 },
+  { city: "Eluru", name: "NIT Andhra Pradesh", sortOrder: 10 },
+  { city: "Itanagar", name: "NIT Arunachal Pradesh", sortOrder: 10 },
 
   { city: "Vellore", name: "Vellore Institute of Technology (VIT)", sortOrder: 10 },
+  { city: "Amaravati", name: "VIT-AP University", sortOrder: 10 },
+  { city: "Bhopal", name: "VIT Bhopal University", sortOrder: 15 },
   { city: "Coimbatore", name: "Amrita Vishwa Vidyapeetham, Coimbatore", sortOrder: 10 },
   { city: "Coimbatore", name: "PSG College of Technology", sortOrder: 20 },
   { city: "Thanjavur", name: "SASTRA Deemed University", sortOrder: 5 },
@@ -89,6 +132,7 @@ export const ENGINEERING_COLLEGE_SEEDS: SeedCollege[] = [
   { city: "Manipal", name: "Manipal Institute of Technology (MIT)", sortOrder: 5 },
   { city: "Bhubaneswar", name: "Kalinga Institute of Industrial Technology (KIIT)", sortOrder: 10 },
   { city: "Bhubaneswar", name: "Siksha 'O' Anusandhan (SOA) University", sortOrder: 20 },
+  { city: "Dehradun", name: "University of Petroleum and Energy Studies (UPES)", sortOrder: 10 },
 
   { city: "Ahmedabad", name: "Nirma University — Institute of Technology", sortOrder: 10 },
   { city: "Ahmedabad", name: "L D College of Engineering", sortOrder: 20 },
@@ -181,6 +225,22 @@ export const MEDICAL_COLLEGE_SEEDS: SeedCollege[] = [
 
   { city: "Jodhpur", name: "All India Institute of Medical Sciences (AIIMS), Jodhpur", sortOrder: 10 },
   { city: "Bhopal", name: "All India Institute of Medical Sciences (AIIMS), Bhopal", sortOrder: 10 },
+  { city: "Bhubaneswar", name: "All India Institute of Medical Sciences (AIIMS), Bhubaneswar", sortOrder: 10 },
+  { city: "Patna", name: "All India Institute of Medical Sciences (AIIMS), Patna", sortOrder: 10 },
+  { city: "Raipur", name: "All India Institute of Medical Sciences (AIIMS), Raipur", sortOrder: 10 },
+  { city: "Rishikesh", name: "All India Institute of Medical Sciences (AIIMS), Rishikesh", sortOrder: 10 },
+  { city: "Nagpur", name: "All India Institute of Medical Sciences (AIIMS), Nagpur", sortOrder: 10 },
+  { city: "Guwahati", name: "All India Institute of Medical Sciences (AIIMS), Guwahati", sortOrder: 10 },
+  { city: "Rajkot", name: "All India Institute of Medical Sciences (AIIMS), Rajkot", sortOrder: 10 },
+  { city: "Bathinda", name: "All India Institute of Medical Sciences (AIIMS), Bathinda", sortOrder: 10 },
+  { city: "Gorakhpur", name: "All India Institute of Medical Sciences (AIIMS), Gorakhpur", sortOrder: 10 },
+  { city: "Deoghar", name: "All India Institute of Medical Sciences (AIIMS), Deoghar", sortOrder: 10 },
+  { city: "Raebareli", name: "All India Institute of Medical Sciences (AIIMS), Raebareli", sortOrder: 10 },
+  { city: "Madurai", name: "All India Institute of Medical Sciences (AIIMS), Madurai", sortOrder: 10 },
+  { city: "Bilaspur", name: "All India Institute of Medical Sciences (AIIMS), Bilaspur (Himachal Pradesh)", sortOrder: 10 },
+  { city: "Guntur", name: "All India Institute of Medical Sciences (AIIMS), Mangalagiri", sortOrder: 10 },
+  { city: "Kolkata", name: "All India Institute of Medical Sciences (AIIMS), Kalyani", sortOrder: 30 },
+  { city: "Hyderabad", name: "All India Institute of Medical Sciences (AIIMS), Bibinagar", sortOrder: 30 },
 ];
 
 export const MANAGEMENT_COLLEGE_SEEDS: SeedCollege[] = [
@@ -206,6 +266,21 @@ export const MANAGEMENT_COLLEGE_SEEDS: SeedCollege[] = [
 
   { city: "Chennai", name: "Great Lakes Institute of Management", sortOrder: 10 },
   { city: "Chennai", name: "Loyola Institute of Business Administration (LIBA)", sortOrder: 20 },
+
+  { city: "Shillong", name: "Indian Institute of Management (IIM), Shillong", sortOrder: 20 },
+  { city: "Rohtak", name: "Indian Institute of Management (IIM), Rohtak", sortOrder: 20 },
+  { city: "Ranchi", name: "Indian Institute of Management (IIM), Ranchi", sortOrder: 20 },
+  { city: "Raipur", name: "Indian Institute of Management (IIM), Raipur", sortOrder: 20 },
+  { city: "Tiruchirappalli", name: "Indian Institute of Management (IIM), Tiruchirappalli", sortOrder: 20 },
+  { city: "Kashipur", name: "Indian Institute of Management (IIM), Kashipur", sortOrder: 20 },
+  { city: "Udaipur", name: "Indian Institute of Management (IIM), Udaipur", sortOrder: 20 },
+  { city: "Nagpur", name: "Indian Institute of Management (IIM), Nagpur", sortOrder: 20 },
+  { city: "Visakhapatnam", name: "Indian Institute of Management (IIM), Visakhapatnam", sortOrder: 20 },
+  { city: "Gaya", name: "Indian Institute of Management (IIM), Bodh Gaya", sortOrder: 20 },
+  { city: "Shimla", name: "Indian Institute of Management (IIM), Sirmaur", sortOrder: 20 },
+  { city: "Sambalpur", name: "Indian Institute of Management (IIM), Sambalpur", sortOrder: 20 },
+  { city: "Amritsar", name: "Indian Institute of Management (IIM), Amritsar", sortOrder: 20 },
+  { city: "Jammu", name: "Indian Institute of Management (IIM), Jammu", sortOrder: 20 },
 ];
 
 export const LAW_COLLEGE_SEEDS: SeedCollege[] = [
@@ -239,6 +314,8 @@ export const COMMERCE_COLLEGE_SEEDS: SeedCollege[] = [
   { city: "Delhi", name: "Lady Shri Ram College for Women", sortOrder: 15 },
   { city: "Delhi", name: "Hindu College", sortOrder: 25 },
   { city: "Delhi", name: "Hansraj College", sortOrder: 35 },
+  { city: "Delhi", name: "Sri Venkateswara College", sortOrder: 45 },
+  { city: "Delhi", name: "Gargi College", sortOrder: 55 },
 
   { city: "Mumbai", name: "Narsee Monjee College of Commerce and Economics", sortOrder: 10 },
   { city: "Mumbai", name: "H R College of Commerce and Economics", sortOrder: 20 },
@@ -254,6 +331,7 @@ export const COMMERCE_COLLEGE_SEEDS: SeedCollege[] = [
   { city: "Bengaluru", name: "Mount Carmel College", sortOrder: 20 },
 
   { city: "Pune", name: "Symbiosis College of Arts and Commerce", sortOrder: 10 },
+  { city: "Nagpur", name: "Rashtrasant Tukadoji Maharaj Nagpur University (RTMNU)", sortOrder: 10 },
 ];
 
 export const SCIENCE_COLLEGE_SEEDS: SeedCollege[] = [
@@ -264,11 +342,14 @@ export const SCIENCE_COLLEGE_SEEDS: SeedCollege[] = [
   { city: "Delhi", name: "St. Stephen's College", sortOrder: 10 },
   { city: "Delhi", name: "Hindu College", sortOrder: 20 },
   { city: "Delhi", name: "Miranda House", sortOrder: 30 },
+  { city: "Delhi", name: "Kirori Mal College", sortOrder: 40 },
   { city: "Mumbai", name: "St. Xavier's College, Mumbai", sortOrder: 10 },
   { city: "Chennai", name: "Loyola College", sortOrder: 10 },
   { city: "Thiruvananthapuram", name: "Indian Institute of Science Education and Research (IISER), Thiruvananthapuram", sortOrder: 10 },
   { city: "Mohali", name: "Indian Institute of Science Education and Research (IISER), Mohali", sortOrder: 10 },
   { city: "Bhopal", name: "Indian Institute of Science Education and Research (IISER), Bhopal", sortOrder: 10 },
+  { city: "Chandigarh", name: "Panjab University", sortOrder: 10 },
+  { city: "Guwahati", name: "Gauhati University", sortOrder: 10 },
 ];
 
 export const ARTS_COLLEGE_SEEDS: SeedCollege[] = [
@@ -276,6 +357,8 @@ export const ARTS_COLLEGE_SEEDS: SeedCollege[] = [
   { city: "Delhi", name: "Lady Shri Ram College for Women", sortOrder: 15 },
   { city: "Delhi", name: "Miranda House", sortOrder: 25 },
   { city: "Delhi", name: "Hindu College", sortOrder: 35 },
+  { city: "Delhi", name: "Ramjas College", sortOrder: 45 },
+  { city: "Delhi", name: "Daulat Ram College", sortOrder: 55 },
   { city: "Mumbai", name: "St. Xavier's College, Mumbai", sortOrder: 10 },
   { city: "Kolkata", name: "Presidency University", sortOrder: 10 },
   { city: "Kolkata", name: "Jadavpur University", sortOrder: 20 },
@@ -284,6 +367,10 @@ export const ARTS_COLLEGE_SEEDS: SeedCollege[] = [
   { city: "Pune", name: "Fergusson College", sortOrder: 10 },
   { city: "Bengaluru", name: "Christ University", sortOrder: 10 },
   { city: "Bengaluru", name: "St. Joseph's College", sortOrder: 20 },
+  { city: "Bhubaneswar", name: "Utkal University", sortOrder: 10 },
+  { city: "Jaipur", name: "University of Rajasthan", sortOrder: 10 },
+  { city: "Patna", name: "Patna University", sortOrder: 10 },
+  { city: "Ranchi", name: "Ranchi University", sortOrder: 10 },
 ];
 
 export const ANIMATION_COLLEGE_SEEDS: SeedCollege[] = [
