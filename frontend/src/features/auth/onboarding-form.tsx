@@ -19,28 +19,44 @@ import {
 import { useAuth } from "@/context/auth-context";
 import { ApiError } from "@/lib/api";
 import { HOME_ROUTE } from "@/lib/nav-items";
-import { GenderField } from "@/features/auth/profile-fields";
+import { clearSelectedGender } from "@/lib/onboarding-gender";
+import { cn } from "@/lib/utils";
 import { AvatarUploadField } from "@/features/auth/avatar-upload-field";
-import { onboardingFieldsSchema, type OnboardingFieldsInput } from "@/features/auth/profile-fields-schema";
+import { onboardingNameSchema, type OnboardingNameInput } from "@/features/auth/profile-fields-schema";
+import { GENDER_OPTIONS, type Gender } from "@/types";
 
-export function OnboardingForm({ defaultName }: { defaultName?: string }) {
+export function OnboardingForm({
+  defaultName,
+  initialGender,
+}: {
+  defaultName?: string;
+  /** Gender picked on the pre-login landing page. Null only for entry paths that bypass it
+   * (e.g. the WhatsApp-bot confirmation link) — in that case we fall back to asking inline
+   * instead of bouncing the (already-authenticated) user in a redirect loop. */
+  initialGender: Gender | null;
+}) {
   const navigate = useNavigate();
   const { completeOnboarding } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [avatar, setAvatar] = useState("");
+  const [gender, setGender] = useState<Gender | null>(initialGender);
 
-  const form = useForm<OnboardingFieldsInput>({
-    resolver: zodResolver(onboardingFieldsSchema),
+  const form = useForm<OnboardingNameInput>({
+    resolver: zodResolver(onboardingNameSchema),
     defaultValues: {
       name: defaultName ?? "",
-      gender: undefined,
     },
   });
 
-  async function onSubmit(values: OnboardingFieldsInput) {
+  async function onSubmit(values: OnboardingNameInput) {
+    if (!gender) {
+      toast.error("Select a gender to continue");
+      return;
+    }
     setIsSubmitting(true);
     try {
-      await completeOnboarding({ ...values, avatar: avatar || undefined });
+      await completeOnboarding({ ...values, gender, avatar: avatar || undefined });
+      clearSelectedGender();
       toast.success("Welcome to Pack with Me!");
       navigate(HOME_ROUTE, { replace: true });
     } catch (error) {
@@ -57,10 +73,8 @@ export function OnboardingForm({ defaultName }: { defaultName?: string }) {
       className="glass w-full max-w-md rounded-3xl p-8 shadow-2xl"
     >
       <div className="mb-6 text-center">
-        <h1 className="font-display text-2xl font-bold">Let&apos;s set you up</h1>
-        <p className="text-muted-foreground mt-1 text-sm">
-          Just your name and gender to get started — you can fill in the rest later
-        </p>
+        <h1 className="font-display text-2xl font-bold">What should we call you?</h1>
+        <p className="text-muted-foreground mt-1 text-sm">Just your name to get started — you can fill in the rest later</p>
       </div>
 
       <Form {...form}>
@@ -87,7 +101,30 @@ export function OnboardingForm({ defaultName }: { defaultName?: string }) {
               </FormItem>
             )}
           />
-          <GenderField form={form} />
+
+          {!initialGender && (
+            <div className="flex flex-col gap-2">
+              <span className="text-sm leading-none font-medium">Gender</span>
+              <div className="flex gap-2">
+                {GENDER_OPTIONS.map((g) => (
+                  <button
+                    key={g}
+                    type="button"
+                    onClick={() => setGender(g)}
+                    className={cn(
+                      "flex-1 rounded-full border px-4 py-2.5 text-sm font-medium transition-colors",
+                      gender === g
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "border-input text-muted-foreground hover:border-primary/50 bg-transparent",
+                    )}
+                  >
+                    {g}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           <Button type="submit" size="lg" disabled={isSubmitting} className="mt-2">
             {isSubmitting && <Loader2 className="size-4 animate-spin" />}
             Enter Pack with Me

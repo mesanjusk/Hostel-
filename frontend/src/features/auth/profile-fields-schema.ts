@@ -17,15 +17,15 @@ export const profileFieldsSchema = z.object({
 
 export type ProfileFieldsInput = z.infer<typeof profileFieldsSchema>;
 
-/** Onboarding now collects only name + gender — everything else (college, city, etc.) is
- * deferred to the one-time Community profile-setup prompt (see community-profile-setup-dialog.tsx),
- * shown the first time the student opens Community. */
-export const onboardingFieldsSchema = z.object({
+/** Onboarding now collects only name — gender is picked earlier, on the pre-login landing
+ * page (see landing-view.tsx), and everything else (college, city, etc.) is deferred to the
+ * one-time Community profile-setup prompt (see community-profile-setup-dialog.tsx), shown the
+ * first time the student opens Community. */
+export const onboardingNameSchema = z.object({
   name: z.string().trim().min(2, "Name is too short").max(80, "Name is too long"),
-  gender: z.enum(GENDER_OPTIONS, { message: "Select a gender" }),
 });
 
-export type OnboardingFieldsInput = z.infer<typeof onboardingFieldsSchema>;
+export type OnboardingNameInput = z.infer<typeof onboardingNameSchema>;
 
 /** The college/city fields deferred out of onboarding, collected instead the first time the
  * student opens Community — see community-profile-setup-dialog.tsx. */

@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 
 import { useAuth } from "@/context/auth-context";
+import { hasSelectedGender } from "@/lib/onboarding-gender";
 import { HOME_ROUTE } from "@/lib/routes";
 
 export function ProtectedRoute({ children }: { children: ReactNode }) {
@@ -46,7 +47,17 @@ export function AdminRoute({ children }: { children: ReactNode }) {
  * synchronous handler already ran. Defaults to the main app's home route; pass a different
  * target for routes (like /wa-login) that should land somewhere else after signing in.
  */
-export function AuthOnlyRoute({ children, redirectTo = HOME_ROUTE }: { children: ReactNode; redirectTo?: string }) {
+export function AuthOnlyRoute({
+  children,
+  redirectTo = HOME_ROUTE,
+  requireSelectedGender = false,
+}: {
+  children: ReactNode;
+  redirectTo?: string;
+  /** Gates this route behind the pre-login gender pick on the landing page — used only for
+   * /wa-login, so a direct/bookmarked visit still goes through /welcome first. */
+  requireSelectedGender?: boolean;
+}) {
   const { user, loading } = useAuth();
   if (loading) {
     return null;
@@ -56,6 +67,9 @@ export function AuthOnlyRoute({ children, redirectTo = HOME_ROUTE }: { children:
   }
   if (user && user.needsOnboarding) {
     return <Navigate to="/onboarding" replace />;
+  }
+  if (requireSelectedGender && !hasSelectedGender()) {
+    return <Navigate to="/welcome" replace />;
   }
   return <>{children}</>;
 }
