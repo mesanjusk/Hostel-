@@ -9,6 +9,9 @@ function el(partial: Omit<CanvasElement, "section"> & { section: string }): Canv
   return { ...partial, section: sectionIndex(partial.section) };
 }
 
+// Always the girl-set path — resolveStickerSrc (lib/gender-stickers.ts) swaps this at render
+// time for Male viewers (see canvas-element-view.tsx), so this helper deliberately stays
+// gender-agnostic here rather than baking a resolved path into static data.
 const STICKER = (slug: string) => `/stickers/${slug}.webp`;
 
 /** The full default arrangement of every draggable unit on the home screen, approximating
