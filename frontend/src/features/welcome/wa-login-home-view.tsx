@@ -1,5 +1,4 @@
 import { Link } from "react-router-dom";
-import { motion } from "framer-motion";
 
 import { useAuth } from "@/context/auth-context";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -59,11 +58,8 @@ export function WaLoginHomeView() {
               />
             ))
           : visibleCards.map(({ card, i }, displayIndex) => (
-              <motion.div
+              <div
                 key={card.id}
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: displayIndex * 0.04 }}
                 className={
                   isOddCount && displayIndex === visibleCards.length - 1
                     ? "max-md:col-span-2 max-md:mx-auto max-md:w-[calc(50%-0.5rem)]"
@@ -95,7 +91,7 @@ export function WaLoginHomeView() {
                     {card.title}
                   </p>
                 </Link>
-              </motion.div>
+              </div>
             ))}
       </div>
     </div>
