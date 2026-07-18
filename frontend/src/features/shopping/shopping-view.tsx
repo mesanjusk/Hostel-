@@ -13,7 +13,8 @@ import {
 } from "@/components/ui/select";
 import { EmptyState } from "@/components/shared/empty-state";
 import { PageHeader } from "@/components/shared/page-header";
-import { getProductIcon } from "@/lib/product-icons";
+import { getProductIcon, getProductIconColorClasses } from "@/lib/product-icons";
+import { cn } from "@/lib/utils";
 import { DEFAULT_CHECKLIST_CATEGORIES } from "@/types";
 import type { ProductDTO } from "@/features/shopping/product-dto";
 
@@ -77,8 +78,8 @@ export function ShoppingView({ products }: { products: ProductDTO[] }) {
                 transition={{ delay: i * 0.03 }}
               >
                 <Card className="h-full gap-3 overflow-hidden p-0">
-                  <div className="bg-muted relative flex aspect-video items-center justify-center">
-                    {product.imageUrl ? (
+                  {product.imageUrl && (
+                    <div className="bg-muted relative flex aspect-video items-center justify-center">
                       <img
                         src={product.imageUrl}
                         alt={product.name}
@@ -86,15 +87,27 @@ export function ShoppingView({ products }: { products: ProductDTO[] }) {
                         loading="lazy"
                         decoding="async"
                       />
-                    ) : (
-                      <Icon className="text-muted-foreground size-10" aria-hidden="true" />
-                    )}
-                  </div>
+                    </div>
+                  )}
 
-                  <CardContent className="flex flex-1 flex-col gap-3 pb-5">
-                    <div>
-                      <p className="text-muted-foreground text-xs">{product.store}</p>
-                      <h3 className="font-display line-clamp-1 font-semibold">{product.name}</h3>
+                  <CardContent
+                    className={cn("flex flex-1 flex-col gap-3 pb-5", !product.imageUrl && "pt-5")}
+                  >
+                    <div className="flex items-center gap-3">
+                      {!product.imageUrl && (
+                        <div
+                          className={cn(
+                            "flex size-10 shrink-0 items-center justify-center rounded-full",
+                            getProductIconColorClasses(product.icon),
+                          )}
+                        >
+                          <Icon className="size-5" aria-hidden="true" />
+                        </div>
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <p className="text-muted-foreground text-xs">{product.store}</p>
+                        <h3 className="font-display line-clamp-1 font-semibold">{product.name}</h3>
+                      </div>
                     </div>
 
                     <div className="flex items-center gap-2">
