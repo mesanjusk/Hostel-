@@ -14,6 +14,7 @@ import {
   Siren,
   Box,
   Layers,
+  Palette,
 } from "lucide-react";
 
 /** Icons for the 13 default category names. User-created categories fall back to DEFAULT_CATEGORY_ICON. */
@@ -30,6 +31,7 @@ export const CHECKLIST_CATEGORY_ICONS: Partial<Record<string, LucideIcon>> = {
   "Hostel Essentials": Building2,
   "Fashion Design Tools": Scissors,
   Emergency: Siren,
+  Hobbies: Palette,
   Miscellaneous: Box,
 };
 

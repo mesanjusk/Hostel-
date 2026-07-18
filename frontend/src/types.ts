@@ -56,6 +56,7 @@ export const DEFAULT_CHECKLIST_CATEGORIES = [
   "Hostel Essentials",
   "Fashion Design Tools",
   "Emergency",
+  "Hobbies",
   "Miscellaneous",
 ] as const;
 

@@ -205,6 +205,27 @@ export const DEFAULT_CHECKLIST_TEMPLATE: ChecklistTemplateItem[] = [
   { category: "Medicines", item: "ORS Packets", priority: "medium", planType: "pack" },
   { category: "Medicines", item: "Personal Prescriptions", priority: "high", planType: "pack" },
 
+  // Hobbies
+  { category: "Hobbies", item: "Earphones / Bluetooth Speaker", priority: "medium", planType: "pack", description: "For music on the go" },
+  { category: "Hobbies", item: "Musical Instrument", priority: "low", planType: "pack", description: "Guitar, keyboard, etc. — if you play" },
+  { category: "Hobbies", item: "Books / Novels", priority: "medium", planType: "pack", description: "A couple of favorites for downtime" },
+  { category: "Hobbies", item: "E-Reader / Reading Light", priority: "low", planType: "pack" },
+  { category: "Hobbies", item: "Sports Kit", priority: "medium", planType: "pack", description: "Shoes, jersey, or gear for your sport" },
+  { category: "Hobbies", item: "Yoga Mat", priority: "low", planType: "pack" },
+  { category: "Hobbies", item: "Sketchbook & Drawing Supplies", priority: "medium", planType: "pack" },
+  { category: "Hobbies", item: "Paints / Colors", priority: "low", planType: "pack" },
+  { category: "Hobbies", item: "Handheld Console / Controller", priority: "low", planType: "pack" },
+  { category: "Hobbies", item: "Playing Cards / Board Game", priority: "low", planType: "pack", description: "Great for hostel downtime" },
+  { category: "Hobbies", item: "Compact Travel Backpack", priority: "medium", planType: "plan" },
+  { category: "Hobbies", item: "Travel Journal / Guidebook", priority: "low", planType: "pack" },
+  { category: "Hobbies", item: "Resistance Bands / Skipping Rope", priority: "medium", planType: "pack" },
+  { category: "Hobbies", item: "Gym Shoes / Sportswear", priority: "medium", planType: "plan" },
+  { category: "Hobbies", item: "Recipe Book / Baking Tools", priority: "low", planType: "plan", description: "For dorm-friendly cooking experiments" },
+  { category: "Hobbies", item: "Camera / Phone Tripod", priority: "medium", planType: "pack" },
+  { category: "Hobbies", item: "Memory Cards & Camera Bag", priority: "low", planType: "pack" },
+  { category: "Hobbies", item: "Tablet / Laptop Stand", priority: "low", planType: "plan", description: "For movie nights in your room" },
+  { category: "Hobbies", item: "Portable Hard Drive", priority: "low", planType: "plan", description: "Offline movies & shows for low-data days" },
+
   // Miscellaneous
   { category: "Miscellaneous", item: "Earplugs", priority: "low", description: "Hostel noise is real" },
   { category: "Miscellaneous", item: "Eye Mask", priority: "low" },
