@@ -1,14 +1,29 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Heart } from "lucide-react";
+import { Backpack, ClipboardList, Gem } from "lucide-react";
 
 import { BrandName } from "@/components/shared/brand-name";
 import { writeSelectedGender } from "@/lib/onboarding-gender";
 import { cn } from "@/lib/utils";
 import type { Gender } from "@/types";
 
-const GENDER_CHOICES = ["Female", "Male"] as const satisfies readonly Gender[];
+const GENDER_CARDS = [
+  {
+    gender: "Female" as Gender,
+    label: "For Her",
+    icon: Gem,
+    bg: "from-[#FFD9E8] to-[#FFBFDA]",
+    border: "border-[#FF9CCB]",
+  },
+  {
+    gender: "Male" as Gender,
+    label: "For Him",
+    icon: Backpack,
+    bg: "from-[#FFE3C2] to-[#FFD1A3]",
+    border: "border-[#F0B36B]",
+  },
+] as const;
 
 // Brief pause so the tap's highlight is visible before the route change carries it away.
 const NAVIGATE_DELAY_MS = 350;
@@ -28,37 +43,63 @@ export function LandingView() {
     <motion.div
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
-      className="glass w-full max-w-md rounded-3xl p-8 text-center shadow-2xl"
+      className="glass relative w-full max-w-md overflow-visible rounded-[2rem] p-8 text-center shadow-[0_25px_60px_-20px_rgba(201,107,154,0.45)]"
     >
-      <img src="/logo.png" alt="" width={64} height={64} className="mx-auto" />
+      {/* Top visual: a little "packing checklist" badge with stickers bobbing around it */}
+      <div className="relative mx-auto mb-5 flex h-24 w-24 items-center justify-center">
+        <span className="animate-bob absolute -top-4 -left-7 text-2xl" style={{ animationDelay: "0.3s" }}>
+          ✨
+        </span>
+        <span className="animate-wiggle absolute -top-3 -right-8 text-2xl">💖</span>
+        <span
+          className="animate-bob absolute -right-6 -bottom-3 text-xl"
+          style={{ animationDelay: "1.1s" }}
+        >
+          🌈
+        </span>
+        <div className="gradient-brand flex h-24 w-24 items-center justify-center rounded-[1.75rem] shadow-lg">
+          <ClipboardList className="size-11 text-white drop-shadow-sm" strokeWidth={2.2} />
+        </div>
+      </div>
 
-      <h1 className="font-display mt-4 text-2xl font-bold">Hey there!</h1>
-      <p className="mt-2 text-sm">
-        We're <BrandName />
-        <Heart className="text-primary ml-1 inline size-3.5 -translate-y-0.5 fill-current" />
-      </p>
-      <p className="text-muted-foreground mt-1 text-sm">
-        Your college move-in bestie — packing lists, budgets and new roomies, all sorted before day one.
+      <p className="text-muted-foreground text-sm font-medium">Hey there!</p>
+      <h1 className="mt-1 flex flex-wrap items-center justify-center gap-1.5">
+        <BrandName className="text-4xl sm:text-5xl" />
+        <span className="text-3xl sm:text-4xl">💖</span>
+      </h1>
+      <p className="text-primary mt-1.5 text-sm font-semibold">Your college move-in bestie</p>
+      <p className="text-muted-foreground mx-auto mt-2 max-w-[26rem] text-sm leading-relaxed">
+        Packing lists, budgets and new roomies — all sorted before day one.
       </p>
 
-      <p className="mt-8 mb-3 text-sm font-medium">Who are we setting this up for?</p>
-      <div className="flex gap-3">
-        {GENDER_CHOICES.map((gender) => (
-          <button
-            key={gender}
-            type="button"
-            onClick={() => handleSelect(gender)}
-            disabled={selected !== null}
-            className={cn(
-              "flex-1 rounded-2xl border px-4 py-5 text-base font-semibold transition-all",
-              selected === gender
-                ? "border-primary bg-primary text-primary-foreground scale-[1.03]"
-                : "border-input text-foreground hover:border-primary/50 bg-transparent disabled:opacity-40",
-            )}
-          >
-            {gender}
-          </button>
-        ))}
+      <p className="text-muted-foreground mt-8 mb-4 text-xs font-medium">Let's make this yours ✨</p>
+
+      <div className="flex gap-4">
+        {GENDER_CARDS.map(({ gender, label, icon: Icon, bg, border }) => {
+          const isSelected = selected === gender;
+          return (
+            <motion.button
+              key={gender}
+              type="button"
+              onClick={() => handleSelect(gender)}
+              disabled={selected !== null}
+              whileTap={selected === null ? { scale: 0.94 } : undefined}
+              animate={isSelected ? { scale: 1.05 } : { scale: 1 }}
+              transition={{ type: "spring", stiffness: 400, damping: 20 }}
+              className={cn(
+                "flex flex-1 flex-col items-center gap-2.5 rounded-[1.5rem] border-2 bg-gradient-to-b px-4 py-6 shadow-md transition-[opacity,box-shadow] duration-200",
+                bg,
+                isSelected ? cn(border, "shadow-xl") : "border-white/80 hover:shadow-lg",
+                selected !== null && !isSelected && "opacity-40",
+              )}
+            >
+              <div className="flex size-14 items-center justify-center rounded-full bg-white/70 shadow-inner">
+                <Icon className="size-7 text-[#3a2e2a]" strokeWidth={2} />
+              </div>
+              <span className="font-display text-sm font-bold text-[#3a2e2a]">{label}</span>
+            </motion.button>
+          );
+        })}
       </div>
     </motion.div>
   );

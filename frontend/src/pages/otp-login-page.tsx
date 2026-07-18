@@ -96,7 +96,7 @@ export default function OtpLoginPage() {
   }
 
   return (
-    <div className="glass relative w-full max-w-md overflow-hidden rounded-3xl p-8 shadow-2xl">
+    <div className="glass relative w-full max-w-md overflow-hidden rounded-[2rem] p-8 shadow-[0_25px_60px_-20px_rgba(201,107,154,0.45)]">
       <div className="mb-8 flex flex-col items-center gap-3 text-center">
         <img src="/logo.png" alt="" width={64} height={64} />
         <h1 className="text-2xl">
@@ -144,7 +144,7 @@ export default function OtpLoginPage() {
             className="mt-2"
           >
             {isSubmitting ? <Loader2 className="size-4 animate-spin" /> : <MessageCircle className="size-4" />}
-            Send code
+            Send code ✨
           </Button>
         </motion.form>
       ) : (
@@ -191,7 +191,7 @@ export default function OtpLoginPage() {
           </div>
           <Button type="submit" size="lg" disabled={isSubmitting || otp.length < 4} className="mt-2">
             {isSubmitting ? <Loader2 className="size-4 animate-spin" /> : null}
-            Verify & continue
+            Continue ✨
           </Button>
           <Button
             type="button"
