@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { format } from "date-fns";
 import { motion } from "framer-motion";
 import { Pencil, PiggyBank, Trash2, Wallet } from "lucide-react";
@@ -23,6 +23,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { EntryFormDialog } from "@/features/budget/entry-form-dialog";
 import { api, ApiError } from "@/lib/api";
 import { emitRefresh, subscribeRefresh } from "@/lib/refresh-bus";
+import { lazyRetry } from "@/lib/lazy-retry";
 import {
   toBudgetEntryDTO,
   type BudgetEntryDTO,
@@ -33,7 +34,7 @@ import type { BudgetEntryType } from "@/types";
 
 // Deferred: recharts is ~94 KB gzip and only powers the breakdown chart — splitting it out
 // lets the page shell (summary cards, entries table) render while the chart streams in.
-const ExpensePieChart = lazy(() =>
+const ExpensePieChart = lazyRetry(() =>
   import("@/features/budget/expense-pie-chart").then((m) => ({ default: m.ExpensePieChart })),
 );
 

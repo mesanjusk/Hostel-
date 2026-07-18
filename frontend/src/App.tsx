@@ -1,4 +1,4 @@
-import { lazy, Suspense } from "react";
+import { Suspense } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 
 import { useAuth } from "@/context/auth-context";
@@ -7,71 +7,72 @@ import { ScrollToTop } from "@/components/shared/scroll-to-top";
 import { RouteFallback } from "@/components/shared/route-fallback";
 import { HOME_ROUTE } from "@/lib/nav-items";
 import { useAnalyticsPageViews } from "@/lib/analytics/use-page-view-tracking";
+import { lazyRetry } from "@/lib/lazy-retry";
 
 // Lazy, not a static import: DashboardLayout pulls in FabMenu, which statically imports 7 full
 // CRUD form dialogs (each with its own react-hook-form + zod schema) — eagerly importing the
 // layout meant that weight shipped in the same chunk as this file, loaded by every visitor
 // including anonymous users who only ever see /wa-login and never reach the dashboard.
-const DashboardLayout = lazy(() =>
+const DashboardLayout = lazyRetry(() =>
   import("@/layouts/dashboard-layout").then((m) => ({ default: m.DashboardLayout })),
 );
-const AuthLayout = lazy(() => import("@/layouts/auth-layout").then((m) => ({ default: m.AuthLayout })));
+const AuthLayout = lazyRetry(() => import("@/layouts/auth-layout").then((m) => ({ default: m.AuthLayout })));
 
 // Passwordless MSG91 OTP login is the single auth entry point now (mobile + OTP). The old
 // WhatsApp-OTP register / forgot-code pages and the mobile+PIN wa-login page are superseded
 // and their routes redirect here; the page files remain for reference/history.
-const OtpLoginPage = lazy(() => import("@/pages/otp-login-page"));
-const WaLoginCompletePage = lazy(() => import("@/pages/wa-login-complete-page"));
-const WaLoginHomePage = lazy(() => import("@/pages/wa-login-home-page"));
-const OnboardingPage = lazy(() => import("@/pages/onboarding-page"));
-const NotFound = lazy(() => import("@/pages/not-found"));
-const WelcomePage = lazy(() => import("@/pages/welcome-page"));
-const DashboardPage = lazy(() => import("@/pages/dashboard-page"));
-const ChecklistPage = lazy(() => import("@/pages/checklist-page"));
-const ChecklistCategoryPage = lazy(() => import("@/pages/checklist-category-page"));
-const BagsPage = lazy(() => import("@/pages/bags-page"));
-const BagDetailPage = lazy(() => import("@/pages/bag-detail-page"));
-const BudgetPage = lazy(() => import("@/pages/budget-page"));
-const NotesPage = lazy(() => import("@/pages/notes-page"));
-const DocumentsPage = lazy(() => import("@/pages/documents-page"));
-const ContactsPage = lazy(() => import("@/pages/contacts-page"));
-const WishlistPage = lazy(() => import("@/pages/wishlist-page"));
-const ShoppingPage = lazy(() => import("@/pages/shopping-page"));
-const GuidePage = lazy(() => import("@/pages/guide-page"));
-const GuideArticlePage = lazy(() => import("@/pages/guide-article-page"));
-const SurvivalGuidePage = lazy(() => import("@/pages/survival-guide-page"));
-const ProfilePage = lazy(() => import("@/pages/profile-page"));
-const AdminPage = lazy(() => import("@/pages/admin-page"));
-const AdminUsersPage = lazy(() => import("@/pages/admin-users-page"));
-const AdminProductsPage = lazy(() => import("@/pages/admin-products-page"));
-const AdminGuidePage = lazy(() => import("@/pages/admin-guide-page"));
-const AdminLayoutPage = lazy(() => import("@/pages/admin-layout-page"));
-const AdminNavPage = lazy(() => import("@/pages/admin-nav-page"));
-const AdminHomeCardsPage = lazy(() => import("@/pages/admin-home-cards-page"));
-const AdminHomeScreenPage = lazy(() => import("@/pages/admin-home-screen-page"));
-const AdminGuideScreenPage = lazy(() => import("@/pages/admin-guide-screen-page"));
-const AdminCitiesPage = lazy(() => import("@/pages/admin-cities-page"));
-const AdminCommunitiesPage = lazy(() => import("@/pages/admin-communities-page"));
-const AdminPlacesPage = lazy(() => import("@/pages/admin-places-page"));
-const AdminContactsPage = lazy(() => import("@/pages/admin-contacts-page"));
-const AdminCollegeCategoriesPage = lazy(() => import("@/pages/admin-college-categories-page"));
-const AdminCoursesPage = lazy(() => import("@/pages/admin-courses-page"));
-const AdminCollegesPage = lazy(() => import("@/pages/admin-colleges-page"));
-const AdminChecklistTemplatesPage = lazy(() => import("@/pages/admin-checklist-templates-page"));
-const AdminDefaultChecklistPage = lazy(() => import("@/pages/admin-default-checklist-page"));
-const AdminSuggestedItemsPage = lazy(() => import("@/pages/admin-suggested-items-page"));
-const AdminTempUsersPage = lazy(() => import("@/pages/admin-temp-users-page"));
-const AdminChecklistHealthPage = lazy(() => import("@/pages/admin-checklist-health-page"));
-const DiscoverPage = lazy(() => import("@/pages/discover-page"));
-const FindARoomiePage = lazy(() => import("@/pages/find-a-roomie-page"));
-const BookingsPage = lazy(() => import("@/pages/bookings-page"));
-const ExplorePage = lazy(() => import("@/pages/explore-page"));
-const KnowYourCampusPage = lazy(() => import("@/pages/know-your-campus-page"));
-const CommunityPage = lazy(() => import("@/pages/community-page"));
-const CommunityDetailPage = lazy(() => import("@/pages/community-detail-page"));
-const ChatPage = lazy(() => import("@/pages/chat-page"));
-const ChatConversationPage = lazy(() => import("@/pages/chat-conversation-page"));
-const UserProfilePage = lazy(() => import("@/pages/user-profile-page"));
+const OtpLoginPage = lazyRetry(() => import("@/pages/otp-login-page"));
+const WaLoginCompletePage = lazyRetry(() => import("@/pages/wa-login-complete-page"));
+const WaLoginHomePage = lazyRetry(() => import("@/pages/wa-login-home-page"));
+const OnboardingPage = lazyRetry(() => import("@/pages/onboarding-page"));
+const NotFound = lazyRetry(() => import("@/pages/not-found"));
+const WelcomePage = lazyRetry(() => import("@/pages/welcome-page"));
+const DashboardPage = lazyRetry(() => import("@/pages/dashboard-page"));
+const ChecklistPage = lazyRetry(() => import("@/pages/checklist-page"));
+const ChecklistCategoryPage = lazyRetry(() => import("@/pages/checklist-category-page"));
+const BagsPage = lazyRetry(() => import("@/pages/bags-page"));
+const BagDetailPage = lazyRetry(() => import("@/pages/bag-detail-page"));
+const BudgetPage = lazyRetry(() => import("@/pages/budget-page"));
+const NotesPage = lazyRetry(() => import("@/pages/notes-page"));
+const DocumentsPage = lazyRetry(() => import("@/pages/documents-page"));
+const ContactsPage = lazyRetry(() => import("@/pages/contacts-page"));
+const WishlistPage = lazyRetry(() => import("@/pages/wishlist-page"));
+const ShoppingPage = lazyRetry(() => import("@/pages/shopping-page"));
+const GuidePage = lazyRetry(() => import("@/pages/guide-page"));
+const GuideArticlePage = lazyRetry(() => import("@/pages/guide-article-page"));
+const SurvivalGuidePage = lazyRetry(() => import("@/pages/survival-guide-page"));
+const ProfilePage = lazyRetry(() => import("@/pages/profile-page"));
+const AdminPage = lazyRetry(() => import("@/pages/admin-page"));
+const AdminUsersPage = lazyRetry(() => import("@/pages/admin-users-page"));
+const AdminProductsPage = lazyRetry(() => import("@/pages/admin-products-page"));
+const AdminGuidePage = lazyRetry(() => import("@/pages/admin-guide-page"));
+const AdminLayoutPage = lazyRetry(() => import("@/pages/admin-layout-page"));
+const AdminNavPage = lazyRetry(() => import("@/pages/admin-nav-page"));
+const AdminHomeCardsPage = lazyRetry(() => import("@/pages/admin-home-cards-page"));
+const AdminHomeScreenPage = lazyRetry(() => import("@/pages/admin-home-screen-page"));
+const AdminGuideScreenPage = lazyRetry(() => import("@/pages/admin-guide-screen-page"));
+const AdminCitiesPage = lazyRetry(() => import("@/pages/admin-cities-page"));
+const AdminCommunitiesPage = lazyRetry(() => import("@/pages/admin-communities-page"));
+const AdminPlacesPage = lazyRetry(() => import("@/pages/admin-places-page"));
+const AdminContactsPage = lazyRetry(() => import("@/pages/admin-contacts-page"));
+const AdminCollegeCategoriesPage = lazyRetry(() => import("@/pages/admin-college-categories-page"));
+const AdminCoursesPage = lazyRetry(() => import("@/pages/admin-courses-page"));
+const AdminCollegesPage = lazyRetry(() => import("@/pages/admin-colleges-page"));
+const AdminChecklistTemplatesPage = lazyRetry(() => import("@/pages/admin-checklist-templates-page"));
+const AdminDefaultChecklistPage = lazyRetry(() => import("@/pages/admin-default-checklist-page"));
+const AdminSuggestedItemsPage = lazyRetry(() => import("@/pages/admin-suggested-items-page"));
+const AdminTempUsersPage = lazyRetry(() => import("@/pages/admin-temp-users-page"));
+const AdminChecklistHealthPage = lazyRetry(() => import("@/pages/admin-checklist-health-page"));
+const DiscoverPage = lazyRetry(() => import("@/pages/discover-page"));
+const FindARoomiePage = lazyRetry(() => import("@/pages/find-a-roomie-page"));
+const BookingsPage = lazyRetry(() => import("@/pages/bookings-page"));
+const ExplorePage = lazyRetry(() => import("@/pages/explore-page"));
+const KnowYourCampusPage = lazyRetry(() => import("@/pages/know-your-campus-page"));
+const CommunityPage = lazyRetry(() => import("@/pages/community-page"));
+const CommunityDetailPage = lazyRetry(() => import("@/pages/community-detail-page"));
+const ChatPage = lazyRetry(() => import("@/pages/chat-page"));
+const ChatConversationPage = lazyRetry(() => import("@/pages/chat-conversation-page"));
+const UserProfilePage = lazyRetry(() => import("@/pages/user-profile-page"));
 
 function RootRoute() {
   const { user, loading } = useAuth();

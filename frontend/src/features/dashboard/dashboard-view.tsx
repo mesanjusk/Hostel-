@@ -1,4 +1,4 @@
-import { lazy, Suspense } from "react";
+import { Suspense } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { formatDistanceToNow } from "date-fns";
@@ -15,10 +15,11 @@ import { getCategoryIcon } from "@/lib/checklist-icons";
 import { mergeDashboardLayout, STAT_CARD_IDS, type WidgetConfig } from "@/features/dashboard/widget-registry";
 import type { ChecklistPriority } from "@/types";
 import type { DashboardDataDTO } from "@/features/dashboard/dashboard-dto";
+import { lazyRetry } from "@/lib/lazy-retry";
 
 // Deferred off the dashboard's critical path — recharts adds ~94 KB gzip, too heavy to
 // eagerly ship on the page every user lands on right after login.
-const ExpenseMiniChart = lazy(() =>
+const ExpenseMiniChart = lazyRetry(() =>
   import("@/features/dashboard/expense-mini-chart").then((m) => ({ default: m.ExpenseMiniChart })),
 );
 
