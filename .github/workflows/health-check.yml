@@ -1,0 +1,24 @@
+name: EC2 Health Check
+
+# Catches an outage (network reachability, crash-looping backend, expired cert) within
+# minutes instead of waiting for someone to notice the site is down. GitHub emails the repo
+# owner automatically when a scheduled workflow run fails, so this needs no extra alerting
+# setup. 15 min is the practical floor for scheduled workflows on the free tier and matches
+# how quickly we actually need to know, without spamming the account with runs.
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch: {}
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check /health over HTTPS
+        run: |
+          status=$(curl -s -o /dev/null -w "%{http_code}" --max-time 15 https://packwithme.sanjusk.in/health)
+          echo "HTTP status: $status"
+          if [ "$status" != "200" ]; then
+            echo "::error::https://packwithme.sanjusk.in/health returned $status (expected 200)"
+            exit 1
+          fi
