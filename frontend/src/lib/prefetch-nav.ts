@@ -1,4 +1,4 @@
-import { api } from "@/lib/api";
+import { api, peekCache } from "@/lib/api";
 
 interface PrefetchTarget {
   /** Mirrors the lazy() import in App.tsx — calling the same dynamic import ahead of time warms
@@ -74,6 +74,11 @@ export function prefetchNavDestinations(visibleHrefs: string[]) {
     // waiting behind speculative ones.
     for (const target of targets) {
       for (const path of target.data ?? []) {
+        // This loop is sequential and can take a while on a small backend, so by the time it
+        // reaches a given path the user may have already opened that page themselves (and
+        // warmed the cache for real). Re-fetching it here would just be a redundant duplicate
+        // request the user never asked for — skip anything already warm.
+        if (peekCache(path) !== undefined) continue;
         try {
           await api.get(path);
         } catch {
