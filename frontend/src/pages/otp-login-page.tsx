@@ -9,7 +9,9 @@ import { Label } from "@/components/ui/label";
 import { BrandName } from "@/components/shared/brand-name";
 import { useAuth } from "@/context/auth-context";
 import { trackRegistrationPageOpened } from "@/lib/analytics/client";
-import { msg91Configured, sendOtp, verifyOtp } from "@/lib/msg91";
+import { msg91Configured, retryOtp, sendOtp, verifyOtp } from "@/lib/msg91";
+
+const RESEND_COOLDOWN_SECONDS = 60;
 
 /**
  * Passwordless login/registration via the MSG91 "Login with OTP" widget (same widget as the
@@ -29,10 +31,22 @@ export default function OtpLoginPage() {
   const [sent, setSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
+  const [isResending, setIsResending] = useState(false);
 
   useEffect(() => {
     trackRegistrationPageOpened();
   }, []);
+
+  // Ticks the resend cooldown down to 0 for as long as we're on the OTP-entry step; harmless
+  // no-op renders once it hits 0 (React bails out on same-value state updates).
+  useEffect(() => {
+    if (step !== 1) return;
+    const id = setInterval(() => {
+      setResendCooldown((s) => (s > 0 ? s - 1 : 0));
+    }, 1000);
+    return () => clearInterval(id);
+  }, [step]);
 
   async function handleSend(e: React.FormEvent) {
     e.preventDefault();
@@ -42,10 +56,25 @@ export default function OtpLoginPage() {
       await sendOtp(mobile);
       setSent(true);
       setStep(1);
+      setResendCooldown(RESEND_COOLDOWN_SECONDS);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't send the code. Please try again.");
     } finally {
       setIsSubmitting(false);
+    }
+  }
+
+  async function handleResend() {
+    if (resendCooldown > 0 || isResending) return;
+    setError(null);
+    setIsResending(true);
+    try {
+      await retryOtp();
+      setResendCooldown(RESEND_COOLDOWN_SECONDS);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Couldn't resend the code. Please try again.");
+    } finally {
+      setIsResending(false);
     }
   }
 
@@ -143,6 +172,22 @@ export default function OtpLoginPage() {
               autoFocus
             />
             {error && <p className="text-destructive text-sm">{error}</p>}
+            <Button
+              type="button"
+              variant="link"
+              size="sm"
+              className="w-fit px-0"
+              disabled={resendCooldown > 0 || isResending}
+              onClick={handleResend}
+            >
+              {isResending ? (
+                <Loader2 className="size-3.5 animate-spin" />
+              ) : resendCooldown > 0 ? (
+                `Resend code in ${resendCooldown}s`
+              ) : (
+                "Resend code"
+              )}
+            </Button>
           </div>
           <Button type="submit" size="lg" disabled={isSubmitting || otp.length < 4} className="mt-2">
             {isSubmitting ? <Loader2 className="size-4 animate-spin" /> : null}
