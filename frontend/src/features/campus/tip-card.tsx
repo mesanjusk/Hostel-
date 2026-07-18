@@ -67,6 +67,14 @@ export function TipCard({ tip: initialTip, onDeleted }: { tip: CampusTipDTO; onD
 
       <p className="text-sm">{tip.text}</p>
 
+      {tip.imageUrl && (
+        <img
+          src={tip.imageUrl}
+          alt=""
+          className="max-h-48 w-full rounded-md object-cover"
+        />
+      )}
+
       {tip.linkUrl && (
         <a
           href={tip.linkUrl}

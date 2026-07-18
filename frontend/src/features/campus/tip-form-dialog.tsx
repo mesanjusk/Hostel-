@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { PhotoUploadField } from "@/features/checklist/photo-upload-field";
 import { api, ApiError } from "@/lib/api";
 import { CAMPUS_TIP_CATEGORIES } from "@/types";
 import { toCampusTipDTO, type CampusTipDTO, type CampusTipRaw } from "@/features/campus/campus-tip-dto";
@@ -19,6 +20,7 @@ const tipSchema = z.object({
   category: z.enum(CAMPUS_TIP_CATEGORIES),
   text: z.string().trim().min(1, "Share the tip itself").max(400),
   linkUrl: z.string().trim().url("Must be a full URL (https://…)").optional().or(z.literal("")),
+  imageUrl: z.string().trim().url().optional().or(z.literal("")),
 });
 
 type TipInput = z.infer<typeof tipSchema>;
@@ -46,6 +48,7 @@ export function TipFormDialog({
       category: tip?.category ?? CAMPUS_TIP_CATEGORIES[0],
       text: tip?.text ?? "",
       linkUrl: tip?.linkUrl ?? "",
+      imageUrl: tip?.imageUrl ?? "",
     };
   }
 
@@ -81,7 +84,7 @@ export function TipFormDialog({
         {trigger ?? (
           <Button size="sm">
             <Plus className="size-4" />
-            Add a tip
+            Add
           </Button>
         )}
       </DialogTrigger>
@@ -141,6 +144,19 @@ export function TipFormDialog({
                   <FormLabel>Link (optional)</FormLabel>
                   <FormControl>
                     <Input placeholder="https://maps.google.com/…" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="imageUrl"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Photo (optional)</FormLabel>
+                  <FormControl>
+                    <PhotoUploadField value={field.value ?? ""} onChange={field.onChange} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

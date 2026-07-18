@@ -16,12 +16,14 @@ export interface CampusTipInput {
   category: CampusTipCategory;
   text: string;
   linkUrl?: string | null;
+  imageUrl?: string | null;
 }
 
 export interface CampusTipUpdateInput {
   category?: CampusTipCategory;
   text?: string;
   linkUrl?: string | null;
+  imageUrl?: string | null;
 }
 
 interface PopulatedAuthor {
@@ -37,6 +39,7 @@ interface LeanTip {
   category: CampusTipCategory;
   text: string;
   linkUrl: string | null;
+  imageUrl: string | null;
   authorId: PopulatedAuthor | null;
   upvoterIds: Types.ObjectId[];
   downvoterIds: Types.ObjectId[];
@@ -59,6 +62,7 @@ function toTipDTO(tip: LeanTip, viewerId: string) {
     category: tip.category,
     text: tip.text,
     linkUrl: tip.linkUrl,
+    imageUrl: tip.imageUrl,
     authorName: tip.authorId?.name ?? null,
     authorAvatar: tip.authorId?.avatar ?? null,
     upvotes: tip.upvoterIds.length,
@@ -96,6 +100,7 @@ export async function createTip(authorId: string, input: CampusTipInput) {
   const tip = await CampusTip.create({
     ...input,
     linkUrl: input.linkUrl || null,
+    imageUrl: input.imageUrl || null,
     authorId,
   });
   const populated = await CampusTip.findById(tip._id).populate("authorId", "name avatar").lean<LeanTip>();
@@ -111,6 +116,7 @@ export async function updateTip(userId: string, isAdmin: boolean, tipId: string,
   if (!isAdmin) filter.authorId = userId;
   const update: Record<string, unknown> = { ...input };
   if ("linkUrl" in input) update.linkUrl = input.linkUrl || null;
+  if ("imageUrl" in input) update.imageUrl = input.imageUrl || null;
 
   const tip = await CampusTip.findOneAndUpdate(filter, update, { returnDocument: "after" })
     .populate("authorId", "name avatar")

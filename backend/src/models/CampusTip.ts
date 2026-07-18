@@ -23,6 +23,9 @@ const CampusTipSchema = new Schema(
     /** Optional supporting link (maps, menu, official page). Plain URL, no API integration —
      * same stance as Place.mapsLink. */
     linkUrl: { type: String, default: null, trim: true, maxlength: 500 },
+    /** Optional photo, uploaded client-side to Cloudinary before the tip is created — this
+     * field only ever holds the hosted URL, same pattern as Bag.imageUrl. */
+    imageUrl: { type: String, default: null, trim: true, maxlength: 500 },
     authorId: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },
     upvoterIds: { type: [{ type: Schema.Types.ObjectId, ref: "User" }], default: [] },
     downvoterIds: { type: [{ type: Schema.Types.ObjectId, ref: "User" }], default: [] },

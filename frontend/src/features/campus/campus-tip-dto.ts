@@ -7,6 +7,7 @@ export interface CampusTipDTO {
   category: CampusTipCategory;
   text: string;
   linkUrl: string | null;
+  imageUrl: string | null;
   authorName: string | null;
   authorAvatar: string | null;
   upvotes: number;
@@ -23,6 +24,7 @@ export interface CampusTipRaw {
   category: CampusTipCategory;
   text: string;
   linkUrl?: string | null;
+  imageUrl?: string | null;
   authorName?: string | null;
   authorAvatar?: string | null;
   upvotes?: number;
@@ -40,6 +42,7 @@ export function toCampusTipDTO(raw: CampusTipRaw): CampusTipDTO {
     category: raw.category,
     text: raw.text,
     linkUrl: raw.linkUrl ?? null,
+    imageUrl: raw.imageUrl ?? null,
     authorName: raw.authorName ?? null,
     authorAvatar: raw.authorAvatar ?? null,
     upvotes: raw.upvotes ?? 0,

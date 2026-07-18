@@ -25,9 +25,12 @@ const tipInputSchema = z.object({
   category: z.enum(CAMPUS_TIP_CATEGORIES),
   text: z.string().trim().min(1).max(400),
   linkUrl: z.string().trim().url().max(500).optional().or(z.literal("")),
+  imageUrl: z.string().trim().url().max(500).optional().or(z.literal("")),
 });
 
-const tipUpdateSchema = tipInputSchema.pick({ category: true, text: true, linkUrl: true }).partial();
+const tipUpdateSchema = tipInputSchema
+  .pick({ category: true, text: true, linkUrl: true, imageUrl: true })
+  .partial();
 
 const voteSchema = z.object({ direction: z.enum(["up", "down", "none"]) });
 
