@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { api, ApiError } from "@/lib/api";
 import { subscribeRefresh } from "@/lib/refresh-bus";
 import { AdminTabs } from "@/features/admin/admin-tabs";
+import { CategoryOrderEditor } from "@/features/admin/category-order-editor";
 import { DefaultChecklistItemsView } from "@/features/admin/default-checklist-items-view";
 import {
   toDefaultChecklistItemDTO,
@@ -106,6 +107,7 @@ export default function AdminDefaultChecklistPage() {
   return (
     <div>
       <AdminTabs />
+      <CategoryOrderEditor />
       <DefaultChecklistItemsView
         items={items}
         total={total}

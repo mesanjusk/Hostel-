@@ -99,6 +99,10 @@ export const bulkImportDefaultItemsSchema = z.object({
     .max(1000),
 });
 
+export const categoryOrderSchema = z.object({
+  categories: z.array(z.string().trim().min(1).max(60)).min(1),
+});
+
 export const bulkIdsSchema = z.object({
   ids: z.array(objectIdSchema).min(1),
 });
@@ -129,6 +133,7 @@ export type ChecklistTemplateUpdateInput = z.infer<typeof checklistTemplateUpdat
 export type DefaultChecklistItemFormInput = z.infer<typeof defaultChecklistItemSchema>;
 export type DefaultChecklistItemUpdateInput = z.infer<typeof defaultChecklistItemUpdateSchema>;
 export type BulkImportDefaultItemsInput = z.infer<typeof bulkImportDefaultItemsSchema>;
+export type CategoryOrderInput = z.infer<typeof categoryOrderSchema>;
 export type BulkIdsInput = z.infer<typeof bulkIdsSchema>;
 export type BulkSetActiveInput = z.infer<typeof bulkSetActiveSchema>;
 export type AddSuggestedToDefaultInput = z.infer<typeof addSuggestedToDefaultSchema>;

@@ -1,9 +1,7 @@
 import { useEffect, useState } from "react";
-import { motion, AnimatePresence, type Variants } from "framer-motion";
-import { ChevronLeft, ChevronRight } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-import { NotebookPage } from "@/features/checklist/notebook-page";
+import { NotebookCategorySection } from "@/features/checklist/notebook-category-section";
 import type { ChecklistPlanType } from "@/types";
 import type { ChecklistItemDTO } from "@/features/checklist/checklist-item-dto";
 
@@ -56,27 +54,6 @@ interface CategoryGroup {
   items: ChecklistItemDTO[];
 }
 
-const SWIPE_THRESHOLD = 8000;
-function swipePower(offset: number, velocity: number) {
-  return Math.abs(offset) * velocity;
-}
-
-const SPRING = { type: "spring" as const, stiffness: 280, damping: 28 };
-
-/** Direction-aware page-turn: the incoming page rises in from beneath, the outgoing page
- * flies off toward the side it came from. */
-const pageVariants: Variants = {
-  enter: (dir: number) => ({ opacity: 0, scale: 0.94, y: 18, rotate: dir > 0 ? 3 : -3 }),
-  center: { opacity: 1, scale: 1, y: 0, rotate: 0 },
-  exit: (dir: number) => ({
-    opacity: 0,
-    scale: 0.9,
-    x: dir > 0 ? -70 : 70,
-    y: -60,
-    rotate: dir > 0 ? -18 : 18,
-  }),
-};
-
 export function NotebookView({
   groups: initialGroups,
   allCategories,
@@ -85,31 +62,29 @@ export function NotebookView({
   allCategories: string[];
 }) {
   const [groups, setGroups] = useState(initialGroups);
-  const [index, setIndex] = useState(0);
-  const [direction, setDirection] = useState(1);
   /** Items keep whatever planType the default checklist (or the user) gave them; anything
    * still unclassified shows up under "Unsorted" instead of being forced into Pack/Plan. */
   const [planTypeFilter, setPlanTypeFilter] = useState<PlanTypeFilter>("pack");
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     setGroups(initialGroups);
   }, [initialGroups]);
 
-  const total = groups.length;
-  const current = groups[index];
-
   function updateCategoryItems(category: string, updater: (prev: ChecklistItemDTO[]) => ChecklistItemDTO[]) {
     setGroups((prev) => prev.map((g) => (g.category === category ? { ...g, items: updater(g.items) } : g)));
   }
 
-  /** Categories loop: past the last page it wraps to the first, and vice versa. */
-  function goTo(next: number) {
-    if (total === 0) return;
-    setDirection(next > index ? 1 : next < index ? -1 : direction);
-    setIndex(((next % total) + total) % total);
+  function toggleExpanded(category: string) {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(category)) next.delete(category);
+      else next.add(category);
+      return next;
+    });
   }
 
-  if (total === 0 || !current) {
+  if (groups.length === 0) {
     return <p className="text-muted-foreground py-16 text-center text-sm">No categories yet — add one from the + button.</p>;
   }
 
@@ -131,16 +106,10 @@ export function NotebookView({
             }}
           />
         ))}
-        <CornerSticker
-          {...pickSticker(index * 3 + 1)}
-          className="-top-4 -left-3 rotate-[-10deg] sm:-top-5 sm:-left-4"
-        />
-        <CornerSticker
-          {...pickSticker(index * 3 + 2)}
-          className="-bottom-4 -left-3 rotate-[12deg] sm:-bottom-5 sm:-left-4"
-        />
+        <CornerSticker {...pickSticker(1)} className="-top-4 -left-3 rotate-[-10deg] sm:-top-5 sm:-left-4" />
+        <CornerSticker {...pickSticker(2)} className="-bottom-4 -left-3 rotate-[12deg] sm:-bottom-5 sm:-left-4" />
 
-        <div className="absolute top-1/2 right-0 z-40 flex -translate-y-1/2 translate-x-1/4 flex-col gap-3">
+        <div className="absolute top-6 right-0 z-40 flex translate-x-1/4 flex-col gap-3">
           {PLAN_TYPE_TABS.map(({ type, label }) => (
             <button
               key={type}
@@ -160,58 +129,21 @@ export function NotebookView({
           ))}
         </div>
 
-        <div className="relative overflow-hidden">
-          <AnimatePresence initial={false} custom={direction} mode="popLayout">
-            <motion.div
-              key={current.category}
-              custom={direction}
-              variants={pageVariants}
-              initial="enter"
-              animate="center"
-              exit="exit"
-              transition={SPRING}
-              drag="x"
-              dragConstraints={{ left: 0, right: 0 }}
-              dragElastic={0.7}
-              onDragEnd={(_e, info) => {
-                const power = swipePower(info.offset.x, info.velocity.x);
-                if (power < -SWIPE_THRESHOLD || info.offset.x < -100) goTo(index + 1);
-                else if (power > SWIPE_THRESHOLD || info.offset.x > 100) goTo(index - 1);
-              }}
-              whileHover={{ y: -2 }}
-            >
-              <NotebookPage
-                category={current.category}
-                allCategories={allCategories}
-                items={current.items}
-                planTypeFilter={planTypeFilter}
-                onItemsChange={(u) => updateCategoryItems(current.category, u)}
-              />
-            </motion.div>
-          </AnimatePresence>
+        <div className="exam-paper relative flex flex-col overflow-hidden rounded-[20px] border border-[#e9ddc9] p-5 pr-20 shadow-[0_2px_14px_rgba(58,46,42,0.14)] sm:p-8 sm:pr-24 lg:p-10 lg:pr-28">
+          {groups.map((group, i) => (
+            <NotebookCategorySection
+              key={group.category}
+              category={group.category}
+              allCategories={allCategories}
+              items={group.items}
+              planTypeFilter={planTypeFilter}
+              expanded={expanded.has(group.category)}
+              onToggleExpanded={() => toggleExpanded(group.category)}
+              onItemsChange={(u) => updateCategoryItems(group.category, u)}
+              isLast={i === groups.length - 1}
+            />
+          ))}
         </div>
-      </div>
-
-      <div className="mt-4 flex items-center justify-center gap-4">
-        <button
-          type="button"
-          onClick={() => goTo(index - 1)}
-          aria-label="Previous page"
-          className="flex size-10 items-center justify-center rounded-full bg-white text-[#3a2e2a] shadow-sm transition-transform hover:-translate-y-0.5"
-        >
-          <ChevronLeft className="size-5" />
-        </button>
-        <span className="min-w-[64px] text-center text-sm font-medium text-[#8a7a6a] tabular-nums">
-          {String(index + 1).padStart(2, "0")} / {String(total).padStart(2, "0")}
-        </span>
-        <button
-          type="button"
-          onClick={() => goTo(index + 1)}
-          aria-label="Next page"
-          className="flex size-10 items-center justify-center rounded-full bg-white text-[#3a2e2a] shadow-sm transition-transform hover:-translate-y-0.5"
-        >
-          <ChevronRight className="size-5" />
-        </button>
       </div>
     </div>
   );

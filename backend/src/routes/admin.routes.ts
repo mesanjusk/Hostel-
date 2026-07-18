@@ -64,8 +64,10 @@ import {
   bulkSetActive,
   createDefaultChecklistItem,
   deleteDefaultChecklistItem,
+  listCategoryOrderForAdmin,
   listDefaultChecklistItemsForAdmin,
   listDistinctCategories,
+  saveCategoryOrder,
   updateDefaultChecklistItem,
 } from "@/services/defaultChecklistItemService";
 import { addSuggestedItemToDefault, getSuggestedItemUsers, listSuggestedItems } from "@/services/suggestedItemsService";
@@ -77,6 +79,7 @@ import {
   bulkIdsSchema,
   bulkImportDefaultItemsSchema,
   bulkSetActiveSchema,
+  categoryOrderSchema,
   checklistTemplateSchema,
   checklistTemplateUpdateSchema,
   collegeCategorySchema,
@@ -566,6 +569,22 @@ adminRouter.get("/default-checklist-items", async (req, res) => {
 
 adminRouter.get("/default-checklist-items/categories", async (_req, res) => {
   res.json({ categories: await listDistinctCategories() });
+});
+
+// Display order for checklist categories (Documents, Clothes, ...) — feeds every student's
+// checklist (notebook + list views) via categoryService.listCategories.
+adminRouter.get("/default-checklist-items/category-order", async (_req, res) => {
+  res.json({ categories: await listCategoryOrderForAdmin() });
+});
+
+adminRouter.put("/default-checklist-items/category-order", async (req, res) => {
+  const parsed = categoryOrderSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.issues[0]?.message ?? "Invalid input" });
+    return;
+  }
+  await saveCategoryOrder(parsed.data.categories);
+  res.json({ success: true });
 });
 
 adminRouter.post("/default-checklist-items", async (req, res) => {

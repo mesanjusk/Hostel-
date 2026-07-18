@@ -2,6 +2,7 @@ import { Types } from "mongoose";
 
 import { connectDB } from "@/db";
 import { DefaultChecklistItem } from "@/models/DefaultChecklistItem";
+import { ChecklistCategoryOrder } from "@/models/ChecklistCategoryOrder";
 import { UserChecklist } from "@/models/UserChecklist";
 import { getOrCreateActiveTemplate } from "@/services/checklistTemplateService";
 import { normalizeItemName } from "@/lib/textSimilarity";
@@ -357,4 +358,43 @@ export async function listDistinctCategories(templateId?: string) {
   const template = templateId ? { _id: new Types.ObjectId(templateId) } : await getOrCreateActiveTemplate();
   const id = "_id" in template ? template._id : template;
   return DefaultChecklistItem.distinct("category", { templateId: id });
+}
+
+/** name -> position, for every category the admin has explicitly ordered. Categories absent
+ * from this map (never reordered, or created after the last save) sort after every ordered
+ * one — see categoryService.listCategories, the single place this feeds into. */
+export async function getCategoryOrderMap() {
+  await connectDB();
+  const rows = await ChecklistCategoryOrder.find().select("name sortOrder").lean();
+  return new Map(rows.map((r) => [r.name, r.sortOrder]));
+}
+
+/** Every category name known today (from the live catalog), ordered for the admin's reorder
+ * UI: already-ordered categories first (in their saved order), then any unordered ones
+ * alphabetically after. */
+export async function listCategoryOrderForAdmin() {
+  await connectDB();
+  const [categories, ordered] = await Promise.all([listDistinctCategories(), getCategoryOrderMap()]);
+  return [...categories].sort((a, b) => {
+    const orderA = ordered.get(a) ?? Number.MAX_SAFE_INTEGER;
+    const orderB = ordered.get(b) ?? Number.MAX_SAFE_INTEGER;
+    if (orderA !== orderB) return orderA - orderB;
+    return a.localeCompare(b);
+  });
+}
+
+/** Persists the admin's full desired category order (top to bottom = first to last). */
+export async function saveCategoryOrder(names: string[]) {
+  await connectDB();
+  const ops = names.map((name, index) => ({
+    updateOne: {
+      filter: { name },
+      update: { $set: { name, sortOrder: index } },
+      upsert: true,
+    },
+  }));
+  if (ops.length > 0) {
+    await ChecklistCategoryOrder.bulkWrite(ops, { ordered: false });
+  }
+  return { success: true as const };
 }

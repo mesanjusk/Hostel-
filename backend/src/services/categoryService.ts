@@ -4,6 +4,7 @@ import { ChecklistItem } from "@/models/ChecklistItem";
 import { User } from "@/models/User";
 import { DEFAULT_CHECKLIST_CATEGORIES } from "@/types";
 import { getDistinctCategoriesForUser, isLegacyChecklistUser } from "@/services/userChecklistService";
+import { getCategoryOrderMap } from "@/services/defaultChecklistItemService";
 
 function normalize(name: string) {
   return name.trim().toLowerCase();
@@ -56,10 +57,24 @@ export async function ensureDefaultCategories(userId: string) {
   }
 }
 
+/** Categories in display order: admin-ordered ones first (per ChecklistCategoryOrder, set from
+ * /admin/default-checklist), then any category this user has that the admin never ordered,
+ * appended in their existing (createdAt) order. Feeds every checklist view — notebook, list,
+ * and /api/categories — from this one place. */
 export async function listCategories(userId: string) {
   await connectDB();
   await ensureDefaultCategories(userId);
-  return Category.find({ userId }).sort({ createdAt: 1 }).lean();
+  const [categories, orderMap] = await Promise.all([
+    Category.find({ userId }).sort({ createdAt: 1 }).lean(),
+    getCategoryOrderMap(),
+  ]);
+  if (orderMap.size === 0) return categories;
+
+  return [...categories].sort((a, b) => {
+    const orderA = orderMap.get(a.name) ?? Number.MAX_SAFE_INTEGER;
+    const orderB = orderMap.get(b.name) ?? Number.MAX_SAFE_INTEGER;
+    return orderA - orderB;
+  });
 }
 
 export async function createCategory(userId: string, name: string, icon?: string | null) {
