@@ -6,6 +6,7 @@ import { ProtectedRoute, AdminRoute, AuthOnlyRoute } from "@/components/protecte
 import { ScrollToTop } from "@/components/shared/scroll-to-top";
 import { RouteFallback } from "@/components/shared/route-fallback";
 import { HOME_ROUTE } from "@/lib/nav-items";
+import { hasSelectedGender } from "@/lib/onboarding-gender";
 import { useAnalyticsPageViews } from "@/lib/analytics/use-page-view-tracking";
 import { lazyRetry } from "@/lib/lazy-retry";
 
@@ -21,6 +22,7 @@ const AuthLayout = lazyRetry(() => import("@/layouts/auth-layout").then((m) => (
 // Passwordless MSG91 OTP login is the single auth entry point now (mobile + OTP). The old
 // WhatsApp-OTP register / forgot-code pages and the mobile+PIN wa-login page are superseded
 // and their routes redirect here; the page files remain for reference/history.
+const LandingPage = lazyRetry(() => import("@/pages/landing-page"));
 const OtpLoginPage = lazyRetry(() => import("@/pages/otp-login-page"));
 const WaLoginCompletePage = lazyRetry(() => import("@/pages/wa-login-complete-page"));
 const WaLoginHomePage = lazyRetry(() => import("@/pages/wa-login-home-page"));
@@ -76,7 +78,10 @@ const UserProfilePage = lazyRetry(() => import("@/pages/user-profile-page"));
 function RootRoute() {
   const { user, loading } = useAuth();
   if (loading) return null;
-  return <Navigate to={user ? HOME_ROUTE : "/wa-login"} replace />;
+  if (user) return <Navigate to={HOME_ROUTE} replace />;
+  // First-time visitors get the cute gender-pick landing page; anyone who's already been
+  // through it (even without finishing signup) skips straight to login.
+  return <Navigate to={hasSelectedGender() ? "/wa-login" : "/welcome"} replace />;
 }
 
 export default function App() {
@@ -95,9 +100,17 @@ export default function App() {
             <Route path="/register" element={<Navigate to="/wa-login" replace />} />
             <Route path="/forgot-password" element={<Navigate to="/wa-login" replace />} />
             <Route
-              path="/wa-login"
+              path="/welcome"
               element={
                 <AuthOnlyRoute redirectTo={HOME_ROUTE}>
+                  <LandingPage />
+                </AuthOnlyRoute>
+              }
+            />
+            <Route
+              path="/wa-login"
+              element={
+                <AuthOnlyRoute redirectTo={HOME_ROUTE} requireSelectedGender>
                   <OtpLoginPage />
                 </AuthOnlyRoute>
               }
