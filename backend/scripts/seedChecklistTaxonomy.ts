@@ -54,6 +54,12 @@ async function main() {
   if (!uri) throw new Error("Missing MONGODB_URI environment variable");
   await mongoose.connect(uri);
 
+  // Drops any index no longer declared on the schema (e.g. a stale `templateId_1_normalizedTitle_1`
+  // unique index from an earlier iteration of this collection) and creates any that are missing.
+  // Without this, a leftover unique index on an unset field rejects every insert past the first
+  // per templateId, since Mongo treats the missing field as a shared `null` value.
+  await DefaultChecklistItem.syncIndexes();
+
   console.log("Phase 1: college categories + courses");
   const categoryIdByName = new Map<string, string>();
   for (const [index, name] of CATEGORIES.entries()) {
