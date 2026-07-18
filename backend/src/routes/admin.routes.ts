@@ -24,6 +24,12 @@ import {
 import { saveDashboardLayout, saveHomeLayout, saveNavLayout } from "@/services/uiLayoutService";
 import { saveLandingDesign } from "@/services/landingDesignService";
 import { createCity, deleteCity, listCities, updateCity } from "@/services/cityService";
+import {
+  GENDER_THEME_KEYS,
+  getAllGenderThemeSettings,
+  updateGenderThemeSettings,
+  type GenderThemeKey,
+} from "@/services/genderThemeService";
 import { createPlace, deletePlace, listPlaces, updatePlace } from "@/services/placeService";
 import {
   adminDeleteDirectoryContact,
@@ -35,6 +41,7 @@ import {
   citySchema,
   cityUpdateSchema,
   bulkImportProductsSchema,
+  genderThemeUpdateSchema,
   guideArticleSchema,
   guideArticleUpdateSchema,
   landingDesignSchema,
@@ -325,6 +332,38 @@ adminRouter.patch("/cities/:id", async (req, res) => {
 adminRouter.delete("/cities/:id", async (req, res) => {
   await deleteCity(req.params.id);
   res.json({ success: true });
+});
+
+// --- Gender theme (colors + stickers per gender, tunable without a deploy) ---
+
+adminRouter.get("/gender-theme", async (_req, res) => {
+  res.json({ settings: await getAllGenderThemeSettings() });
+});
+
+adminRouter.patch("/gender-theme/:key", async (req, res) => {
+  const key = req.params.key;
+  if (!GENDER_THEME_KEYS.includes(key as GenderThemeKey)) {
+    res.status(400).json({ error: "Invalid gender key" });
+    return;
+  }
+  const parsed = genderThemeUpdateSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.issues[0]?.message ?? "Invalid input" });
+    return;
+  }
+  const { stickerSlugs, primaryColor, secondaryColor, accentColor, gradientFrom, gradientTo } = parsed.data;
+  // "" from the form means "clear this override back to the frontend default" — store as null,
+  // not an empty string, so getAllGenderThemeSettings's DTO stays `string | null` throughout.
+  const asColor = (v: string) => (v === "" ? null : v);
+  const settings = await updateGenderThemeSettings(key as GenderThemeKey, {
+    primaryColor: asColor(primaryColor),
+    secondaryColor: asColor(secondaryColor),
+    accentColor: asColor(accentColor),
+    gradientFrom: asColor(gradientFrom),
+    gradientTo: asColor(gradientTo),
+    stickerSlugs,
+  });
+  res.json({ settings });
 });
 
 // --- Places ---

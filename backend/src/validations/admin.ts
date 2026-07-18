@@ -157,6 +157,22 @@ export const placeUpdateSchema = placeSchema.partial().extend({
   id: z.string().min(1),
 });
 
+// Accepts a 3- or 6-digit hex color, or "" to clear an override back to the frontend's
+// hardcoded default for that field (see gender-theme-view.tsx / gender-theme-settings.ts).
+const hexColorOrEmpty = z
+  .string()
+  .trim()
+  .regex(/^(#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}))?$/, "Must be a hex color like #1e3a5f, or blank");
+
+export const genderThemeUpdateSchema = z.object({
+  primaryColor: hexColorOrEmpty,
+  secondaryColor: hexColorOrEmpty,
+  accentColor: hexColorOrEmpty,
+  gradientFrom: hexColorOrEmpty,
+  gradientTo: hexColorOrEmpty,
+  stickerSlugs: z.array(z.string().trim().min(1).max(60)).max(200),
+});
+
 export type ProductInput = z.infer<typeof productSchema>;
 export type ProductUpdateInput = z.infer<typeof productUpdateSchema>;
 export type GuideArticleInput = z.infer<typeof guideArticleSchema>;
@@ -169,3 +185,4 @@ export type CityInput = z.infer<typeof citySchema>;
 export type CityUpdateInput = z.infer<typeof cityUpdateSchema>;
 export type PlaceInput = z.infer<typeof placeSchema>;
 export type PlaceUpdateInput = z.infer<typeof placeUpdateSchema>;
+export type GenderThemeUpdateInput = z.infer<typeof genderThemeUpdateSchema>;
