@@ -26,7 +26,6 @@ const WaLoginCompletePage = lazyRetry(() => import("@/pages/wa-login-complete-pa
 const WaLoginHomePage = lazyRetry(() => import("@/pages/wa-login-home-page"));
 const OnboardingPage = lazyRetry(() => import("@/pages/onboarding-page"));
 const NotFound = lazyRetry(() => import("@/pages/not-found"));
-const WelcomePage = lazyRetry(() => import("@/pages/welcome-page"));
 const DashboardPage = lazyRetry(() => import("@/pages/dashboard-page"));
 const ChecklistPage = lazyRetry(() => import("@/pages/checklist-page"));
 const ChecklistCategoryPage = lazyRetry(() => import("@/pages/checklist-category-page"));
@@ -77,8 +76,7 @@ const UserProfilePage = lazyRetry(() => import("@/pages/user-profile-page"));
 function RootRoute() {
   const { user, loading } = useAuth();
   if (loading) return null;
-  if (user) return <Navigate to={HOME_ROUTE} replace />;
-  return <WelcomePage />;
+  return <Navigate to={user ? HOME_ROUTE : "/wa-login"} replace />;
 }
 
 export default function App() {
