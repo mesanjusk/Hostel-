@@ -10,6 +10,8 @@ import { EmergencyContact } from "@/models/EmergencyContact";
 import { WishlistItem } from "@/models/WishlistItem";
 import { CollegeCategory } from "@/models/CollegeCategory";
 import { CommunityMember } from "@/models/CommunityMember";
+import { TravelProfile } from "@/models/TravelProfile";
+import { Connection } from "@/models/Connection";
 import { generatePin, hashPin } from "@/lib/pin";
 import { generateUniqueUsername } from "@/lib/username";
 import { ensureAutoJoinCommunities } from "@/services/communityService";
@@ -274,6 +276,10 @@ export async function deleteUserByAdmin(userId: string) {
     EmergencyContact.deleteMany({ userId }),
     WishlistItem.deleteMany({ userId }),
     CommunityMember.deleteMany({ userId }),
+    // Discovery data: left behind, these orphaned documents still match other users' queries
+    // (destination-city / roommate search) and crash on the deleted user's populated fields.
+    TravelProfile.deleteMany({ userId }),
+    Connection.deleteMany({ $or: [{ requesterId: userId }, { recipientId: userId }] }),
   ]);
 
   await User.findByIdAndDelete(userId);

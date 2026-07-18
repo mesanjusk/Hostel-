@@ -105,7 +105,12 @@ export async function findCoPackers(viewerUserId: string, filters: DiscoveryQuer
     .populate("userId", "name avatar gender college verified dateOfBirth blockedUserIds")
     .lean<ProfileWithUser[]>();
 
-  const visible = candidates.filter(
+  // A profile can outlive the account it belonged to (e.g. an admin-deleted user whose
+  // TravelProfile wasn't cleaned up) — populate then leaves userId null instead of a document,
+  // which would otherwise crash every field access below.
+  const withUser = candidates.filter((c) => c.userId != null);
+
+  const visible = withUser.filter(
     (c) => isVisibleTo(c, viewer) && !blockedByOthers.has(c.userId._id.toString()),
   );
   return applyOptionalFilters(visible, filters).map(baseCard);
@@ -189,7 +194,11 @@ export async function findRoommates(viewerUserId: string) {
     .populate("userId", "name avatar gender college verified dateOfBirth blockedUserIds")
     .lean<ProfileWithUser[]>();
 
-  const visible = candidates.filter(
+  // Same orphaned-profile guard as findCoPackers: a deleted user's TravelProfile can still
+  // match the query above, and populate leaves userId null rather than throwing.
+  const withUser = candidates.filter((c) => c.userId != null);
+
+  const visible = withUser.filter(
     (c) =>
       isVisibleTo(c, viewer) &&
       !blockedByOthers.has(c.userId._id.toString()) &&
