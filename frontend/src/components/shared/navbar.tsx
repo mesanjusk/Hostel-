@@ -2,6 +2,7 @@ import { Link, useLocation } from "react-router-dom";
 
 import { BrandName } from "@/components/shared/brand-name";
 import { OverflowMenu } from "@/components/shared/overflow-menu";
+import { UserMenu } from "@/components/shared/user-menu";
 import { GlobalSearch } from "@/features/search/global-search";
 import { HOME_ROUTE, type NavItem } from "@/lib/nav-items";
 
@@ -37,6 +38,7 @@ export function Navbar({ isAdmin, overflowItems }: NavbarProps) {
               <GlobalSearch />
             </div>
           )}
+          <UserMenu />
           <div className="lg:hidden">
             <OverflowMenu isAdmin={isAdmin} items={overflowItems} />
           </div>

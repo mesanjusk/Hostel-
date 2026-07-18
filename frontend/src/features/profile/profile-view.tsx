@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { motion } from "framer-motion";
@@ -107,10 +107,18 @@ function InstallAppAction() {
 
 export function ProfileView() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, refreshUser, logout } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [avatar, setAvatar] = useState(user?.avatar ?? "");
+
+  // Deep-linked from the account menu ("Edit profile" / "Edit community profile") so those
+  // actions land straight on the relevant dialog instead of just the profile page.
+  useEffect(() => {
+    if (location.hash === "#edit") setEditOpen(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const initials = (user?.name ?? user?.mobile.slice(-2) ?? "?").slice(0, 2).toUpperCase();
 
@@ -232,7 +240,7 @@ export function ProfileView() {
           </DialogContent>
         </Dialog>
 
-        <PublicProfileSettings />
+        <PublicProfileSettings autoOpen={location.hash === "#community"} />
 
         <SettingsSection title="App">
           <SettingsRow

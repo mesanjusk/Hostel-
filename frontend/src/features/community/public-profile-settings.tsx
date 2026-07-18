@@ -18,7 +18,7 @@ const USERNAME_PATTERN = /^[a-z0-9_]{3,32}$/;
 /** Community/chat's public identity is a photo and a username — never the real name, mobile,
  * or city/college (those live in the account profile form above). The username doubles as the
  * display name (see backend User model), so there's no separate display-name field to edit. */
-export function PublicProfileSettings() {
+export function PublicProfileSettings({ autoOpen = false }: { autoOpen?: boolean }) {
   const { user, refreshUser } = useAuth();
   const [open, setOpen] = useState(false);
   const [username, setUsername] = useState(user?.username ?? "");
@@ -30,6 +30,10 @@ export function PublicProfileSettings() {
     setUsername(user.username ?? "");
     setAvatar(user.avatar ?? "");
   }, [open, user]);
+
+  useEffect(() => {
+    if (autoOpen) setOpen(true);
+  }, [autoOpen]);
 
   async function handleSave() {
     const normalized = username.trim().toLowerCase();
