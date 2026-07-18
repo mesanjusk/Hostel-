@@ -113,20 +113,27 @@ export async function respondToConnectionRequest(userId: string, connectionId: s
   return { success: true as const, connection };
 }
 
+// A populated ref comes back null when that user's account has since been deleted —
+// deleting a user doesn't cascade to their connections, so such rows exist in production.
+// A connection with nobody on the other end has nothing to render (and dereferencing the
+// null crashed /connections/accepted with a 500), so every listing drops those rows.
+
 export async function listIncomingRequests(userId: string) {
   await connectDB();
-  return Connection.find({ recipientId: userId, status: "pending" })
+  const requests = await Connection.find({ recipientId: userId, status: "pending" })
     .sort({ createdAt: -1 })
     .populate("requesterId", "name avatar gender college verified")
     .lean();
+  return requests.filter((request) => request.requesterId != null);
 }
 
 export async function listOutgoingRequests(userId: string) {
   await connectDB();
-  return Connection.find({ requesterId: userId })
+  const requests = await Connection.find({ requesterId: userId })
     .sort({ createdAt: -1 })
     .populate("recipientId", "name avatar gender college verified")
     .lean();
+  return requests.filter((request) => request.recipientId != null);
 }
 
 export async function listAcceptedConnections(userId: string) {
@@ -148,7 +155,12 @@ export async function listAcceptedConnections(userId: string) {
   // one, since the sort is respondedAt descending.
   const seen = new Set<string>();
   return connections.filter((connection) => {
-    const { requesterId, recipientId } = connection as unknown as Record<"requesterId" | "recipientId", PopulatedRef>;
+    const { requesterId, recipientId } = connection as unknown as Record<
+      "requesterId" | "recipientId",
+      PopulatedRef | null
+    >;
+    // Deleted counterpart — see the note above listIncomingRequests.
+    if (!requesterId || !recipientId) return false;
     const other = requesterId._id.toString() === userId ? recipientId : requesterId;
     const key = `${other._id.toString()}:${connection.context}`;
     if (seen.has(key)) return false;
