@@ -54,6 +54,15 @@ async function main() {
   if (!uri) throw new Error("Missing MONGODB_URI environment variable");
   await mongoose.connect(uri);
 
+  // Leftover from a since-removed `normalizedTitle` field — no current schema or code sets
+  // it, so every new item collapses to normalizedTitle: null and the second one per template
+  // trips this unique index, crashing the whole script (and, via deploy-ec2.yml, the deploy).
+  // The templateId+category+title check below already prevents real duplicates, so this index
+  // enforces nothing that isn't handled correctly elsewhere. Safe to drop; no-op once gone.
+  await DefaultChecklistItem.collection.dropIndex("templateId_1_normalizedTitle_1").catch((error) => {
+    if ((error as { codeName?: string })?.codeName !== "IndexNotFound") throw error;
+  });
+
   console.log("Phase 1: college categories + courses");
   const categoryIdByName = new Map<string, string>();
   for (const [index, name] of CATEGORIES.entries()) {
