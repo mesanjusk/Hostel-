@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { UseFormReturn } from "react-hook-form";
+import type { FieldPath, UseFormReturn } from "react-hook-form";
 import { MapPin, School } from "lucide-react";
 import { toast } from "sonner";
 
@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { api, ApiError } from "@/lib/api";
-import { GENDER_OPTIONS } from "@/types";
+import { GENDER_OPTIONS, type Gender } from "@/types";
 import type { ProfileFieldsInput } from "@/features/auth/profile-fields-schema";
 import {
   toCityOptionDTO,
@@ -27,28 +27,64 @@ import {
 
 const OTHER_COLLEGE = "__other__";
 
-/** Gender + college name + college category + city (+ course/home town on the profile-edit
- * form) — shared by the onboarding form and the profile-edit form so both stay in sync.
- * Category/course/city all come from admin-managed catalogs (no hardcoded lists) and course
- * cascades off category. Course isn't collected at registration — it's a voluntary field the
- * user fills in later from their profile — so it (and home town) only render when
- * `variant="profile"`. */
-export function ProfileFields({
+/** Gender selector — shared by the onboarding form (the only field it collects besides name)
+ * and the full profile-edit form. Generic so both forms' distinct value types work without a
+ * cast at the call site. */
+export function GenderField<T extends { gender: Gender }>({ form }: { form: UseFormReturn<T> }) {
+  const name = "gender" as FieldPath<T>;
+  return (
+    <FormField
+      control={form.control}
+      name={name}
+      render={({ field }) => (
+        <FormItem>
+          <FormLabel>Gender</FormLabel>
+          <FormControl>
+            <div className="flex gap-2">
+              {GENDER_OPTIONS.map((g) => (
+                <button
+                  key={g}
+                  type="button"
+                  onClick={() => field.onChange(g)}
+                  className={cn(
+                    "flex-1 rounded-full border px-4 py-2.5 text-sm font-medium transition-colors",
+                    field.value === g
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-input text-muted-foreground hover:border-primary/50 bg-transparent",
+                  )}
+                >
+                  {g}
+                </button>
+              ))}
+            </div>
+          </FormControl>
+          <FormMessage />
+        </FormItem>
+      )}
+    />
+  );
+}
+
+/** City + college category + college name, with the college shortlist cascading off city and
+ * category. Shared by the full profile-edit form and the one-time Community profile-setup
+ * dialog (where these fields are deferred from onboarding to first Community visit) — generic
+ * over the host form's value type so each caller keeps its own narrower schema. */
+export function CollegeFields<T extends { city: string; collegeCategoryId: string; college: string }>({
   form,
-  variant = "onboarding",
 }: {
-  form: UseFormReturn<ProfileFieldsInput>;
-  variant?: "onboarding" | "profile";
+  form: UseFormReturn<T>;
 }) {
+  const cityName = "city" as FieldPath<T>;
+  const collegeCategoryIdName = "collegeCategoryId" as FieldPath<T>;
+  const collegeName = "college" as FieldPath<T>;
+
   const [categories, setCategories] = useState<CollegeCategoryDTO[]>([]);
-  const [courses, setCourses] = useState<CourseDTO[]>([]);
   const [cities, setCities] = useState<CityOptionDTO[]>([]);
   const [colleges, setColleges] = useState<CollegeDTO[]>([]);
   const [collegesLoaded, setCollegesLoaded] = useState(false);
   const [collegeIsOther, setCollegeIsOther] = useState(false);
-  const city = form.watch("city");
-  const collegeCategoryId = form.watch("collegeCategoryId");
-  const showCourse = variant === "profile";
+  const city = form.watch(cityName) as unknown as string;
+  const collegeCategoryId = form.watch(collegeCategoryIdName) as unknown as string;
 
   useEffect(() => {
     api
@@ -63,17 +99,6 @@ export function ProfileFields({
       .then(({ cities: raw }) => setCities(raw.map(toCityOptionDTO)))
       .catch((error) => toast.error(error instanceof ApiError ? error.message : "Failed to load cities"));
   }, []);
-
-  useEffect(() => {
-    if (!showCourse || !collegeCategoryId) {
-      setCourses([]);
-      return;
-    }
-    api
-      .get<{ courses: CourseRaw[] }>(`/api/courses?collegeCategoryId=${collegeCategoryId}`)
-      .then(({ courses: raw }) => setCourses(raw.map(toCourseDTO)))
-      .catch((error) => toast.error(error instanceof ApiError ? error.message : "Failed to load courses"));
-  }, [showCourse, collegeCategoryId]);
 
   useEffect(() => {
     if (!city || !collegeCategoryId) {
@@ -99,7 +124,7 @@ export function ProfileFields({
    * a custom name or picking "Other" from the dropdown. */
   useEffect(() => {
     if (!collegesLoaded) return;
-    const value = form.getValues("college");
+    const value = form.getValues(collegeName) as unknown as string;
     setCollegeIsOther(Boolean(value) && !colleges.some((c) => c.name === value));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [collegesLoaded, colleges]);
@@ -108,36 +133,7 @@ export function ProfileFields({
     <>
       <FormField
         control={form.control}
-        name="gender"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Gender</FormLabel>
-            <FormControl>
-              <div className="flex gap-2">
-                {GENDER_OPTIONS.map((g) => (
-                  <button
-                    key={g}
-                    type="button"
-                    onClick={() => field.onChange(g)}
-                    className={cn(
-                      "flex-1 rounded-full border px-4 py-2.5 text-sm font-medium transition-colors",
-                      field.value === g
-                        ? "border-primary bg-primary text-primary-foreground"
-                        : "border-input text-muted-foreground hover:border-primary/50 bg-transparent",
-                    )}
-                  >
-                    {g}
-                  </button>
-                ))}
-              </div>
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
-      <FormField
-        control={form.control}
-        name="city"
+        name={cityName}
         render={({ field }) => (
           <FormItem>
             <FormLabel>City</FormLabel>
@@ -146,7 +142,7 @@ export function ProfileFields({
                 value={field.value}
                 onValueChange={(value) => {
                   field.onChange(value);
-                  form.setValue("college", "");
+                  form.setValue(collegeName, "" as never);
                 }}
               >
                 <SelectTrigger className="w-full">
@@ -168,7 +164,7 @@ export function ProfileFields({
       />
       <FormField
         control={form.control}
-        name="collegeCategoryId"
+        name={collegeCategoryIdName}
         render={({ field }) => (
           <FormItem>
             <FormLabel>College category</FormLabel>
@@ -177,8 +173,7 @@ export function ProfileFields({
                 value={field.value}
                 onValueChange={(value) => {
                   field.onChange(value);
-                  form.setValue("courseId", "");
-                  form.setValue("college", "");
+                  form.setValue(collegeName, "" as never);
                 }}
               >
                 <SelectTrigger className="w-full">
@@ -199,7 +194,7 @@ export function ProfileFields({
       />
       <FormField
         control={form.control}
-        name="college"
+        name={collegeName}
         render={({ field }) => {
           const selectValue = !field.value ? "" : collegeIsOther ? OTHER_COLLEGE : field.value;
           const disabled = !city || !collegeCategoryId;
@@ -249,59 +244,88 @@ export function ProfileFields({
           );
         }}
       />
-      {showCourse && (
-        <FormField
-          control={form.control}
-          name="courseId"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Course</FormLabel>
-              <FormControl>
-                <Select value={field.value} onValueChange={field.onChange} disabled={!collegeCategoryId}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder={collegeCategoryId ? "Select a course" : "Pick a category first"} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {courses.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>
-                        {c.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-      )}
-      {variant === "profile" && (
-        <FormField
-          control={form.control}
-          name="homeTown"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Home town</FormLabel>
-              <FormControl>
-                <Select value={field.value} onValueChange={field.onChange}>
-                  <SelectTrigger className="w-full">
-                    <MapPin className="text-muted-foreground size-4" />
-                    <SelectValue placeholder="Select your home town" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {cities.map((c) => (
-                      <SelectItem key={c.id} value={c.name}>
-                        {c.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-      )}
+    </>
+  );
+}
+
+/** Full profile-edit field set: gender, city/category/college, plus the voluntary course and
+ * home town fields that only ever appear on the profile-edit form (see profile-view.tsx). */
+export function ProfileFields({ form }: { form: UseFormReturn<ProfileFieldsInput> }) {
+  const [courses, setCourses] = useState<CourseDTO[]>([]);
+  const [cities, setCities] = useState<CityOptionDTO[]>([]);
+  const collegeCategoryId = form.watch("collegeCategoryId");
+
+  useEffect(() => {
+    if (!collegeCategoryId) {
+      setCourses([]);
+      return;
+    }
+    api
+      .get<{ courses: CourseRaw[] }>(`/api/courses?collegeCategoryId=${collegeCategoryId}`)
+      .then(({ courses: raw }) => setCourses(raw.map(toCourseDTO)))
+      .catch((error) => toast.error(error instanceof ApiError ? error.message : "Failed to load courses"));
+  }, [collegeCategoryId]);
+
+  useEffect(() => {
+    api
+      .get<{ cities: CityOptionRaw[] }>("/api/cities")
+      .then(({ cities: raw }) => setCities(raw.map(toCityOptionDTO)))
+      .catch((error) => toast.error(error instanceof ApiError ? error.message : "Failed to load cities"));
+  }, []);
+
+  return (
+    <>
+      <GenderField form={form} />
+      <CollegeFields form={form} />
+      <FormField
+        control={form.control}
+        name="courseId"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Course</FormLabel>
+            <FormControl>
+              <Select value={field.value} onValueChange={field.onChange} disabled={!collegeCategoryId}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder={collegeCategoryId ? "Select a course" : "Pick a category first"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {courses.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+      <FormField
+        control={form.control}
+        name="homeTown"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Home town</FormLabel>
+            <FormControl>
+              <Select value={field.value} onValueChange={field.onChange}>
+                <SelectTrigger className="w-full">
+                  <MapPin className="text-muted-foreground size-4" />
+                  <SelectValue placeholder="Select your home town" />
+                </SelectTrigger>
+                <SelectContent>
+                  {cities.map((c) => (
+                    <SelectItem key={c.id} value={c.name}>
+                      {c.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
     </>
   );
 }

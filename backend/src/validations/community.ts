@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { COMMUNITY_ROLES, COMMUNITY_STATUS, COMMUNITY_VISIBILITY } from "@/types";
+import { citySchema, collegeCategoryIdSchema } from "@/validations/auth";
 
 export const createCommunitySchema = z.object({
   name: z.string().trim().min(3, "Name is too short").max(120),
@@ -51,12 +52,16 @@ export const publicProfileUpdateSchema = z.object({
   year: z.string().trim().max(20).optional().nullable(),
 });
 
-// One-time prompt shown on first visit to Community — asks only whether the student wants
-// their real name or a different name as their community display name.
+// One-time prompt shown on first visit to Community — collects the community display name
+// plus the college/city details onboarding no longer asks for up front (see
+// validations/auth.ts's onboardingSchema, which is now just name + gender).
 export const communityProfileSetupSchema = z
   .object({
     useOriginalName: z.boolean(),
     displayName: z.string().trim().min(1, "Enter a name").max(40).optional(),
+    college: z.string().trim().min(1, "Enter your college name").max(120, "College name is too long"),
+    collegeCategoryId: collegeCategoryIdSchema,
+    city: citySchema,
   })
   .refine((data) => data.useOriginalName || Boolean(data.displayName), {
     message: "Enter a name",

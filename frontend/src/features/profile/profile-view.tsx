@@ -212,7 +212,7 @@ export function ProfileView() {
                     </FormItem>
                   )}
                 />
-                <ProfileFields form={form} variant="profile" />
+                <ProfileFields form={form} />
                 <DialogFooter>
                   <Button type="submit" disabled={isSubmitting}>
                     {isSubmitting && <Loader2 className="size-4 animate-spin" />}

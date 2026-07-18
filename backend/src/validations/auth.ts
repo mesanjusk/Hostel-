@@ -50,14 +50,12 @@ const avatarImageField = z
   .optional()
   .or(z.literal(""));
 
-// Course is deliberately not collected at registration — it's a voluntary profile-edit
-// field (see profileUpdateSchema) so onboarding stays quick.
+// College/city/course are deliberately not collected at registration — onboarding stays down
+// to name + gender, and the rest is collected the first time the student opens Community (see
+// communityProfileSetupSchema).
 export const onboardingSchema = z.object({
   name: z.string().trim().min(2, "Name is too short").max(80, "Name is too long"),
   gender: genderSchema,
-  college: z.string().trim().min(1, "Enter your college name").max(120, "College name is too long"),
-  collegeCategoryId: collegeCategoryIdSchema,
-  city: citySchema,
   avatar: avatarImageField,
 });
 

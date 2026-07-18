@@ -24,9 +24,6 @@ const disconnectSocket = () => import("@/lib/socket").then((m) => m.disconnectSo
 interface OnboardingInput {
   name: string;
   gender: Gender;
-  college: string;
-  collegeCategoryId: string;
-  city: string;
   /** Optional — a student can finish onboarding without picking a profile picture. */
   avatar?: string;
 }

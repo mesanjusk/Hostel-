@@ -19,9 +19,9 @@ import {
 import { useAuth } from "@/context/auth-context";
 import { ApiError } from "@/lib/api";
 import { HOME_ROUTE } from "@/lib/nav-items";
-import { ProfileFields } from "@/features/auth/profile-fields";
+import { GenderField } from "@/features/auth/profile-fields";
 import { AvatarUploadField } from "@/features/auth/avatar-upload-field";
-import { profileFieldsSchema, type ProfileFieldsInput } from "@/features/auth/profile-fields-schema";
+import { onboardingFieldsSchema, type OnboardingFieldsInput } from "@/features/auth/profile-fields-schema";
 
 export function OnboardingForm({ defaultName }: { defaultName?: string }) {
   const navigate = useNavigate();
@@ -29,20 +29,15 @@ export function OnboardingForm({ defaultName }: { defaultName?: string }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [avatar, setAvatar] = useState("");
 
-  const form = useForm<ProfileFieldsInput>({
-    resolver: zodResolver(profileFieldsSchema),
+  const form = useForm<OnboardingFieldsInput>({
+    resolver: zodResolver(onboardingFieldsSchema),
     defaultValues: {
       name: defaultName ?? "",
       gender: undefined,
-      college: "",
-      collegeCategoryId: "",
-      courseId: "",
-      city: "",
-      homeTown: "",
     },
   });
 
-  async function onSubmit(values: ProfileFieldsInput) {
+  async function onSubmit(values: OnboardingFieldsInput) {
     setIsSubmitting(true);
     try {
       await completeOnboarding({ ...values, avatar: avatar || undefined });
@@ -64,7 +59,7 @@ export function OnboardingForm({ defaultName }: { defaultName?: string }) {
       <div className="mb-6 text-center">
         <h1 className="font-display text-2xl font-bold">Let&apos;s set you up</h1>
         <p className="text-muted-foreground mt-1 text-sm">
-          Just a couple of details to personalize your dashboard
+          Just your name and gender to get started — you can fill in the rest later
         </p>
       </div>
 
@@ -92,7 +87,7 @@ export function OnboardingForm({ defaultName }: { defaultName?: string }) {
               </FormItem>
             )}
           />
-          <ProfileFields form={form} />
+          <GenderField form={form} />
           <Button type="submit" size="lg" disabled={isSubmitting} className="mt-2">
             {isSubmitting && <Loader2 className="size-4 animate-spin" />}
             Enter Pack with Me

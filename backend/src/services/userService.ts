@@ -38,17 +38,53 @@ async function resolveLegacyCollegeCategory(collegeCategoryId: string) {
 
 export async function completeOnboarding(userId: string, input: OnboardingInput) {
   await connectDB();
-  const collegeCategory = await resolveLegacyCollegeCategory(input.collegeCategoryId);
   const updated = await User.findByIdAndUpdate(
     userId,
     {
       name: input.name,
       gender: input.gender,
+      ...(input.avatar ? { avatar: input.avatar } : {}),
+    },
+    { returnDocument: "after" },
+  ).lean();
+
+  // College/city aren't collected here anymore (see completeCommunityProfileSetup) — this
+  // only picks up the global Country community until then.
+  if (updated) await ensureAutoJoinCommunities(updated);
+  return updated;
+}
+
+/** One-time "create your community profile" prompt, shown on first visit to Community: sets
+ * the community display name and, since onboarding no longer collects them, the college/city
+ * details too — this is the first point those are actually known. */
+export async function completeCommunityProfileSetup(
+  userId: string,
+  input: {
+    useOriginalName: boolean;
+    displayName?: string;
+    college: string;
+    collegeCategoryId: string;
+    city: string;
+  },
+) {
+  await connectDB();
+  const user = await User.findById(userId).select("name username").lean();
+  if (!user) return null;
+
+  const collegeCategory = await resolveLegacyCollegeCategory(input.collegeCategoryId);
+  const displayName = input.useOriginalName
+    ? user.name || user.username || "Student"
+    : input.displayName!.trim();
+
+  const updated = await User.findByIdAndUpdate(
+    userId,
+    {
+      displayName,
+      communityProfileConfigured: true,
       college: input.college,
       collegeCategoryId: input.collegeCategoryId,
       city: input.city,
       collegeCategory,
-      ...(input.avatar ? { avatar: input.avatar } : {}),
     },
     { returnDocument: "after" },
   ).lean();

@@ -161,7 +161,13 @@ export function updatePublicProfile(input: {
   return api.patch("/api/users/me/public-profile", input);
 }
 
-export function setupCommunityProfile(input: { useOriginalName: boolean; displayName?: string }) {
+export function setupCommunityProfile(input: {
+  useOriginalName: boolean;
+  displayName?: string;
+  college: string;
+  collegeCategoryId: string;
+  city: string;
+}) {
   return api.patch("/api/users/me/community-profile-setup", input);
 }
 
