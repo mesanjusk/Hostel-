@@ -57,12 +57,25 @@ interface MetabspPayload {
   [key: string]: unknown;
 }
 
+/** Logs exactly which check failed rather than a bare 403 — Metabsp's own delivery-status
+ * fields (WebhookDestination.lastStatus/lastError) show a failed POST from its side, but
+ * without this there was nothing on our side to distinguish "Metabsp never called us" from
+ * "it called us and the secret didn't match" while debugging why no admin ever opts in. */
 function verifySignature(req: Request): boolean {
   const secret = process.env.METABSP_WEBHOOK_SECRET;
   const signatureHeader = req.headers["x-metabsp-signature-256"];
   const rawBody = (req as Request & { rawBody?: Buffer }).rawBody;
 
-  if (!secret || typeof signatureHeader !== "string" || !rawBody) {
+  if (!secret) {
+    console.error("Metabsp webhook rejected: METABSP_WEBHOOK_SECRET is not set on this server");
+    return false;
+  }
+  if (typeof signatureHeader !== "string") {
+    console.error("Metabsp webhook rejected: request had no X-Metabsp-Signature-256 header");
+    return false;
+  }
+  if (!rawBody) {
+    console.error("Metabsp webhook rejected: no raw body captured (check express.json's verify hook)");
     return false;
   }
 
@@ -71,10 +84,19 @@ function verifySignature(req: Request): boolean {
   const expectedBuffer = Buffer.from(expected);
   const actualBuffer = Buffer.from(signatureHeader);
   if (expectedBuffer.length !== actualBuffer.length) {
+    console.error(
+      "Metabsp webhook rejected: signature length mismatch — METABSP_WEBHOOK_SECRET likely doesn't match this destination's secret in Metabsp",
+    );
     return false;
   }
 
-  return crypto.timingSafeEqual(expectedBuffer, actualBuffer);
+  const matches = crypto.timingSafeEqual(expectedBuffer, actualBuffer);
+  if (!matches) {
+    console.error(
+      "Metabsp webhook rejected: signature mismatch — METABSP_WEBHOOK_SECRET likely doesn't match this destination's secret in Metabsp",
+    );
+  }
+  return matches;
 }
 
 /** Matches the /wa-login self-registration message, e.g.
@@ -122,7 +144,10 @@ async function refreshAdminWindowIfApplicable(rawFrom: string): Promise<void> {
   if (!mobile) return;
 
   await connectDB();
-  await User.updateOne({ mobile, role: "admin" }, { waWindowOpenedAt: new Date() });
+  const result = await User.updateOne({ mobile, role: "admin" }, { waWindowOpenedAt: new Date() });
+  if (result.matchedCount > 0) {
+    console.log(`WhatsApp window opened/refreshed for admin ${mobile}`);
+  }
 }
 
 async function processMetabspMessage(payload: MetabspPayload): Promise<void> {
@@ -207,6 +232,11 @@ whatsappRouter.get("/webhook-metabsp", (_req, res) => {
 });
 
 whatsappRouter.post("/webhook-metabsp", (req, res) => {
+  // Unconditional, minimal-detail log — the only way to tell "Metabsp never called this
+  // server" (nothing here, check the WebhookDestination's URL/isActive in Metabsp) apart
+  // from "it called but signature verification rejected it" (see verifySignature's own logs).
+  console.log("Metabsp webhook POST received", { hasSignatureHeader: Boolean(req.headers["x-metabsp-signature-256"]) });
+
   if (!verifySignature(req)) {
     res.status(403).json({ error: "Invalid signature" });
     return;
