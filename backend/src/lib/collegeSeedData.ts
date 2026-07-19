@@ -136,6 +136,34 @@ export const ENGINEERING_COLLEGE_SEEDS: SeedCollege[] = [
 
   { city: "Ahmedabad", name: "Nirma University — Institute of Technology", sortOrder: 10 },
   { city: "Ahmedabad", name: "L D College of Engineering", sortOrder: 20 },
+
+  { city: "Nagpur", name: "G H Raisoni College of Engineering", sortOrder: 20 },
+  { city: "Nagpur", name: "Yeshwantrao Chavan College of Engineering (YCCE)", sortOrder: 30 },
+  { city: "Nagpur", name: "Shri Ramdeobaba College of Engineering and Management (RBU)", sortOrder: 40 },
+  { city: "Indore", name: "Shri Govindram Seksaria Institute of Technology and Science (SGSITS)", sortOrder: 10 },
+  { city: "Indore", name: "Devi Ahilya Vishwavidyalaya (DAVV) — Institute of Engineering and Technology", sortOrder: 20 },
+  { city: "Lucknow", name: "Institute of Engineering and Technology (IET), Lucknow", sortOrder: 10 },
+  { city: "Lucknow", name: "Babu Banarasi Das National Institute of Technology and Management (BBDNITM)", sortOrder: 20 },
+  { city: "Jaipur", name: "LNM Institute of Information Technology (LNMIIT)", sortOrder: 10 },
+  { city: "Jaipur", name: "Manipal University Jaipur", sortOrder: 20 },
+  { city: "Jaipur", name: "JECRC University", sortOrder: 30 },
+  { city: "Coimbatore", name: "Kumaraguru College of Technology (KCT)", sortOrder: 30 },
+  { city: "Coimbatore", name: "Coimbatore Institute of Technology (CIT)", sortOrder: 40 },
+  { city: "Chandigarh", name: "Punjab Engineering College (PEC)", sortOrder: 10 },
+  { city: "Chandigarh", name: "UIET, Panjab University", sortOrder: 20 },
+  { city: "Bhopal", name: "Lakshmi Narain College of Technology (LNCT)", sortOrder: 20 },
+  { city: "Kanpur", name: "Harcourt Butler Technical University (HBTU)", sortOrder: 10 },
+  { city: "Vadodara", name: "Faculty of Technology and Engineering, The Maharaja Sayajirao University of Baroda", sortOrder: 10 },
+  { city: "Nashik", name: "K K Wagh Institute of Engineering Education and Research", sortOrder: 10 },
+  { city: "Guwahati", name: "Assam Engineering College", sortOrder: 10 },
+  { city: "Bhubaneswar", name: "International Institute of Information Technology, Bhubaneswar (IIIT-Bh)", sortOrder: 30 },
+  { city: "Bhubaneswar", name: "C V Raman Global University", sortOrder: 40 },
+  { city: "Thiruvananthapuram", name: "College of Engineering Trivandrum (CET)", sortOrder: 10 },
+  { city: "Visakhapatnam", name: "Andhra University College of Engineering", sortOrder: 10 },
+  { city: "Visakhapatnam", name: "GITAM Institute of Technology", sortOrder: 20 },
+  { city: "Ludhiana", name: "Guru Nanak Dev Engineering College (GNDEC)", sortOrder: 10 },
+  { city: "Surat", name: "Sarvajanik College of Engineering and Technology (SCET)", sortOrder: 10 },
+  { city: "Surat", name: "Government Engineering College (GEC), Surat", sortOrder: 20 },
 ];
 
 export const DESIGN_COLLEGE_SEEDS: SeedCollege[] = [
@@ -241,6 +269,29 @@ export const MEDICAL_COLLEGE_SEEDS: SeedCollege[] = [
   { city: "Guntur", name: "All India Institute of Medical Sciences (AIIMS), Mangalagiri", sortOrder: 10 },
   { city: "Kolkata", name: "All India Institute of Medical Sciences (AIIMS), Kalyani", sortOrder: 30 },
   { city: "Hyderabad", name: "All India Institute of Medical Sciences (AIIMS), Bibinagar", sortOrder: 30 },
+
+  { city: "Nagpur", name: "Government Medical College (GMC), Nagpur", sortOrder: 20 },
+  { city: "Nagpur", name: "Indira Gandhi Government Medical College (IGGMC), Nagpur", sortOrder: 30 },
+  { city: "Indore", name: "Mahatma Gandhi Memorial Medical College (MGM), Indore", sortOrder: 10 },
+  { city: "Jaipur", name: "Sawai Man Singh (SMS) Medical College", sortOrder: 10 },
+  { city: "Coimbatore", name: "Coimbatore Medical College", sortOrder: 10 },
+  { city: "Patna", name: "Patna Medical College and Hospital (PMCH)", sortOrder: 10 },
+  { city: "Bhopal", name: "Gandhi Medical College, Bhopal", sortOrder: 20 },
+  { city: "Kanpur", name: "GSVM Medical College, Kanpur", sortOrder: 10 },
+  { city: "Vadodara", name: "Government Medical College (Sir Sayajirao General Hospital), Vadodara", sortOrder: 10 },
+  { city: "Nashik", name: "Maharashtra University of Health Sciences (MUHS)", sortOrder: 10 },
+  { city: "Nashik", name: "Dr Vasantrao Pawar Medical College, Nashik", sortOrder: 20 },
+  { city: "Guwahati", name: "Guwahati Medical College and Hospital (GMCH)", sortOrder: 20 },
+  { city: "Bhubaneswar", name: "IMS and SUM Hospital", sortOrder: 20 },
+  { city: "Bhubaneswar", name: "Kalinga Institute of Medical Sciences (KIMS), Bhubaneswar", sortOrder: 30 },
+  { city: "Thiruvananthapuram", name: "Government Medical College, Thiruvananthapuram", sortOrder: 10 },
+  { city: "Thiruvananthapuram", name: "Sree Chitra Tirunal Institute for Medical Sciences and Technology (SCTIMST)", sortOrder: 20 },
+  { city: "Visakhapatnam", name: "Andhra Medical College", sortOrder: 10 },
+  { city: "Visakhapatnam", name: "GITAM Institute of Medical Sciences and Research", sortOrder: 20 },
+  { city: "Amritsar", name: "Government Medical College, Amritsar", sortOrder: 10 },
+  { city: "Ludhiana", name: "Christian Medical College (CMC), Ludhiana", sortOrder: 10 },
+  { city: "Surat", name: "Surat Municipal Institute of Medical Education and Research (SMIMER)", sortOrder: 10 },
+  { city: "Surat", name: "Government Medical College, Surat", sortOrder: 20 },
 ];
 
 export const MANAGEMENT_COLLEGE_SEEDS: SeedCollege[] = [
@@ -281,6 +332,11 @@ export const MANAGEMENT_COLLEGE_SEEDS: SeedCollege[] = [
   { city: "Sambalpur", name: "Indian Institute of Management (IIM), Sambalpur", sortOrder: 20 },
   { city: "Amritsar", name: "Indian Institute of Management (IIM), Amritsar", sortOrder: 20 },
   { city: "Jammu", name: "Indian Institute of Management (IIM), Jammu", sortOrder: 20 },
+
+  { city: "Bhubaneswar", name: "Xavier Institute of Management, Bhubaneswar (XIMB)", sortOrder: 30 },
+  { city: "Chandigarh", name: "University Business School (UBS), Panjab University", sortOrder: 10 },
+  { city: "Indore", name: "Prestige Institute of Management and Research, Indore", sortOrder: 10 },
+  { city: "Lucknow", name: "Jaipuria Institute of Management, Lucknow", sortOrder: 10 },
 ];
 
 export const LAW_COLLEGE_SEEDS: SeedCollege[] = [
@@ -296,6 +352,10 @@ export const LAW_COLLEGE_SEEDS: SeedCollege[] = [
   { city: "Jodhpur", name: "National Law University, Jodhpur", sortOrder: 10 },
   { city: "Patiala", name: "Rajiv Gandhi National University of Law (RGNUL), Patiala", sortOrder: 10 },
   { city: "Lucknow", name: "Dr. Ram Manohar Lohiya National Law University", sortOrder: 10 },
+
+  { city: "Patna", name: "Chanakya National Law University (CNLU), Patna", sortOrder: 10 },
+  { city: "Guwahati", name: "National Law University and Judicial Academy, Assam", sortOrder: 10 },
+  { city: "Thiruvananthapuram", name: "Government Law College, Thiruvananthapuram", sortOrder: 10 },
 ];
 
 export const ARCHITECTURE_COLLEGE_SEEDS: SeedCollege[] = [
@@ -332,6 +392,15 @@ export const COMMERCE_COLLEGE_SEEDS: SeedCollege[] = [
 
   { city: "Pune", name: "Symbiosis College of Arts and Commerce", sortOrder: 10 },
   { city: "Nagpur", name: "Rashtrasant Tukadoji Maharaj Nagpur University (RTMNU)", sortOrder: 10 },
+  { city: "Nagpur", name: "G S College of Commerce and Economics", sortOrder: 20 },
+
+  { city: "Indore", name: "Shri Atal Bihari Vajpayee Government Arts and Commerce College", sortOrder: 10 },
+  { city: "Guwahati", name: "Gauhati Commerce College", sortOrder: 10 },
+  { city: "Chandigarh", name: "MCM DAV College for Women", sortOrder: 10 },
+  { city: "Kanpur", name: "D A V College, Kanpur", sortOrder: 10 },
+  { city: "Kanpur", name: "D B S College, Kanpur", sortOrder: 20 },
+  { city: "Vadodara", name: "Faculty of Commerce, The Maharaja Sayajirao University of Baroda", sortOrder: 10 },
+  { city: "Surat", name: "Navayug Arts and Commerce College", sortOrder: 10 },
 ];
 
 export const SCIENCE_COLLEGE_SEEDS: SeedCollege[] = [
@@ -369,8 +438,26 @@ export const ARTS_COLLEGE_SEEDS: SeedCollege[] = [
   { city: "Bengaluru", name: "St. Joseph's College", sortOrder: 20 },
   { city: "Bhubaneswar", name: "Utkal University", sortOrder: 10 },
   { city: "Jaipur", name: "University of Rajasthan", sortOrder: 10 },
+  { city: "Jaipur", name: "Maharaja's College, Jaipur", sortOrder: 20 },
+  { city: "Jaipur", name: "Maharani College, Jaipur", sortOrder: 30 },
   { city: "Patna", name: "Patna University", sortOrder: 10 },
   { city: "Ranchi", name: "Ranchi University", sortOrder: 10 },
+
+  { city: "Nagpur", name: "Kamla Nehru Mahavidyalaya", sortOrder: 10 },
+  { city: "Coimbatore", name: "PSGR Krishnammal College for Women", sortOrder: 10 },
+  { city: "Coimbatore", name: "PSG College of Arts and Science", sortOrder: 20 },
+  { city: "Coimbatore", name: "Kongunadu Arts and Science College", sortOrder: 30 },
+  { city: "Chandigarh", name: "DAV College, Chandigarh", sortOrder: 10 },
+  { city: "Chandigarh", name: "Government College of Art, Chandigarh", sortOrder: 20 },
+  { city: "Bhopal", name: "Hamidia College, Bhopal", sortOrder: 10 },
+  { city: "Vadodara", name: "Faculty of Arts, The Maharaja Sayajirao University of Baroda", sortOrder: 10 },
+  { city: "Nashik", name: "K.T.H.M. College, Nashik", sortOrder: 10 },
+  { city: "Guwahati", name: "B. Borooah College", sortOrder: 10 },
+  { city: "Guwahati", name: "Cotton University", sortOrder: 20 },
+  { city: "Thiruvananthapuram", name: "University College, Thiruvananthapuram", sortOrder: 10 },
+  { city: "Amritsar", name: "Khalsa College, Amritsar", sortOrder: 10 },
+  { city: "Ludhiana", name: "Khalsa College for Women, Ludhiana", sortOrder: 10 },
+  { city: "Surat", name: "M T B Arts College, Surat", sortOrder: 10 },
 ];
 
 export const ANIMATION_COLLEGE_SEEDS: SeedCollege[] = [
