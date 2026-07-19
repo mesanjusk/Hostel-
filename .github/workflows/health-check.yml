@@ -16,9 +16,9 @@ jobs:
     steps:
       - name: Check /health over HTTPS
         run: |
-          status=$(curl -s -o /dev/null -w "%{http_code}" --max-time 15 https://packwithme.sanjusk.in/health)
+          status=$(curl -s -o /dev/null -w "%{http_code}" --max-time 15 https://packwithme.co.in/health)
           echo "HTTP status: $status"
           if [ "$status" != "200" ]; then
-            echo "::error::https://packwithme.sanjusk.in/health returned $status (expected 200)"
+            echo "::error::https://packwithme.co.in/health returned $status (expected 200)"
             exit 1
           fi
