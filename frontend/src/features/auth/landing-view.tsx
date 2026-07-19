@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowRight, ImageIcon } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 
 import { BrandName } from "@/components/shared/brand-name";
 import { Highlight } from "@/components/shared/scrapbook-pieces";
@@ -31,27 +31,15 @@ interface GenderCardConfig {
 // Brief pause so the tap's highlight is visible before the route change carries it away.
 const NAVIGATE_DELAY_MS = 350;
 
-/** Shown in a card's placeholder area until an admin uploads a real image (Admin > Landing Page
- * settings) — never a hardcoded character illustration, per design brief. */
-function ImagePlaceholder() {
-  return (
-    <div className="flex h-full w-full flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed border-black/10 bg-white/60">
-      <ImageIcon className="size-7 text-zinc-300" strokeWidth={1.5} />
-    </div>
-  );
-}
-
-/** Logo slot at the top of the screen — an admin-uploaded image (Admin > Landing Page settings)
- * if one exists, otherwise a plain placeholder square so the spot where a logo belongs is
- * obvious. Wrapped in a link only when the admin has also set a redirect URL. */
+/** Logo slot at the top of the screen — shown only once an admin has uploaded a real image
+ * (Admin > Landing Page settings). Nothing renders here until then. Wrapped in a link only
+ * when the admin has also set a redirect URL. */
 function LandingLogo({ logoUrl, redirectUrl }: { logoUrl: string | null; redirectUrl: string | null }) {
+  if (!logoUrl) return null;
+
   const content = (
-    <div className="flex size-20 items-center justify-center overflow-hidden rounded-2xl border border-dashed border-black/10 bg-zinc-50">
-      {logoUrl ? (
-        <img src={logoUrl} alt="Logo" className="h-full w-full object-contain p-2" />
-      ) : (
-        <ImageIcon className="size-8 text-zinc-300" strokeWidth={1.5} />
-      )}
+    <div className="flex size-20 items-center justify-center overflow-hidden rounded-2xl">
+      <img src={logoUrl} alt="Logo" className="h-full w-full object-contain p-2" />
     </div>
   );
 
@@ -138,6 +126,7 @@ export function LandingView() {
               <motion.button
                 key={gender}
                 type="button"
+                aria-label={label}
                 onClick={() => handleSelect(gender)}
                 disabled={selected !== null}
                 whileTap={selected === null ? { scale: 0.97 } : undefined}
@@ -150,14 +139,11 @@ export function LandingView() {
                 )}
                 style={{ backgroundColor: cardBg, borderColor: isSelected ? ACCENT : undefined }}
               >
-                <div className="h-36 w-full sm:h-40">
-                  {imageUrl ? (
+                {imageUrl && (
+                  <div className="h-36 w-full sm:h-40">
                     <img src={imageUrl} alt={label} className="h-full w-full object-contain" />
-                  ) : (
-                    <ImagePlaceholder />
-                  )}
-                </div>
-                <span className="font-display text-sm font-bold text-zinc-900">{label}</span>
+                  </div>
+                )}
                 <span className="flex items-center gap-1 text-xs font-semibold" style={{ color: ACCENT }}>
                   Start Packing
                   <ArrowRight className="size-3.5" strokeWidth={2.5} />
