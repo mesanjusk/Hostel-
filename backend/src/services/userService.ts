@@ -15,6 +15,7 @@ import { Connection } from "@/models/Connection";
 import { generatePin, hashPin } from "@/lib/pin";
 import { generateUniqueUsername } from "@/lib/username";
 import { ensureAutoJoinCommunities } from "@/services/communityService";
+import { ensurePlacesForCity } from "@/services/placeAutoFetchService";
 import type { OnboardingInput } from "@/validations/auth";
 import type { ProfileUpdateInput } from "@/validations/profile";
 import { LEGACY_COLLEGE_CATEGORY_MAP, type UserRole } from "@/types";
@@ -93,6 +94,7 @@ export async function completeCommunityProfileSetup(
   // City/college are now known for the first time — this is when auto-join into the
   // Country/City/College/Marketplace/Events communities actually has data to work with.
   await ensureAutoJoinCommunities(updated);
+  ensurePlacesForCity(updated.city);
   return updated;
 }
 
@@ -118,7 +120,10 @@ export async function updateProfile(userId: string, input: ProfileUpdateInput) {
 
   // Re-running auto-join is additive (see ensureAutoJoinCommunities) — a city/course/campus
   // change just adds the newly-implied communities without touching ones already joined.
-  if (updated) await ensureAutoJoinCommunities(updated);
+  if (updated) {
+    await ensureAutoJoinCommunities(updated);
+    ensurePlacesForCity(updated.city);
+  }
   return updated;
 }
 
