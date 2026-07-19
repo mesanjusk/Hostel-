@@ -11,6 +11,7 @@ import { WishlistItem } from "@/models/WishlistItem";
 import { CollegeCategory } from "@/models/CollegeCategory";
 import { CommunityMember } from "@/models/CommunityMember";
 import { TravelProfile } from "@/models/TravelProfile";
+import { syncTravelProfileFromAccount } from "@/services/travelProfileService";
 import { Connection } from "@/models/Connection";
 import { generatePin, hashPin } from "@/lib/pin";
 import { generateUniqueUsername } from "@/lib/username";
@@ -95,6 +96,11 @@ export async function completeCommunityProfileSetup(
   // Country/City/College/Marketplace/Events communities actually has data to work with.
   await ensureAutoJoinCommunities(updated);
   ensurePlacesForCity(updated.city);
+  await syncTravelProfileFromAccount(updated._id.toString(), {
+    city: updated.city,
+    college: updated.college,
+    homeTown: updated.homeTown,
+  });
   return updated;
 }
 
@@ -123,6 +129,14 @@ export async function updateProfile(userId: string, input: ProfileUpdateInput) {
   if (updated) {
     await ensureAutoJoinCommunities(updated);
     ensurePlacesForCity(updated.city);
+    // Keeps Roommate/Co-Packer matching (destinationCity + college) from running against a
+    // stale travel profile the student saved before this edit — see
+    // syncTravelProfileFromAccount's own comment for why the account profile has to win.
+    await syncTravelProfileFromAccount(updated._id.toString(), {
+      city: updated.city,
+      college: updated.college,
+      homeTown: updated.homeTown,
+    });
   }
   return updated;
 }
