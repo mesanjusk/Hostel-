@@ -242,13 +242,14 @@ function sameText(a: string | null | undefined, b: string | null | undefined): b
   return a.trim().toLowerCase() === b.trim().toLowerCase();
 }
 
-/** Match % blends the four mandatory criteria — which every candidate here already satisfies,
- * by construction of the query in findRoommates — with the optional ones layered on top.
- * Required fields still earn points rather than being ignored (a candidate who only just clears
- * the mandatory bar shouldn't read as a near-0% match), but they're weighted as a floor: 40 of
- * the 100 points are available from required fields, the remaining 60 from optional ones, so two
- * candidates who both clear the bar are still ranked mainly by how much of the *optional*
- * profile actually overlaps.
+/** Match % is a flat 50-point floor from the four required criteria, plus up to 50 points from
+ * optional overlap on top. The four required criteria are also mandatory filters in
+ * findRoommates's query (destination city, gender preference, accommodation compatibility,
+ * budget overlap) — every candidate reaching this function already satisfies all of them, so
+ * each now earns full credit rather than being degree-scaled by *how well* it matches (e.g. a
+ * budget overlap of ₹1 used to score far lower than a full overlap; now any qualifying overlap
+ * is worth the same). That makes the required half identical for every candidate shown, so
+ * ranking is driven entirely by the optional half.
  *
  * Age isn't part of this: ageRangeMin/Max describe the roommate a student *wants*, not their own
  * age, and no form anywhere collects a student's actual date of birth to check candidates
@@ -260,29 +261,21 @@ function computeCompatibility(
 ): number {
   let score = 0;
 
-  // Required (0-40) — destination city and gender preference are fixed-value floors since
-  // every candidate here matches on them by definition; accommodation type and budget still
-  // vary in *how well* they match, so those two stay degree-based.
-  score += 10; // destination city
-  score += 5; // gender preference
-  // A specific accommodation type matching exactly is a real signal; two "Any"s agreeing is
-  // just neither side having a view, so it only earns the mandatory floor.
-  score += mine.accommodationType !== "Any" && theirs.accommodationType === mine.accommodationType ? 10 : 5;
-  if (mine.budgetMin != null && mine.budgetMax != null && theirs.budgetMin != null && theirs.budgetMax != null) {
-    const overlap = Math.min(mine.budgetMax, theirs.budgetMax) - Math.max(mine.budgetMin, theirs.budgetMin);
-    const span = Math.max(mine.budgetMax, theirs.budgetMax) - Math.min(mine.budgetMin, theirs.budgetMin);
-    // span is 0 only when both ranges are the same single value, which is a full (not partial)
-    // overlap.
-    score += Math.round(15 * (span > 0 ? Math.max(0, overlap) / span : 1));
-  }
+  // Required (50) — always the full amount: all four conditions are already mandatory filters
+  // in findRoommates's query, so every candidate here satisfies them by construction.
+  score += 15; // destination city
+  score += 15; // gender preference
+  score += 10; // accommodation type
+  score += 10; // budget overlap
 
-  // Optional (0-60) — the real differentiator between two candidates who both clear the bar
-  // above.
+  // Optional (0-50) — the only thing that actually differentiates two candidates here.
+  // College and same-hometown keep their original 3:2 weight ratio, just scaled down to leave
+  // room for the required section's new, larger 50-point share.
   const myCollege = mine.college || viewer.college;
   const theirCollege = theirs.college || theirs.userId.college;
-  if (sameText(myCollege, theirCollege)) score += 15;
+  if (sameText(myCollege, theirCollege)) score += 9;
 
-  if (sameText(mine.currentCity, theirs.currentCity)) score += 10;
+  if (sameText(mine.currentCity, theirs.currentCity)) score += 6;
 
   const myInterests = new Set(mine.interests ?? []);
   score += Math.min(3, (theirs.interests ?? []).filter((i) => myInterests.has(i)).length) * 5;
