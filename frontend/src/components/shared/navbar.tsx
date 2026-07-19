@@ -4,15 +4,13 @@ import { BrandName } from "@/components/shared/brand-name";
 import { OverflowMenu } from "@/components/shared/overflow-menu";
 import { UserMenu } from "@/components/shared/user-menu";
 import { GlobalSearch } from "@/features/search/global-search";
-import { HOME_ROUTE, type NavItem } from "@/lib/nav-items";
+import { HOME_ROUTE } from "@/lib/nav-items";
 
 interface NavbarProps {
   isAdmin: boolean;
-  overflowItems: NavItem[];
-  disabledHrefs: Set<string>;
 }
 
-export function Navbar({ isAdmin, overflowItems, disabledHrefs }: NavbarProps) {
+export function Navbar({ isAdmin }: NavbarProps) {
   // Community (and each individual community's page) has its own "Search communities" box
   // under Discover — the app-wide "Search everything" command palette is redundant there.
   const { pathname } = useLocation();
@@ -41,7 +39,7 @@ export function Navbar({ isAdmin, overflowItems, disabledHrefs }: NavbarProps) {
           )}
           <UserMenu />
           <div className="lg:hidden">
-            <OverflowMenu isAdmin={isAdmin} items={overflowItems} disabledHrefs={disabledHrefs} />
+            <OverflowMenu isAdmin={isAdmin} />
           </div>
         </div>
       </div>

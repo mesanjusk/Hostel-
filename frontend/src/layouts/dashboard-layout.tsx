@@ -31,20 +31,19 @@ export function DashboardLayout() {
   // and then rearrange or vanish. The bars keep their size while empty, so filling them in a
   // moment later doesn't shift the page.
   const bottomItems = nav.ready ? nav.bottomItems : [];
-  const overflowItems = nav.ready ? nav.overflowItems : [];
   const allOrderedItems = nav.ready ? nav.allOrderedItems : [];
 
   return (
     <div className="bg-background relative flex min-h-dvh overflow-x-clip">
       <Sidebar isAdmin={isAdmin} items={allOrderedItems} disabledHrefs={nav.disabledHrefs} />
       <div className="flex min-w-0 flex-1 flex-col">
-        <Navbar isAdmin={isAdmin} overflowItems={overflowItems} disabledHrefs={nav.disabledHrefs} />
+        <Navbar isAdmin={isAdmin} />
         <main className="flex-1 px-4 pt-4 pb-24 lg:px-8 lg:pb-8">
           <Outlet />
         </main>
       </div>
       <BottomNav items={bottomItems} disabledHrefs={nav.disabledHrefs} />
-      {nav.ready && nav.fabVisible && <FabMenu hiddenNavHrefs={nav.hiddenHrefs} />}
+      {nav.ready && nav.fabVisible && <FabMenu />}
       <PWAInstallPrompt />
       <ComingSoonDialogHost />
     </div>
