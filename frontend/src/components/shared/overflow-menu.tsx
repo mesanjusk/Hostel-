@@ -35,28 +35,8 @@ interface VisibleCard extends HubCardDef {
   live: boolean;
 }
 
-/** Groups the visible home cards into their scrapbook sections, in each section's first-seen
- * order — cards sharing a section stay together even if the admin's saved order interleaves
- * them with cards from other sections (e.g. a newly added card appended past a section it
- * conceptually belongs to; see the "find-a-roomie" comment in hub-widget-registry.ts). */
-function groupBySection(cards: VisibleCard[]): { section: string; cards: VisibleCard[] }[] {
-  const order: string[] = [];
-  const bySection = new Map<string, VisibleCard[]>();
-  for (const card of cards) {
-    let group = bySection.get(card.section);
-    if (!group) {
-      group = [];
-      bySection.set(card.section, group);
-      order.push(card.section);
-    }
-    group.push(card);
-  }
-  return order.map((section) => ({ section, cards: bySection.get(section)! }));
-}
-
-/** The mobile "more" (3-dot) menu: every home-screen card grouped into the same sections shown
- * on the home page, plus account-adjacent actions (install, share) and the app version — each
- * rendered as its own labeled section rather than one flat list. */
+/** The mobile "more" (3-dot) menu: every home-screen card as a flat list (in the admin's
+ * chosen order), plus account-adjacent actions (install, share) and the app version. */
 export function OverflowMenu({ isAdmin }: { isAdmin: boolean }) {
   const { cards } = useHubLayout();
   const { installed, isIOS, canInstall, promptInstall } = usePwaInstall();
@@ -69,7 +49,6 @@ export function OverflowMenu({ isAdmin }: { isAdmin: boolean }) {
       return card ? { ...card, live: entry.live } : undefined;
     })
     .filter((c): c is VisibleCard => c !== undefined);
-  const sections = groupBySection(visibleCards);
 
   function handleInstall() {
     if (canInstall) {
@@ -89,41 +68,35 @@ export function OverflowMenu({ isAdmin }: { isAdmin: boolean }) {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="max-h-[70vh] overflow-y-auto">
-        {sections.map((group) => (
-          <div key={group.section}>
-            <DropdownMenuLabel className="font-normal">{group.section}</DropdownMenuLabel>
-            {group.cards.map((card) => {
-              const Icon = card.icon;
-              if (!card.live) {
-                return (
-                  <DropdownMenuItem
-                    key={card.id}
-                    onSelect={(e) => {
-                      e.preventDefault();
-                      emitComingSoon(card.title);
-                    }}
-                  >
-                    <Icon className="size-4" />
-                    {card.title}
-                  </DropdownMenuItem>
-                );
-              }
-              return (
-                <DropdownMenuItem key={card.id} asChild>
-                  <Link to={card.href}>
-                    <Icon className="size-4" />
-                    {card.title}
-                  </Link>
-                </DropdownMenuItem>
-              );
-            })}
-          </div>
-        ))}
+        {visibleCards.map((card) => {
+          const Icon = card.icon;
+          if (!card.live) {
+            return (
+              <DropdownMenuItem
+                key={card.id}
+                onSelect={(e) => {
+                  e.preventDefault();
+                  emitComingSoon(card.title);
+                }}
+              >
+                <Icon className="size-4" />
+                {card.title}
+              </DropdownMenuItem>
+            );
+          }
+          return (
+            <DropdownMenuItem key={card.id} asChild>
+              <Link to={card.href}>
+                <Icon className="size-4" />
+                {card.title}
+              </Link>
+            </DropdownMenuItem>
+          );
+        })}
 
         {isAdmin && (
           <>
             <DropdownMenuSeparator />
-            <DropdownMenuLabel className="font-normal">Admin</DropdownMenuLabel>
             <DropdownMenuItem asChild>
               <Link to={ADMIN_NAV_ITEM.href}>
                 <ADMIN_NAV_ITEM.icon className="size-4" />
