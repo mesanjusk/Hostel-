@@ -7,9 +7,9 @@ import {
   Check,
   ClipboardList,
   Coffee,
-  Footprints,
-  GraduationCap,
+  GlassWater,
   Headphones,
+  ImageIcon,
   Laptop,
   Luggage,
   NotebookText,
@@ -17,47 +17,57 @@ import {
 
 import { BrandName } from "@/components/shared/brand-name";
 import { writeSelectedGender } from "@/lib/onboarding-gender";
+import { useLandingPageSettings } from "@/lib/landing-page-settings";
 import { cn } from "@/lib/utils";
 import type { Gender } from "@/types";
 
-const GENDER_CARDS = [
-  {
-    gender: "Female" as Gender,
-    label: "College Girl",
-    avatar: "\u{1F469}‍\u{1F393}",
-    bg: "from-[#F3E8FF] to-[#EDE0FB]",
-    border: "border-[#C9A6EE]",
-    ring: "bg-[#EDE0FB]",
-  },
-  {
-    gender: "Male" as Gender,
-    label: "College Boy",
-    avatar: "\u{1F468}‍\u{1F393}",
-    bg: "from-[#E3EEFF] to-[#DCE8FF]",
-    border: "border-[#A8C4F0]",
-    ring: "bg-[#DCE8FF]",
-  },
-] as const;
+// Premium neutral palette, scoped to this screen only — deliberately not the app's shared
+// pink `--primary` (index.css), which stays untouched for every other screen.
+const ACCENT = "#4F46E5";
 
 const FEATURE_TAGS = ["Packing Lists", "Budgeting", "Shopping", "Roommates"];
 
-// Faint outline doodles scattered behind the card, echoing what's actually in a move-in bag.
+// Extremely subtle grey outline doodles — what's actually in a move-in bag, at ~4-5% opacity so
+// they read as texture, not decoration.
 const BACKGROUND_DOODLES = [
-  { Icon: Backpack, className: "top-4 -left-6 size-16 -rotate-12", delay: 0 },
-  { Icon: NotebookText, className: "-top-2 right-2 size-12 rotate-6", delay: 0.2 },
-  { Icon: Coffee, className: "top-1/3 -left-10 size-10 -rotate-6", delay: 0.4 },
-  { Icon: Luggage, className: "top-1/4 -right-10 size-16 rotate-6", delay: 0.1 },
-  { Icon: Headphones, className: "bottom-1/4 -left-8 size-12 rotate-12", delay: 0.3 },
-  { Icon: Footprints, className: "bottom-6 right-4 size-10 -rotate-6", delay: 0.5 },
-  { Icon: Laptop, className: "-bottom-4 right-1/4 size-14 rotate-3", delay: 0.15 },
+  { Icon: Backpack, className: "top-4 -left-6 size-16 -rotate-12" },
+  { Icon: NotebookText, className: "-top-2 right-2 size-12 rotate-6" },
+  { Icon: Coffee, className: "top-1/3 -left-10 size-10 -rotate-6" },
+  { Icon: Luggage, className: "top-1/4 -right-10 size-16 rotate-6" },
+  { Icon: Headphones, className: "bottom-1/4 -left-8 size-12 rotate-12" },
+  { Icon: GlassWater, className: "bottom-8 right-6 size-10 -rotate-6" },
+  { Icon: Laptop, className: "-bottom-4 right-1/4 size-14 rotate-3" },
 ] as const;
+
+interface GenderCardConfig {
+  gender: Gender;
+  label: string;
+  cardBg: string;
+  imageUrl: string | null;
+}
 
 // Brief pause so the tap's highlight is visible before the route change carries it away.
 const NAVIGATE_DELAY_MS = 350;
 
+/** Shown in a card's placeholder area until an admin uploads a real image (Admin > Landing Page
+ * settings) — never a hardcoded character illustration, per design brief. */
+function ImagePlaceholder() {
+  return (
+    <div className="flex h-full w-full flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed border-black/10 bg-white/60">
+      <ImageIcon className="size-7 text-zinc-300" strokeWidth={1.5} />
+    </div>
+  );
+}
+
 export function LandingView() {
   const navigate = useNavigate();
   const [selected, setSelected] = useState<Gender | null>(null);
+  const landingSettings = useLandingPageSettings();
+
+  const GENDER_CARDS: GenderCardConfig[] = [
+    { gender: "Female", label: "College Girl", cardBg: "#F6F4FF", imageUrl: landingSettings?.girlImageUrl ?? null },
+    { gender: "Male", label: "College Boy", cardBg: "#F3F8FF", imageUrl: landingSettings?.boyImageUrl ?? null },
+  ];
 
   function handleSelect(gender: Gender) {
     if (selected) return;
@@ -67,93 +77,91 @@ export function LandingView() {
   }
 
   return (
-    <div className="relative w-full max-w-md">
-      {BACKGROUND_DOODLES.map(({ Icon, className, delay }, i) => (
+    <>
+      {/* Off-white backdrop for this screen only — sits above AuthLayout's shared pastel
+          gradient (other auth screens keep that untouched) and below everything below. */}
+      <div className="fixed inset-0 z-40 bg-[#FAFAFA]" />
+
+      <div className="relative z-50 w-full max-w-md">
+        {BACKGROUND_DOODLES.map(({ Icon, className }, i) => (
+          <div key={i} className={cn("pointer-events-none absolute text-zinc-900/[0.045]", className)}>
+            <Icon className="size-full" strokeWidth={1.25} />
+          </div>
+        ))}
+
         <motion.div
-          key={i}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay, duration: 0.6 }}
-          className={cn("pointer-events-none absolute text-foreground/[0.07]", className)}
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="relative w-full rounded-[2rem] border border-black/[0.06] bg-white p-8 text-center shadow-[0_1px_2px_rgba(0,0,0,0.04),0_16px_40px_-20px_rgba(0,0,0,0.15)]"
         >
-          <Icon className="size-full" strokeWidth={1.25} />
+          {/* Top visual: a "packing checklist" badge with a completion check */}
+          <div className="relative mx-auto mb-5 flex h-24 w-24 items-center justify-center">
+            <div className="flex h-24 w-24 items-center justify-center rounded-[1.75rem] bg-zinc-900 shadow-lg">
+              <ClipboardList className="size-11 text-white" strokeWidth={2.2} />
+            </div>
+            <div className="absolute -right-2 -bottom-2 flex size-9 items-center justify-center rounded-full border-4 border-white bg-zinc-900">
+              <Check className="size-4 text-white" strokeWidth={3} />
+            </div>
+          </div>
+
+          <h1 className="flex flex-wrap items-center justify-center gap-1.5">
+            <BrandName className="text-4xl sm:text-5xl" />
+          </h1>
+
+          <p className="mx-auto mt-3 max-w-[24rem] text-sm leading-relaxed text-zinc-500">
+            Everything you need for your{" "}
+            <span className="marker-highlight font-semibold whitespace-nowrap text-zinc-900">college move-in</span>.
+          </p>
+
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-x-1.5 gap-y-1 text-[11px] font-medium text-zinc-500 sm:text-xs">
+            {FEATURE_TAGS.map((tag, i) => (
+              <span key={tag} className="flex items-center gap-1.5 whitespace-nowrap">
+                {tag}
+                {i < FEATURE_TAGS.length - 1 && <span style={{ color: ACCENT }}>&bull;</span>}
+              </span>
+            ))}
+          </div>
+          <div className="mx-auto mt-2 w-40 border-b-2" style={{ borderColor: `${ACCENT}33` }} />
+
+          <p className="mt-5 text-sm font-medium text-zinc-700">Plan smart. Move easy. Start fresh.</p>
+
+          <div className="mt-7 flex gap-4">
+            {GENDER_CARDS.map(({ gender, label, cardBg, imageUrl }) => {
+              const isSelected = selected === gender;
+              return (
+                <motion.button
+                  key={gender}
+                  type="button"
+                  onClick={() => handleSelect(gender)}
+                  disabled={selected !== null}
+                  whileTap={selected === null ? { scale: 0.97 } : undefined}
+                  animate={isSelected ? { scale: 1.03 } : { scale: 1 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 20 }}
+                  className={cn(
+                    "flex flex-1 flex-col items-center gap-3 rounded-2xl border p-4 transition-[opacity,box-shadow] duration-200",
+                    isSelected ? "shadow-md" : "border-black/[0.06] hover:shadow-sm",
+                    selected !== null && !isSelected && "opacity-40",
+                  )}
+                  style={{ backgroundColor: cardBg, borderColor: isSelected ? ACCENT : undefined }}
+                >
+                  <div className="h-36 w-full sm:h-40">
+                    {imageUrl ? (
+                      <img src={imageUrl} alt={label} className="h-full w-full object-contain" />
+                    ) : (
+                      <ImagePlaceholder />
+                    )}
+                  </div>
+                  <span className="font-display text-sm font-bold text-zinc-900">{label}</span>
+                  <span className="flex items-center gap-1 text-xs font-semibold" style={{ color: ACCENT }}>
+                    Start Packing
+                    <ArrowRight className="size-3.5" strokeWidth={2.5} />
+                  </span>
+                </motion.button>
+              );
+            })}
+          </div>
         </motion.div>
-      ))}
-
-      <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="glass relative w-full overflow-visible rounded-[2rem] p-8 text-center shadow-[0_25px_60px_-20px_var(--shadow-brand)]"
-      >
-        {/* Top visual: a "packing checklist" badge with a completion check */}
-        <div className="relative mx-auto mb-5 flex h-24 w-24 items-center justify-center">
-          <div className="gradient-brand flex h-24 w-24 items-center justify-center rounded-[1.75rem] shadow-lg">
-            <ClipboardList className="size-11 text-white drop-shadow-sm" strokeWidth={2.2} />
-          </div>
-          <div className="border-background bg-primary absolute -right-2 -bottom-2 flex size-9 items-center justify-center rounded-full border-4">
-            <Check className="text-primary-foreground size-4" strokeWidth={3} />
-          </div>
-        </div>
-
-        <h1 className="flex flex-wrap items-center justify-center gap-1.5">
-          <BrandName className="text-4xl sm:text-5xl" />
-        </h1>
-
-        <p className="text-muted-foreground mx-auto mt-3 max-w-[24rem] text-sm leading-relaxed">
-          College packing, simplified. Lists. Bags.{" "}
-          <span className="marker-highlight font-semibold whitespace-nowrap text-[#3a2e2a]">Done right.</span>
-        </p>
-        <p className="text-muted-foreground/80 mt-1.5 flex items-center justify-center gap-1 text-xs font-medium">
-          <GraduationCap className="size-3.5" strokeWidth={2} />
-          Built by IIT Bombay alumni
-        </p>
-
-        <div className="text-muted-foreground mt-6 flex flex-wrap items-center justify-center gap-x-1.5 gap-y-1 text-[11px] font-medium sm:text-xs">
-          {FEATURE_TAGS.map((tag, i) => (
-            <span key={tag} className="flex items-center gap-1.5 whitespace-nowrap">
-              {tag}
-              {i < FEATURE_TAGS.length - 1 && <span className="text-primary">&bull;</span>}
-            </span>
-          ))}
-        </div>
-        <div className="border-accent/60 mx-auto mt-2 w-40 border-b-2" />
-
-        <p className="font-cursive text-primary mt-5 text-xl">Plan smart. Move easy. Start fresh.</p>
-
-        <p className="text-muted-foreground mt-7 mb-4 text-xs font-medium">Let's make this yours &#10024;</p>
-
-        <div className="flex gap-4">
-          {GENDER_CARDS.map(({ gender, label, avatar, bg, border, ring }) => {
-            const isSelected = selected === gender;
-            return (
-              <motion.button
-                key={gender}
-                type="button"
-                onClick={() => handleSelect(gender)}
-                disabled={selected !== null}
-                whileTap={selected === null ? { scale: 0.94 } : undefined}
-                animate={isSelected ? { scale: 1.05 } : { scale: 1 }}
-                transition={{ type: "spring", stiffness: 400, damping: 20 }}
-                className={cn(
-                  "flex flex-1 flex-col items-center gap-3 rounded-[1.5rem] border-2 bg-gradient-to-b px-4 py-6 shadow-md transition-[opacity,box-shadow] duration-200",
-                  bg,
-                  isSelected ? cn(border, "shadow-xl") : "border-white/80 hover:shadow-lg",
-                  selected !== null && !isSelected && "opacity-40",
-                )}
-              >
-                <div className={cn("flex size-16 items-center justify-center rounded-full shadow-inner", ring)}>
-                  <span className="text-3xl">{avatar}</span>
-                </div>
-                <span className="font-display text-sm font-bold text-[#3a2e2a]">{label}</span>
-                <span className="text-primary flex items-center gap-1 text-xs font-semibold">
-                  Start Packing
-                  <ArrowRight className="size-3.5" strokeWidth={2.5} />
-                </span>
-              </motion.button>
-            );
-          })}
-        </div>
-      </motion.div>
-    </div>
+      </div>
+    </>
   );
 }

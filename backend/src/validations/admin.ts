@@ -214,6 +214,17 @@ export const genderThemeUpdateSchema = z.object({
   }),
 });
 
+const urlOrEmpty = z.string().trim().max(2000).refine((val) => val === "" || z.string().url().safeParse(val).success, {
+  message: "Must be a valid URL, or blank",
+});
+
+// "" from the form means "clear this image back to the neutral placeholder" — routes.ts maps
+// that to null before it hits the service, same asColor pattern as genderThemeUpdateSchema.
+export const landingPageSettingsUpdateSchema = z.object({
+  girlImageUrl: urlOrEmpty,
+  boyImageUrl: urlOrEmpty,
+});
+
 export type ProductInput = z.infer<typeof productSchema>;
 export type ProductUpdateInput = z.infer<typeof productUpdateSchema>;
 export type GuideArticleInput = z.infer<typeof guideArticleSchema>;

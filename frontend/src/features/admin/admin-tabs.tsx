@@ -9,6 +9,7 @@ const TABS = [
   { href: "/admin/guide", label: "Guide" },
   { href: "/admin/cities", label: "Cities" },
   { href: "/admin/gender-theme", label: "Gender Theme" },
+  { href: "/admin/landing-settings", label: "Landing Page" },
   { href: "/admin/communities", label: "Communities" },
   { href: "/admin/places", label: "Places" },
   { href: "/admin/hostel-pg-flat", label: "Hostel, PG, Flat" },
