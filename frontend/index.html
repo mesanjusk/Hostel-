@@ -5,6 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="Plan, pack, and organize everything for hostel life — checklists, budget, documents, and more." />
     <meta name="theme-color" content="#c96b9a" />
+    <!-- Paints the very first frame before any external stylesheet has loaded — iOS standalone
+         (Add to Home Screen) launches have no splash-screen config of their own
+         (apple-touch-startup-image), so absent this WebKit's default unstyled background shows
+         through for the whole cold-start network round trip, which reads as a black flash. This
+         is synchronous and part of the initial HTML parse, so it applies before the Tailwind
+         bundle (or the manifest's own background_color, which iOS doesn't honor here) ever has
+         a chance to. Matches manifest.webmanifest's background_color and index.css's
+         --background so there's no visible handoff once the real stylesheet does load. -->
+    <style>
+      html, body { background-color: #fdf6ee; }
+    </style>
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="icon" href="/icons/icon-192.png" />
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
