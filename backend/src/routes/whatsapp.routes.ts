@@ -116,14 +116,13 @@ function hasActiveSession(phone: string): boolean {
 /** Any inbound WhatsApp message from an admin's mobile opens/refreshes that admin's 24h
  * customer-service window — this is Meta's real window semantics, not a flag this app
  * controls, so it runs unconditionally here regardless of message content or the
- * HOSTEL-keyword session gate below. Resets waReactivationCount so waAdminReactivation.ts's
- * job starts its 3-reminder cycle over from this fresh window. No-ops for non-admin senders. */
+ * HOSTEL-keyword session gate below. No-ops for non-admin senders. */
 async function refreshAdminWindowIfApplicable(rawFrom: string): Promise<void> {
   const mobile = normalizeMobile(rawFrom);
   if (!mobile) return;
 
   await connectDB();
-  await User.updateOne({ mobile, role: "admin" }, { waWindowOpenedAt: new Date(), waReactivationCount: 0 });
+  await User.updateOne({ mobile, role: "admin" }, { waWindowOpenedAt: new Date() });
 }
 
 async function processMetabspMessage(payload: MetabspPayload): Promise<void> {

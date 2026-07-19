@@ -36,9 +36,9 @@ services:
         value: instify_otp
       - key: WHATSAPP_OTP_TEMPLATE_LANGUAGE
         value: en_US
-      - key: WHATSAPP_ADMIN_REACTIVATION_TEMPLATE_NAME
-        value: admin_window_reactivation
-      - key: WHATSAPP_ADMIN_REACTIVATION_TEMPLATE_LANGUAGE
-        value: en_US
+      - key: WHATSAPP_ADMIN_CAMPAIGN_INTERVAL_MINUTES
+        value: "30"
+      - key: WHATSAPP_ADMIN_CAMPAIGN_HOURS
+        value: "24"
       - key: METABSP_WEBHOOK_SECRET
         sync: false
