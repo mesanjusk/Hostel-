@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/auth-context";
-import { resolveStickerSrc } from "@/lib/gender-stickers";
+import { girlDefaultSrc, resolveStickerSrc } from "@/lib/gender-stickers";
 import {
   Highlight,
   NOTE_COLORS,
@@ -11,6 +11,16 @@ import {
   type NoteColor,
 } from "@/components/shared/scrapbook-pieces";
 import type { Breakpoint, CanvasElement, ElementLayout } from "@/features/welcome/canvas-types";
+
+/** If a resolved sticker image fails to load (e.g. a mapped slug whose file is missing on
+ * disk), fall back once to the always-present girl .webp instead of leaving the browser's
+ * broken-image/alt-text placeholder on screen. */
+function handleStickerImgError(e: React.SyntheticEvent<HTMLImageElement>, src: string) {
+  const img = e.currentTarget;
+  if (img.dataset.fallbackApplied) return;
+  img.dataset.fallbackApplied = "true";
+  img.src = girlDefaultSrc(src);
+}
 
 const BUBBLE_COLORS: Record<string, string> = {
   blue: "bg-[#cfeaff] text-[#22415a]",
@@ -169,6 +179,7 @@ function CardContent({ element, context }: { element: CanvasElement; context?: "
               <img
                 src={resolveStickerSrc(element.src, user?.gender, context)}
                 alt={element.alt ?? ""}
+                onError={(e) => handleStickerImgError(e, element.src!)}
                 className="h-full w-full object-contain drop-shadow-[1px_4px_8px_rgba(58,46,42,0.25)]"
                 draggable={false}
               />
@@ -236,6 +247,7 @@ export function ElementBody({ element, context }: { element: CanvasElement; cont
       <img
         src={element.src ? resolveStickerSrc(element.src, user?.gender, context) : element.src}
         alt={element.alt ?? ""}
+        onError={element.src ? (e) => handleStickerImgError(e, element.src!) : undefined}
         className="h-full w-full object-contain drop-shadow-[2px_6px_10px_rgba(58,46,42,0.35)]"
         draggable={false}
       />
