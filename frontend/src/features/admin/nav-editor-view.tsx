@@ -167,9 +167,10 @@ export function NavEditorView() {
       </CardHeader>
       <CardContent className="flex flex-col gap-6">
         <p className="text-muted-foreground text-sm">
-          Hide or show nav items for every student, choose whether each one lives in the bottom tab bar or the
-          "more" (⋮) menu, and reorder with the arrows. Hidden items also disappear from the quick-add (+) menu
-          where applicable. Home always stays reachable via the logo/brand name, even if hidden here.
+          Hide or show nav items for every student, choose whether each one lives in the bottom tab bar, and
+          reorder with the arrows. Items not in the bottom bar stay reachable from the desktop sidebar; on
+          mobile, the "more" (⋮) menu lists the home cards instead — manage those from Home cards. Home always
+          stays reachable via the logo/brand name, even if hidden here.
         </p>
 
         <div className="flex flex-col gap-2">
@@ -180,14 +181,14 @@ export function NavEditorView() {
         </div>
 
         <div className="flex flex-col gap-2">
-          <h3 className="text-sm font-semibold">More (⋮) menu</h3>
+          <h3 className="text-sm font-semibold">Not in bottom bar (desktop sidebar only)</h3>
           <div className="flex flex-col gap-2">{renderGroup(overflowEntries)}</div>
         </div>
 
         <div className="flex flex-col gap-2">
-          <h3 className="text-sm font-semibold">Floating quick-add button</h3>
+          <h3 className="text-sm font-semibold">Floating message button</h3>
           <div className={`bg-card flex items-center gap-3 rounded-xl border px-3 py-2.5 ${fabVisible ? "" : "opacity-50"}`}>
-            <span className="flex-1 text-sm font-medium">Quick-add ("+") button</span>
+            <span className="flex-1 text-sm font-medium">Chat message button</span>
             <button
               type="button"
               onClick={() => {
@@ -195,7 +196,7 @@ export function NavEditorView() {
                 setIsDirty(true);
               }}
               className="text-muted-foreground hover:text-foreground shrink-0"
-              aria-label={fabVisible ? "Hide quick-add button" : "Show quick-add button"}
+              aria-label={fabVisible ? "Hide message button" : "Show message button"}
             >
               {fabVisible ? <Eye className="size-5" /> : <EyeOff className="size-5" />}
             </button>

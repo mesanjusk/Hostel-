@@ -119,7 +119,7 @@ export function HomeCardsEditorView() {
       <CardContent className="flex flex-col gap-4">
         <p className="text-muted-foreground text-sm">
           Hide or show cards on the home hub (/home) that every student sees after signing in, and reorder
-          them with the arrows.
+          them with the arrows. These also populate the mobile "more" (⋮) menu, grouped by section.
         </p>
         <div className="flex flex-col gap-2">
           {sorted.map((entry, index) => (

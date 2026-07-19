@@ -1,6 +1,5 @@
 import { Link, useNavigate } from "react-router-dom";
-import { Download, LogOut, Pencil, Share2, UserRound } from "lucide-react";
-import { toast } from "sonner";
+import { LogOut, Pencil, UserRound } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -13,28 +12,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/context/auth-context";
-import { usePwaInstall } from "@/lib/use-pwa-install";
 
-async function sharePage() {
-  const shareData = { title: "Pack with Me", url: window.location.href };
-  if (navigator.share) {
-    try {
-      await navigator.share(shareData);
-    } catch {
-      // user cancelled — no-op
-    }
-    return;
-  }
-  await navigator.clipboard.writeText(shareData.url);
-  toast.success("Link copied to clipboard");
-}
-
-/** Consolidated account menu: profile access, account/community profile editing, PWA install,
- * share, and logout, all reachable from a single avatar button in the top nav. */
+/** Consolidated account menu: profile access, account/community profile editing, and logout,
+ * all reachable from a single avatar button in the top nav. */
 export function UserMenu() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const { installed, isIOS, canInstall, promptInstall } = usePwaInstall();
 
   if (!user) return null;
 
@@ -43,16 +26,6 @@ export function UserMenu() {
   function handleLogout() {
     logout();
     navigate("/wa-login", { replace: true });
-  }
-
-  function handleInstall() {
-    if (canInstall) {
-      promptInstall();
-      return;
-    }
-    if (isIOS) {
-      toast.info('Tap Share, then "Add to Home Screen" to install.');
-    }
   }
 
   return (
@@ -88,16 +61,6 @@ export function UserMenu() {
             <Pencil className="size-4" />
             Edit community profile
           </Link>
-        </DropdownMenuItem>
-        {!installed && (
-          <DropdownMenuItem onSelect={handleInstall} disabled={!canInstall && !isIOS}>
-            <Download className="size-4" />
-            Install app
-          </DropdownMenuItem>
-        )}
-        <DropdownMenuItem onSelect={sharePage}>
-          <Share2 className="size-4" />
-          Share
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem variant="destructive" onSelect={handleLogout}>

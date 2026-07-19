@@ -107,7 +107,6 @@ export interface ResolvedNavLayout {
   /** Bottom items followed by overflow items — what the desktop sidebar renders, since it
    * has no bottom-bar/overflow-menu distinction, just one ordered list. */
   allOrderedItems: NavItem[];
-  hiddenHrefs: Set<string>;
   fabVisible: boolean;
 }
 
@@ -121,8 +120,6 @@ function toNavItem(entry: NavLayoutEntry): NavItem | null {
  * data can never overflow the tab bar's fixed 4 slots). */
 export function resolveNavLayout(saved: SavedNavWidget[] | null | undefined): ResolvedNavLayout {
   const merged = mergeNavLayout(saved);
-  const hiddenHrefs = new Set(merged.filter((e) => !e.visible).map((e) => e.id));
-
   const visible = merged.filter((e) => e.visible);
   const sortedBottom = visible.filter((e) => e.placement === "bottom").sort((a, b) => a.order - b.order);
   const declaredOverflow = visible.filter((e) => e.placement === "overflow").sort((a, b) => a.order - b.order);
@@ -139,7 +136,6 @@ export function resolveNavLayout(saved: SavedNavWidget[] | null | undefined): Re
     bottomItems,
     overflowItems,
     allOrderedItems: [...bottomItems, ...overflowItems],
-    hiddenHrefs,
     fabVisible: resolveFabVisible(saved),
   };
 }
