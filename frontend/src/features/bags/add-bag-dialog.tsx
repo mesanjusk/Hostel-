@@ -21,6 +21,16 @@ import { BAG_COLOR_PRESETS } from "@/types";
 
 interface AddBagDialogProps {
   trigger?: React.ReactNode;
+  /** Controlled open state — pass both to open this dialog from somewhere other than its
+   * own trigger (e.g. a "New bag" item inside a dropdown menu, which unmounts before a
+   * click handler could otherwise open anything). Omit both to keep the default
+   * trigger-driven, self-managed behavior. */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  /** Called with the newly created bag instead of showing the default "ready" toast —
+   * lets a caller (like the checklist item's "Add to Bag" menu) assign it somewhere right
+   * after creation and show its own, more specific feedback. */
+  onCreated?: (bag: { id: string; name: string; color: string }) => void;
 }
 
 /** Suggestions only — tapping one just fills the name input (and picks a matching color)
@@ -35,8 +45,12 @@ const SUGGESTED_BAG_TYPES = [
 /** "+ Add Bag": a friendly, user-driven create flow. Suggested bag types are shown as
  * tappable chips that just fill in the name field — nothing is pre-picked, everything
  * stays editable, so the bag that gets created is always the one the user named. */
-export function AddBagDialog({ trigger }: AddBagDialogProps) {
-  const [open, setOpen] = useState(false);
+export function AddBagDialog({ trigger, open: controlledOpen, onOpenChange: setControlledOpen, onCreated }: AddBagDialogProps) {
+  const [internalOpen, setInternalOpen] = useState(false);
+  const isControlled = controlledOpen !== undefined;
+  const open = isControlled ? controlledOpen : internalOpen;
+  const setOpen = isControlled ? (setControlledOpen ?? (() => {})) : setInternalOpen;
+
   const [name, setName] = useState("");
   const [color, setColor] = useState<string>(BAG_COLOR_PRESETS[0]);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -54,9 +68,16 @@ export function AddBagDialog({ trigger }: AddBagDialogProps) {
     }
     setIsSubmitting(true);
     try {
-      await api.post("/api/bags", { name: trimmed, color });
+      const { bag } = await api.post<{ bag: { id: string; name: string; color: string } }>("/api/bags", {
+        name: trimmed,
+        color,
+      });
       emitRefresh();
-      toast.success("Your bag is ready 🎒");
+      if (onCreated) {
+        onCreated(bag);
+      } else {
+        toast.success("Your bag is ready 🎒");
+      }
       setOpen(false);
       reset();
     } catch (error) {
@@ -74,14 +95,16 @@ export function AddBagDialog({ trigger }: AddBagDialogProps) {
         if (!next) reset();
       }}
     >
-      <DialogTrigger asChild>
-        {trigger ?? (
-          <Button size="sm">
-            <Plus className="size-4" />
-            Add Bag
-          </Button>
-        )}
-      </DialogTrigger>
+      {(trigger !== undefined || !isControlled) && (
+        <DialogTrigger asChild>
+          {trigger ?? (
+            <Button size="sm">
+              <Plus className="size-4" />
+              Add Bag
+            </Button>
+          )}
+        </DialogTrigger>
+      )}
       <DialogContent className="rounded-2xl sm:max-w-sm">
         <DialogHeader>
           <DialogTitle>Create a new bag 🎒</DialogTitle>
