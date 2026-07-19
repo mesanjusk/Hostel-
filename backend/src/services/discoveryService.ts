@@ -150,8 +150,8 @@ export function isRoommateProfileComplete(profile: {
 
 /** Roommate discovery. Four conditions are mandatory, and a candidate failing any of them is
  * not shown at all: same destination city, overlapping budget, mutually acceptable gender
- * preference, and a compatible accommodation type. College, interests, languages and lifestyle
- * feed the compatibility score only.
+ * preference, and a compatible accommodation type. Those same four, plus current city, college,
+ * interests, languages and lifestyle, all feed the compatibility score (see computeCompatibility).
  *
  * There are no filter arguments: the four requirements come from the viewer's own profile, so
  * Find a Roomie has no filter bar to send any (see RoommateView). Dates and age play no part
@@ -229,37 +229,69 @@ export async function findRoommates(viewerUserId: string) {
     .filter((c) => !acceptedOtherIds.has(c.userId._id.toString()))
     .map((c) => ({
       ...baseCard(c),
-      compatibilityScore: computeCompatibility(myProfile, c),
+      compatibilityScore: computeCompatibility(viewer, myProfile, c),
       requestStatus: sentToIds.has(c.userId._id.toString()) ? ("sent" as const) : null,
     }))
     .sort((a, b) => b.compatibilityScore - a.compatibilityScore);
 }
 
-function computeCompatibility(mine: TravelProfileDocument, theirs: ProfileWithUser): number {
+/** Case-insensitive, trimmed equality for free-text place names — students spell the same city
+ * differently, and this is a compatibility signal, not an exact-match query. */
+function sameText(a: string | null | undefined, b: string | null | undefined): boolean {
+  if (!a || !b) return false;
+  return a.trim().toLowerCase() === b.trim().toLowerCase();
+}
+
+/** Match % blends the four mandatory criteria — which every candidate here already satisfies,
+ * by construction of the query in findRoommates — with the optional ones layered on top.
+ * Required fields still earn points rather than being ignored (a candidate who only just clears
+ * the mandatory bar shouldn't read as a near-0% match), but they're weighted as a floor: 40 of
+ * the 100 points are available from required fields, the remaining 60 from optional ones, so two
+ * candidates who both clear the bar are still ranked mainly by how much of the *optional*
+ * profile actually overlaps.
+ *
+ * Age isn't part of this: ageRangeMin/Max describe the roommate a student *wants*, not their own
+ * age, and no form anywhere collects a student's actual date of birth to check candidates
+ * against — including it would just always contribute 0. */
+function computeCompatibility(
+  viewer: HydratedDocument<UserDocument>,
+  mine: TravelProfileDocument,
+  theirs: ProfileWithUser,
+): number {
   let score = 0;
-  const myInterests = new Set(mine.interests ?? []);
-  const sharedInterests = (theirs.interests ?? []).filter((i) => myInterests.has(i)).length;
-  score += sharedInterests * 15;
 
-  const myLanguages = new Set(mine.languages ?? []);
-  const sharedLanguages = (theirs.languages ?? []).filter((l) => myLanguages.has(l)).length;
-  score += sharedLanguages * 10;
-
-  const myLifestyle = new Set(mine.lifestyleTags ?? []);
-  const sharedLifestyle = (theirs.lifestyleTags ?? []).filter((t) => myLifestyle.has(t)).length;
-  score += sharedLifestyle * 10;
-
-  if (mine.college && theirs.college === mine.college) score += 15;
-  // Both wanting the same *specific* place is a genuine signal; two "Any"s agreeing is not —
-  // that's just neither of us having a view, and it shouldn't outrank a real preference match.
-  if (mine.accommodationType && mine.accommodationType !== "Any" && theirs.accommodationType === mine.accommodationType) {
-    score += 10;
-  }
-
+  // Required (0-40) — destination city and gender preference are fixed-value floors since
+  // every candidate here matches on them by definition; accommodation type and budget still
+  // vary in *how well* they match, so those two stay degree-based.
+  score += 10; // destination city
+  score += 5; // gender preference
+  // A specific accommodation type matching exactly is a real signal; two "Any"s agreeing is
+  // just neither side having a view, so it only earns the mandatory floor.
+  score += mine.accommodationType !== "Any" && theirs.accommodationType === mine.accommodationType ? 10 : 5;
   if (mine.budgetMin != null && mine.budgetMax != null && theirs.budgetMin != null && theirs.budgetMax != null) {
     const overlap = Math.min(mine.budgetMax, theirs.budgetMax) - Math.max(mine.budgetMin, theirs.budgetMin);
-    if (overlap > 0) score += 20;
+    const span = Math.max(mine.budgetMax, theirs.budgetMax) - Math.min(mine.budgetMin, theirs.budgetMin);
+    // span is 0 only when both ranges are the same single value, which is a full (not partial)
+    // overlap.
+    score += Math.round(15 * (span > 0 ? Math.max(0, overlap) / span : 1));
   }
+
+  // Optional (0-60) — the real differentiator between two candidates who both clear the bar
+  // above.
+  const myCollege = mine.college || viewer.college;
+  const theirCollege = theirs.college || theirs.userId.college;
+  if (sameText(myCollege, theirCollege)) score += 15;
+
+  if (sameText(mine.currentCity, theirs.currentCity)) score += 10;
+
+  const myInterests = new Set(mine.interests ?? []);
+  score += Math.min(3, (theirs.interests ?? []).filter((i) => myInterests.has(i)).length) * 5;
+
+  const myLanguages = new Set(mine.languages ?? []);
+  score += Math.min(2, (theirs.languages ?? []).filter((l) => myLanguages.has(l)).length) * 5;
+
+  const myLifestyle = new Set(mine.lifestyleTags ?? []);
+  score += Math.min(2, (theirs.lifestyleTags ?? []).filter((t) => myLifestyle.has(t)).length) * 5;
 
   return Math.min(100, score);
 }

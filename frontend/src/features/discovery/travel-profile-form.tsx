@@ -79,14 +79,19 @@ function SectionHeading({ title, hint, divided }: { title: string; hint: string;
  * changes.
  * @param registeredCollege - The account's registered college (`User.college`), used only as a
  * fallback when no travel profile has been saved yet, so it never overwrites a college the
- * student already chose here. */
+ * student already chose here.
+ * @param registeredHomeTown - The account's home town (`User.homeTown`, set on the Profile
+ * page) — the closest existing account field to "current city". Same fallback treatment as
+ * registeredCollege: only seeds a blank field, never overwrites a current city the student
+ * already chose here. */
 function buildDefaults(
   profile: TravelProfileDTO | null,
   registeredCity: string | null,
   registeredCollege: string | null,
+  registeredHomeTown: string | null,
 ): DefaultValues<FormInput> {
   return {
-    currentCity: profile?.currentCity ?? "",
+    currentCity: profile?.currentCity || registeredHomeTown || "",
     destinationCity: registeredCity ?? "",
     college: profile?.college || registeredCollege || "",
     budgetMin: profile?.budgetMin ?? undefined,
@@ -142,7 +147,7 @@ function TravelProfileFields({
 
   const form = useForm<FormInput>({
     resolver: zodResolver(travelProfileSchema) as Resolver<FormInput>,
-    defaultValues: buildDefaults(profile, user?.city ?? null, user?.college ?? null),
+    defaultValues: buildDefaults(profile, user?.city ?? null, user?.college ?? null, user?.homeTown ?? null),
   });
 
   // Keeps the frozen destinationCity field current if the account's city changes (Profile page)
