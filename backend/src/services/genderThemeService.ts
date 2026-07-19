@@ -3,6 +3,18 @@ import { GENDER_THEME_KEYS, GenderThemeSettings, type GenderThemeKey } from "@/m
 
 export { GENDER_THEME_KEYS, type GenderThemeKey };
 
+export interface GenderThemeNoteColors {
+  yellow: string | null;
+  pink: string | null;
+  blue: string | null;
+  lavender: string | null;
+}
+
+export interface GenderThemeCustomSticker {
+  slug: string;
+  url: string;
+}
+
 export interface GenderThemeSettingsDTO {
   key: GenderThemeKey;
   primaryColor: string | null;
@@ -11,9 +23,31 @@ export interface GenderThemeSettingsDTO {
   gradientFrom: string | null;
   gradientTo: string | null;
   stickerSlugs: string[];
+  customStickers: GenderThemeCustomSticker[];
+  noteColors: GenderThemeNoteColors;
 }
 
-function toDTO(key: GenderThemeKey, doc: Partial<GenderThemeSettingsDTO> | null): GenderThemeSettingsDTO {
+// Deliberately loose rather than `Partial<GenderThemeSettingsDTO>`: the lean() mongoose doc's
+// inferred shape has `noteColors` (and each of its fields) as possibly `null`, not just
+// possibly-absent, since it's an optional nested path rather than a required one — this just
+// needs to accept whatever shape a lean doc (or `null`, for a cold collection) actually has.
+interface GenderThemeSettingsDocLike {
+  primaryColor?: string | null;
+  secondaryColor?: string | null;
+  accentColor?: string | null;
+  gradientFrom?: string | null;
+  gradientTo?: string | null;
+  stickerSlugs?: string[] | null;
+  customStickers?: GenderThemeCustomSticker[] | null;
+  noteColors?: {
+    yellow?: string | null;
+    pink?: string | null;
+    blue?: string | null;
+    lavender?: string | null;
+  } | null;
+}
+
+function toDTO(key: GenderThemeKey, doc: GenderThemeSettingsDocLike | null): GenderThemeSettingsDTO {
   return {
     key,
     primaryColor: doc?.primaryColor ?? null,
@@ -22,6 +56,13 @@ function toDTO(key: GenderThemeKey, doc: Partial<GenderThemeSettingsDTO> | null)
     gradientFrom: doc?.gradientFrom ?? null,
     gradientTo: doc?.gradientTo ?? null,
     stickerSlugs: doc?.stickerSlugs ?? [],
+    customStickers: doc?.customStickers ?? [],
+    noteColors: {
+      yellow: doc?.noteColors?.yellow ?? null,
+      pink: doc?.noteColors?.pink ?? null,
+      blue: doc?.noteColors?.blue ?? null,
+      lavender: doc?.noteColors?.lavender ?? null,
+    },
   };
 }
 

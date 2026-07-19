@@ -351,7 +351,8 @@ adminRouter.patch("/gender-theme/:key", async (req, res) => {
     res.status(400).json({ error: parsed.error.issues[0]?.message ?? "Invalid input" });
     return;
   }
-  const { stickerSlugs, primaryColor, secondaryColor, accentColor, gradientFrom, gradientTo } = parsed.data;
+  const { stickerSlugs, customStickers, primaryColor, secondaryColor, accentColor, gradientFrom, gradientTo, noteColors } =
+    parsed.data;
   // "" from the form means "clear this override back to the frontend default" — store as null,
   // not an empty string, so getAllGenderThemeSettings's DTO stays `string | null` throughout.
   const asColor = (v: string) => (v === "" ? null : v);
@@ -362,6 +363,13 @@ adminRouter.patch("/gender-theme/:key", async (req, res) => {
     gradientFrom: asColor(gradientFrom),
     gradientTo: asColor(gradientTo),
     stickerSlugs,
+    customStickers,
+    noteColors: {
+      yellow: asColor(noteColors.yellow),
+      pink: asColor(noteColors.pink),
+      blue: asColor(noteColors.blue),
+      lavender: asColor(noteColors.lavender),
+    },
   });
   res.json({ settings });
 });

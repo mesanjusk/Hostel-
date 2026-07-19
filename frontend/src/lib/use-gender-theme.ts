@@ -3,7 +3,11 @@ import { useLocation } from "react-router-dom";
 
 import { useAuth } from "@/context/auth-context";
 import { readSelectedGender } from "@/lib/onboarding-gender";
-import { applyGenderColorOverrides, ensureGenderThemeSettingsLoaded } from "@/lib/gender-theme-settings";
+import {
+  applyGenderColorOverrides,
+  applyGenderNoteColorOverrides,
+  ensureGenderThemeSettingsLoaded,
+} from "@/lib/gender-theme-settings";
 
 /**
  * Drives the app's gender-based visual theme end to end. Called once, near the app root (see
@@ -46,7 +50,10 @@ export function useGenderTheme() {
   useEffect(() => {
     let cancelled = false;
     ensureGenderThemeSettingsLoaded().then((settings) => {
-      if (!cancelled) applyGenderColorOverrides(isMale ? "Male" : "Female", settings);
+      if (cancelled) return;
+      const key = isMale ? "Male" : "Female";
+      applyGenderColorOverrides(key, settings);
+      applyGenderNoteColorOverrides(key, settings);
     });
     return () => {
       cancelled = true;

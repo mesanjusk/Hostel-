@@ -23,6 +23,31 @@ const GenderThemeSettingsSchema = new Schema(
      * frontend/src/lib/gender-stickers.ts. Only meaningful as a *restriction*: a slug that has
      * no actual art file still silently falls back to the girl .webp, never a broken image. */
     stickerSlugs: { type: [{ type: String, trim: true, maxlength: 60 }], default: [] },
+    /** Admin-uploaded custom stickers ("add from device") for this gender, on top of the
+     * built-in slug set. Uploaded via the existing /api/uploads/image endpoint (Cloudinary), so
+     * `url` is a full URL, not a local path. Capped at 50 in genderThemeUpdateSchema — plenty for
+     * an admin-curated set without the array growing unbounded. */
+    customStickers: {
+      type: [
+        {
+          _id: false,
+          slug: { type: String, trim: true, maxlength: 60, required: true },
+          url: { type: String, trim: true, maxlength: 2000, required: true },
+        },
+      ],
+      default: [],
+    },
+    /** Sticky-note background color overrides for this gender — see NOTE_COLORS in
+     * components/shared/scrapbook-pieces.tsx and the matching CSS custom properties in
+     * index.css. Same null-means-"use the shipped default" pattern as primaryColor etc. above.
+     * A plain nested object (not `[{...}]`), so mongoose treats it as a single nested path
+     * rather than an array subdocument. */
+    noteColors: {
+      yellow: { type: String, default: null, trim: true },
+      pink: { type: String, default: null, trim: true },
+      blue: { type: String, default: null, trim: true },
+      lavender: { type: String, default: null, trim: true },
+    },
   },
   { timestamps: true },
 );

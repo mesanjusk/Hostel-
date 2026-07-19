@@ -129,6 +129,31 @@ export function setAdminBoyStickerSlugs(slugs: string[] | null | undefined) {
   adminBoyStickerSlugs = slugs && slugs.length > 0 ? new Set(slugs) : null;
 }
 
+/** Admin-configured restriction of the girl sticker set, mirroring adminBoyStickerSlugs exactly.
+ * Unlike the boy set, this is deliberately NOT consulted by resolveStickerSrc() — see the big
+ * comment on getStickerPool() below for why — it only feeds the admin picker UI's "available"
+ * list and the pool-based export for future generic sticker surfaces. */
+let adminGirlStickerSlugs: Set<string> | null = null;
+
+export function setAdminGirlStickerSlugs(slugs: string[] | null | undefined) {
+  adminGirlStickerSlugs = slugs && slugs.length > 0 ? new Set(slugs) : null;
+}
+
+export interface CustomSticker {
+  slug: string;
+  url: string;
+}
+
+/** Admin-uploaded "add from device" stickers (see the Gender Theme admin panel), keyed by
+ * gender — populated from /api/gender-theme alongside adminBoyStickerSlugs /
+ * adminGirlStickerSlugs. Empty array (not null) is the safe default: nothing extra to add on
+ * top of the built-in set. */
+const adminCustomStickers: { Male: CustomSticker[]; Female: CustomSticker[] } = { Male: [], Female: [] };
+
+export function setAdminCustomStickers(gender: "Male" | "Female", stickers: CustomSticker[] | null | undefined) {
+  adminCustomStickers[gender] = stickers ?? [];
+}
+
 function girlDefaultSrc(slugOrPath: string): string {
   return slugOrPath.startsWith("/stickers/") ? slugOrPath : `/stickers/${slugOrPath}.webp`;
 }
@@ -165,4 +190,38 @@ export function resolveStickerSrc(slugOrPath: string, gender: Gender | null | un
     }
   }
   return girlDefaultSrc(slugOrPath);
+}
+
+const DEFAULT_GIRL_SLUG_SET = new Set<string>(GIRL_STICKER_SLUGS);
+
+/**
+ * Returns the full pool of stickers "available" for a gender: the admin-enabled built-in slugs
+ * (or the full default set, if the admin hasn't restricted anything) plus any admin-uploaded
+ * custom stickers, as {slug, url} pairs ready to render.
+ *
+ * SCOPING NOTE — deliberately NOT used by resolveStickerSrc() above: girl stickers today are
+ * referenced as specific hardcoded slugs pinned to specific canvas positions (see
+ * `stickerSlug: "cherries"` etc. in features/welcome/home-elements-default.ts). Unlike the Male
+ * side — where an unmapped/disabled boy slug already has a designed, safe fallback straight to
+ * the girl default, so nothing can ever break — there is no equivalent fallback for a pinned girl
+ * slug: hiding or swapping it would just break that specific piece of already-placed content with
+ * no safety net. So the Female allowlist (adminGirlStickerSlugs) and both genders' custom
+ * stickers intentionally do NOT gate or alter what resolveStickerSrc() renders for a specific
+ * requested slug on the Female/Other/null branch — that function keeps rendering the exact
+ * requested girl slug unconditionally, exactly as it did before this pool existed. This pool is
+ * only for NEW pool-based surfaces that pick from "whatever's available" rather than requesting a
+ * specific pinned slug: the admin picker UI, and the already-exported-but-currently-unmounted
+ * StickerField/Polaroid generic pool components in scrapbook-pieces.tsx, for whenever those get
+ * wired into a live page. Retrofitting per-element slug swapping for Female is a larger feature,
+ * deliberately out of scope here.
+ */
+export function getStickerPool(gender: Gender | null | undefined): CustomSticker[] {
+  if (gender === "Male") {
+    const enabled = adminBoyStickerSlugs ?? DEFAULT_BOY_SLUG_SET;
+    const builtIn = [...enabled].map((slug) => ({ slug, url: `/stickers/boy/${slug}.svg` }));
+    return [...builtIn, ...adminCustomStickers.Male];
+  }
+  const enabled = adminGirlStickerSlugs ?? DEFAULT_GIRL_SLUG_SET;
+  const builtIn = [...enabled].map((slug) => ({ slug, url: `/stickers/${slug}.webp` }));
+  return [...builtIn, ...adminCustomStickers.Female];
 }

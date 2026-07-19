@@ -171,6 +171,24 @@ export const genderThemeUpdateSchema = z.object({
   gradientFrom: hexColorOrEmpty,
   gradientTo: hexColorOrEmpty,
   stickerSlugs: z.array(z.string().trim().min(1).max(60)).max(200),
+  // Admin-uploaded "add from device" stickers (see gender-theme-form-dialog.tsx), on top of the
+  // built-in slug set — uploaded through the existing /api/uploads/image endpoint, so `url` is
+  // always a full Cloudinary URL, not a local path. Capped well above any realistic admin-curated
+  // set.
+  customStickers: z
+    .array(
+      z.object({
+        slug: z.string().trim().min(1).max(60),
+        url: z.string().trim().url().max(2000),
+      }),
+    )
+    .max(50),
+  noteColors: z.object({
+    yellow: hexColorOrEmpty,
+    pink: hexColorOrEmpty,
+    blue: hexColorOrEmpty,
+    lavender: hexColorOrEmpty,
+  }),
 });
 
 export type ProductInput = z.infer<typeof productSchema>;

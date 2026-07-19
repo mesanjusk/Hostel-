@@ -1,5 +1,17 @@
 import { api } from "@/lib/api";
-import { setAdminBoyStickerSlugs } from "@/lib/gender-stickers";
+import { setAdminBoyStickerSlugs, setAdminCustomStickers, setAdminGirlStickerSlugs } from "@/lib/gender-stickers";
+
+export interface GenderThemeNoteColors {
+  yellow: string | null;
+  pink: string | null;
+  blue: string | null;
+  lavender: string | null;
+}
+
+export interface GenderThemeCustomSticker {
+  slug: string;
+  url: string;
+}
 
 export interface GenderThemeSettingsDTO {
   key: "Male" | "Female";
@@ -9,6 +21,8 @@ export interface GenderThemeSettingsDTO {
   gradientFrom: string | null;
   gradientTo: string | null;
   stickerSlugs: string[];
+  customStickers: GenderThemeCustomSticker[];
+  noteColors: GenderThemeNoteColors;
 }
 
 type GenderThemeSettingsMap = Record<"Male" | "Female", GenderThemeSettingsDTO>;
@@ -32,6 +46,9 @@ export function ensureGenderThemeSettingsLoaded(): Promise<GenderThemeSettingsMa
     .then(({ settings }) => {
       cache = settings;
       setAdminBoyStickerSlugs(settings.Male?.stickerSlugs ?? null);
+      setAdminGirlStickerSlugs(settings.Female?.stickerSlugs ?? null);
+      setAdminCustomStickers("Male", settings.Male?.customStickers ?? null);
+      setAdminCustomStickers("Female", settings.Female?.customStickers ?? null);
       return settings;
     })
     .catch(() => null)
@@ -67,4 +84,26 @@ export function applyGenderColorOverrides(genderKey: "Male" | "Female", settings
   if (s.gradientFrom && s.gradientTo) {
     root.setProperty("--gradient-brand", `linear-gradient(135deg, ${s.gradientFrom} 0%, ${s.gradientTo} 100%)`);
   }
+}
+
+/** Applies (or clears) one gender key's admin sticky-note color overrides as inline CSS custom
+ * properties on <html> — same removeProperty-then-setProperty-if-present pattern as
+ * applyGenderColorOverrides above, kept as a separate function since these are a distinct set of
+ * tokens (NOTE_COLORS in components/shared/scrapbook-pieces.tsx) rather than the five brand
+ * tokens that function already owns. Called alongside it from useGenderTheme(). */
+export function applyGenderNoteColorOverrides(genderKey: "Male" | "Female", settings: GenderThemeSettingsMap | null) {
+  const root = document.documentElement.style;
+  const s = settings?.[genderKey]?.noteColors;
+
+  root.removeProperty("--note-yellow");
+  root.removeProperty("--note-pink");
+  root.removeProperty("--note-blue");
+  root.removeProperty("--note-lavender");
+
+  if (!s) return;
+
+  if (s.yellow) root.setProperty("--note-yellow", s.yellow);
+  if (s.pink) root.setProperty("--note-pink", s.pink);
+  if (s.blue) root.setProperty("--note-blue", s.blue);
+  if (s.lavender) root.setProperty("--note-lavender", s.lavender);
 }

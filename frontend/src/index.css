@@ -60,6 +60,16 @@
    * otp-login-page.tsx, onboarding-form.tsx) — pulled out as its own token so those screens
    * pick up the male palette's cooler shadow too, not just the login/gender-pick components. */
   --shadow-brand: rgba(201, 107, 154, 0.45);
+
+  /** Sticky-note background colors (components/shared/scrapbook-pieces.tsx's NOTE_COLORS) —
+   * byte-identical to the hardcoded hex values that shipped before this token existed, so a
+   * fresh/unoverridden install looks pixel-for-pixel the same. Admin-configured overrides (see
+   * the Gender Theme admin panel's "Sticky note colors" section) layer on top as inline styles
+   * on <html>, same pattern as --primary etc. above. */
+  --note-yellow: #fff3b0;
+  --note-pink: #ffd6e8;
+  --note-blue: #cfeaff;
+  --note-lavender: #e3d9ff;
 }
 
 /** "Boy" theme — navy/steel/charcoal, applied only when <html data-gender="male">. Set/cleared
@@ -109,6 +119,15 @@
 
   --gradient-brand: linear-gradient(135deg, #1e3a5f 0%, #2e8bc0 100%);
   --shadow-brand: rgba(30, 58, 95, 0.45);
+
+  /** Boy-theme sticky note colors — shipped defaults (used until an admin overrides them via
+   * the Gender Theme panel), chosen to read as clean/masculine rather than pastel: cool
+   * steel/slate tints consistent with the navy palette above instead of the girl set's warm
+   * pastels. */
+  --note-yellow: #e8c073;
+  --note-pink: #9db4c9;
+  --note-blue: #bcd8ee;
+  --note-lavender: #8fa3ba;
 }
 
 @theme inline {
