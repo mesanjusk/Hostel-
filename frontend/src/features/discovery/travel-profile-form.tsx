@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { useForm, type DefaultValues, type Resolver } from "react-hook-form";
+import { useForm, type DefaultValues, type Resolver, type UseFormReturn } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -58,6 +58,43 @@ function toLines(value: string) {
   return value.split(",").map((v) => v.trim()).filter(Boolean);
 }
 
+/** A field this form only displays — the value always comes from the account profile (Profile
+ * page) and can't be edited here, so there's nothing to type. Used for destinationCity,
+ * currentCity ("Hometown") and college, all three of which used to be freely editable here and
+ * could drift from the account's actual profile. */
+function FrozenProfileField({
+  form,
+  name,
+  label,
+}: {
+  form: UseFormReturn<FormInput>;
+  name: "destinationCity" | "currentCity" | "college";
+  label: string;
+}) {
+  return (
+    <FormField
+      control={form.control}
+      name={name}
+      render={({ field }) => (
+        <FormItem>
+          <FormLabel>{label}</FormLabel>
+          <FormControl>
+            <Input {...field} disabled />
+          </FormControl>
+          <p className="text-muted-foreground text-xs">
+            {field.value ? "Set from your account profile." : "Not set yet."}{" "}
+            <Link to="/profile" className="text-primary underline">
+              Change it in Profile
+            </Link>
+            .
+          </p>
+          <FormMessage />
+        </FormItem>
+      )}
+    />
+  );
+}
+
 /** @param divided - Draws a rule above the heading. Skip it on the first section, where there's
  * nothing to divide from. */
 function SectionHeading({ title, hint, divided }: { title: string; hint: string; divided?: boolean }) {
@@ -74,16 +111,13 @@ function SectionHeading({ title, hint, divided }: { title: string; hint: string;
  * would both look like an answer and quietly pass validation.
  *
  * @param registeredCity - The account's destination city (`User.city`, set on the Profile page).
- * Always wins for `destinationCity` — that field is frozen here and only editable on Profile —
- * so a stale value saved on an old travel profile can never linger after the account's city
- * changes.
- * @param registeredCollege - The account's registered college (`User.college`), used only as a
- * fallback when no travel profile has been saved yet, so it never overwrites a college the
- * student already chose here.
- * @param registeredHomeTown - The account's home town (`User.homeTown`, set on the Profile
- * page) — the closest existing account field to "current city". Same fallback treatment as
- * registeredCollege: only seeds a blank field, never overwrites a current city the student
- * already chose here. */
+ * @param registeredCollege - The account's registered college (`User.college`).
+ * @param registeredHomeTown - The account's home town (`User.homeTown`) — shown here as
+ * "Hometown".
+ *
+ * All three always win over whatever's on the saved travel profile: destinationCity, college
+ * and currentCity/"Hometown" are frozen fields here, only editable on the Profile page, so a
+ * stale value saved on an old travel profile can never linger after the account changes. */
 function buildDefaults(
   profile: TravelProfileDTO | null,
   registeredCity: string | null,
@@ -91,9 +125,9 @@ function buildDefaults(
   registeredHomeTown: string | null,
 ): DefaultValues<FormInput> {
   return {
-    currentCity: profile?.currentCity || registeredHomeTown || "",
+    currentCity: registeredHomeTown ?? "",
     destinationCity: registeredCity ?? "",
-    college: profile?.college || registeredCollege || "",
+    college: registeredCollege ?? "",
     budgetMin: profile?.budgetMin ?? undefined,
     budgetMax: profile?.budgetMax ?? undefined,
     // "Any" rather than blank, matching genderPreference below and the model's own default:
@@ -150,12 +184,14 @@ function TravelProfileFields({
     defaultValues: buildDefaults(profile, user?.city ?? null, user?.college ?? null, user?.homeTown ?? null),
   });
 
-  // Keeps the frozen destinationCity field current if the account's city changes (Profile page)
-  // while this form is already mounted, rather than only picking it up on the next fresh load.
+  // Keeps the three frozen fields current if the account changes (Profile page) while this
+  // form is already mounted, rather than only picking it up on the next fresh load.
   useEffect(() => {
     form.setValue("destinationCity", user?.city ?? "");
+    form.setValue("currentCity", user?.homeTown ?? "");
+    form.setValue("college", user?.college ?? "");
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.city]);
+  }, [user?.city, user?.homeTown, user?.college]);
 
   async function onSubmit(values: FormInput) {
     setIsSubmitting(true);
@@ -186,26 +222,7 @@ function TravelProfileFields({
               hint="Roomie matching only suggests people you line up with on every one of these."
             />
 
-            <FormField
-              control={form.control}
-              name="destinationCity"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Destination city</FormLabel>
-                  <FormControl>
-                    <Input {...field} disabled />
-                  </FormControl>
-                  <p className="text-muted-foreground text-xs">
-                    {field.value ? "Set from your account profile." : "Not set yet."}{" "}
-                    <Link to="/profile" className="text-primary underline">
-                      Change it in Profile
-                    </Link>
-                    .
-                  </p>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <FrozenProfileField form={form} name="destinationCity" label="Destination city" />
 
             <div className="grid gap-4 sm:grid-cols-2">
               <FormField
@@ -296,32 +313,8 @@ function TravelProfileFields({
             />
 
             <div className="grid gap-4 sm:grid-cols-2">
-              <FormField
-                control={form.control}
-                name="currentCity"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Current city</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Nagpur" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="college"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>College</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <FrozenProfileField form={form} name="currentCity" label="Hometown" />
+              <FrozenProfileField form={form} name="college" label="College" />
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
