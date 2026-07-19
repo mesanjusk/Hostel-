@@ -1,3 +1,7 @@
+/* Font @font-face rules are imported from main.tsx, not here — Tailwind's Vite plugin doesn't
+ * rebase relative url()s from a package that's @import-ed into a CSS file it's also processing,
+ * so the font files silently failed to resolve at build time when imported here. See main.tsx
+ * for why they're self-hosted at all. */
 @import "tailwindcss";
 @import "tw-animate-css";
 
