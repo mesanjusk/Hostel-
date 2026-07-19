@@ -17,6 +17,7 @@ import { generatePin, hashPin } from "@/lib/pin";
 import { generateUniqueUsername } from "@/lib/username";
 import { ensureAutoJoinCommunities } from "@/services/communityService";
 import { ensurePlacesForCity } from "@/services/placeAutoFetchService";
+import { ensureCollegeExists } from "@/services/collegeVerificationService";
 import type { OnboardingInput } from "@/validations/auth";
 import type { ProfileUpdateInput } from "@/validations/profile";
 import { LEGACY_COLLEGE_CATEGORY_MAP, type UserRole } from "@/types";
@@ -96,6 +97,9 @@ export async function completeCommunityProfileSetup(
   // Country/City/College/Marketplace/Events communities actually has data to work with.
   await ensureAutoJoinCommunities(updated);
   ensurePlacesForCity(updated.city);
+  // First time this student's college is ever set — no "did it change" check needed the way
+  // updateProfile below needs one, since this setup flow only ever runs once per student.
+  ensureCollegeExists(updated.city, updated.collegeCategoryId?.toString() ?? null, updated.college);
   await syncTravelProfileFromAccount(updated._id.toString(), {
     city: updated.city,
     college: updated.college,
@@ -107,6 +111,11 @@ export async function completeCommunityProfileSetup(
 export async function updateProfile(userId: string, input: ProfileUpdateInput) {
   await connectDB();
   const collegeCategory = await resolveLegacyCollegeCategory(input.collegeCategoryId);
+  // Captured before the write so ensureCollegeExists below only fires when college actually
+  // changed — otherwise an unrelated edit (gender, city, ...) that leaves college untouched
+  // would re-trigger a Wikipedia lookup for a name that's either already catalogued or was
+  // already checked once and found unverifiable.
+  const previousCollege = (await User.findById(userId).select("college").lean())?.college ?? null;
   // No backfill needed on a gender/category change: the checklist is always computed live from
   // the student's current profile fields, so the next read already reflects it.
   const updated = await User.findByIdAndUpdate(
@@ -129,6 +138,9 @@ export async function updateProfile(userId: string, input: ProfileUpdateInput) {
   if (updated) {
     await ensureAutoJoinCommunities(updated);
     ensurePlacesForCity(updated.city);
+    if (updated.college !== previousCollege) {
+      ensureCollegeExists(updated.city, updated.collegeCategoryId?.toString() ?? null, updated.college);
+    }
     // Keeps Roommate/Co-Packer matching (destinationCity + college) from running against a
     // stale travel profile the student saved before this edit — see
     // syncTravelProfileFromAccount's own comment for why the account profile has to win.

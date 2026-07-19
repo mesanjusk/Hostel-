@@ -106,6 +106,16 @@ export async function listAllColleges(filters: { city?: string; collegeCategoryI
   return colleges.sort((a, b) => a.city.localeCompare(b.city) || byRankThenName(a, b));
 }
 
+/** Cheap existence check collegeVerificationService uses before spending a Wikipedia call on a
+ * name that's already catalogued for this city+category — e.g. skips re-verifying "IIT Bombay"
+ * on every profile save that already picked it from the list. Same city+category+slug identity
+ * createCollege itself dedups on. */
+export async function collegeExists(city: string, collegeCategoryId: string, name: string): Promise<boolean> {
+  await connectDB();
+  const existing = await College.findOne({ city, collegeCategoryId, slug: slugify(name) }).lean();
+  return !!existing;
+}
+
 export async function createCollege(input: {
   city: string;
   collegeCategoryId: string;
