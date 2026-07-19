@@ -59,6 +59,7 @@ export function SurvivalGuideView() {
           elements={elements}
           breakpoint={breakpoint}
           background={sectionBackgrounds[heroSection.id]}
+          context="guide"
         />
       </section>
 
@@ -92,6 +93,7 @@ export function SurvivalGuideView() {
               elements={elements}
               breakpoint={breakpoint}
               background={sectionBackgrounds[section.id]}
+              context="guide"
             />
           </section>
         );

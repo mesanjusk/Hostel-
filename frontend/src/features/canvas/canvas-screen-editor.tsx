@@ -76,6 +76,7 @@ function EditableTarget({
   selected,
   onSelect,
   registerRef,
+  context,
 }: {
   element: CanvasElement;
   breakpoint: Breakpoint;
@@ -83,6 +84,7 @@ function EditableTarget({
   selected: boolean;
   onSelect: () => void;
   registerRef: (id: string, node: HTMLDivElement | null) => void;
+  context?: "guide";
 }) {
   const ref = useRef<HTMLDivElement | null>(null);
   const layout = element.layouts[breakpoint];
@@ -135,7 +137,7 @@ function EditableTarget({
       )}
       style={{ width: element.kind === "image" ? 80 : "max-content" }}
     >
-      <ElementBody element={element} />
+      <ElementBody element={element} context={context} />
     </div>
   );
 }
@@ -535,6 +537,7 @@ export function CanvasScreenEditor({
                       selected={el.id === selectedId}
                       onSelect={() => setSelectedId(el.id)}
                       registerRef={registerRef}
+                      context={page === "survival-guide" ? "guide" : undefined}
                     />
                   ))}
                   {selected && selectedNode && (
