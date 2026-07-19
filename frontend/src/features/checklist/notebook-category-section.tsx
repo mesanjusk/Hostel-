@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence, LayoutGroup } from "framer-motion";
-import { Check, ChevronDown, Luggage, MoreVertical, Plus, Trash2 } from "lucide-react";
+import { Check, ChevronDown, MoreVertical, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { cn } from "@/lib/utils";
@@ -14,9 +14,12 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { HandDrawnCheckbox } from "@/features/checklist/hand-drawn-checkbox";
 import { ItemFormDialog } from "@/features/checklist/item-form-dialog";
-import { AddToBagDialog } from "@/features/bags/add-to-bag-dialog";
+import { AddBagDialog } from "@/features/bags/add-bag-dialog";
+import { AddToBagSubmenu } from "@/features/bags/add-to-bag-submenu";
+import { useBags } from "@/features/bags/use-bags";
 import { api, ApiError } from "@/lib/api";
 import { emitRefresh } from "@/lib/refresh-bus";
+import type { BagSummaryDTO } from "@/features/bags/bag-dto";
 import type { ChecklistItemDTO } from "@/features/checklist/checklist-item-dto";
 
 /** One category's notebook page, collapsed to a header row until tapped open — same paper
@@ -40,7 +43,9 @@ export function NotebookCategorySection({
 }) {
   const [addOpen, setAddOpen] = useState(false);
   const [deleteConfirmItem, setDeleteConfirmItem] = useState<ChecklistItemDTO | null>(null);
-  const [addToBagItem, setAddToBagItem] = useState<ChecklistItemDTO | null>(null);
+  const [createBagItem, setCreateBagItem] = useState<ChecklistItemDTO | null>(null);
+  const [assigningBagId, setAssigningBagId] = useState<string | null>(null);
+  const bags = useBags();
 
   async function toggle(item: ChecklistItemDTO) {
     onItemsChange((prev) => prev.map((i) => (i.id === item.id ? { ...i, completed: !i.completed } : i)));
@@ -61,6 +66,30 @@ export function NotebookCategorySection({
     } catch (error) {
       toast.error(error instanceof ApiError ? error.message : "Failed to delete item");
     }
+  }
+
+  async function assignToBag(item: ChecklistItemDTO, bag: Pick<BagSummaryDTO, "id" | "name" | "color">) {
+    const alreadyAssigned = item.bagId === bag.id;
+    const previous = { bagId: item.bagId, bagName: item.bagName, bagColor: item.bagColor };
+    const next = alreadyAssigned ? { bagId: null, bagName: null, bagColor: null } : { bagId: bag.id, bagName: bag.name, bagColor: bag.color };
+
+    setAssigningBagId(bag.id);
+    onItemsChange((prev) => prev.map((i) => (i.id === item.id ? { ...i, ...next } : i)));
+    try {
+      await api.patch(`/api/checklist/${item.id}`, { bagId: next.bagId });
+      emitRefresh();
+      toast.success(alreadyAssigned ? `Removed from ${bag.name}` : `Added to ${bag.name}`);
+    } catch (error) {
+      toast.error(error instanceof ApiError ? error.message : "Failed to update bag");
+      onItemsChange((prev) => prev.map((i) => (i.id === item.id ? { ...i, ...previous } : i)));
+    } finally {
+      setAssigningBagId(null);
+    }
+  }
+
+  function handleBagCreated(bag: { id: string; name: string; color: string }) {
+    if (createBagItem) assignToBag(createBagItem, bag);
+    setCreateBagItem(null);
   }
 
   const pending = items.filter((i) => !i.completed);
@@ -146,10 +175,13 @@ export function NotebookCategorySection({
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => setAddToBagItem(item)}>
-                              <Luggage className="size-4" />
-                              Add to Bag
-                            </DropdownMenuItem>
+                            <AddToBagSubmenu
+                              bags={bags}
+                              currentBagId={item.bagId}
+                              pendingBagId={assigningBagId}
+                              onSelectBag={(bag) => assignToBag(item, bag)}
+                              onNewBag={() => setCreateBagItem(item)}
+                            />
                             <DropdownMenuItem variant="destructive" onClick={() => setDeleteConfirmItem(item)}>
                               <Trash2 className="size-4" />
                               Delete
@@ -231,15 +263,11 @@ export function NotebookCategorySection({
         </DialogContent>
       </Dialog>
 
-      {addToBagItem && (
-        <AddToBagDialog
-          itemId={addToBagItem.id}
-          itemName={addToBagItem.item}
-          bagId={addToBagItem.bagId}
-          open={addToBagItem !== null}
-          onOpenChange={(open) => !open && setAddToBagItem(null)}
-        />
-      )}
+      <AddBagDialog
+        open={createBagItem !== null}
+        onOpenChange={(open) => !open && setCreateBagItem(null)}
+        onCreated={handleBagCreated}
+      />
     </div>
   );
 }
