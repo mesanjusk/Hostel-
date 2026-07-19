@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
-import { Megaphone, Plus, Users2 } from "lucide-react";
+import { Megaphone, Plus, Share2, Users2 } from "lucide-react";
 
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
@@ -92,6 +92,21 @@ export function CommunityDetailView() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slug]);
 
+  async function handleInvite() {
+    if (!community) return;
+    const shareData = { title: community.name, text: `Join ${community.name} on Pack with Me`, url: `${window.location.origin}/community/${community.slug}` };
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+      } catch {
+        // user cancelled — no-op
+      }
+      return;
+    }
+    await navigator.clipboard.writeText(shareData.url);
+    toast.success("Invite link copied to clipboard");
+  }
+
   async function handleLeave() {
     if (!community) return;
     setLeaving(true);
@@ -131,25 +146,30 @@ export function CommunityDetailView() {
           <h1 className="font-display truncate text-xl font-bold">{community.name}</h1>
           <p className="text-muted-foreground truncate text-xs">{community.memberCount} members</p>
         </div>
-        <Sheet>
-          <SheetTrigger asChild>
-            <Button variant="outline" size="sm">
-              <Users2 className="size-4" /> Members
-            </Button>
-          </SheetTrigger>
-          <SheetContent>
-            <SheetHeader>
-              <SheetTitle>Members</SheetTitle>
-            </SheetHeader>
-            <MembersPanel
-              communityId={community._id}
-              canModerate={canModerate}
-              isSiteAdmin={isSiteAdmin}
-              onLeave={myRole ? handleLeave : undefined}
-              leaving={leaving}
-            />
-          </SheetContent>
-        </Sheet>
+        <div className="flex shrink-0 items-center gap-2">
+          <Button variant="outline" size="sm" onClick={handleInvite}>
+            <Share2 className="size-4" /> Invite
+          </Button>
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button variant="outline" size="sm">
+                <Users2 className="size-4" /> Members
+              </Button>
+            </SheetTrigger>
+            <SheetContent>
+              <SheetHeader>
+                <SheetTitle>Members</SheetTitle>
+              </SheetHeader>
+              <MembersPanel
+                communityId={community._id}
+                canModerate={canModerate}
+                isSiteAdmin={isSiteAdmin}
+                onLeave={myRole ? handleLeave : undefined}
+                leaving={leaving}
+              />
+            </SheetContent>
+          </Sheet>
+        </div>
       </div>
 
       <div className="flex items-center gap-1 overflow-x-auto pb-1">
