@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ComponentProps } from "react";
 import type { FieldPath, UseFormReturn } from "react-hook-form";
 import { Check, ChevronsUpDown, MapPin, School } from "lucide-react";
@@ -53,9 +53,29 @@ function CityCombobox({
   placeholder: string;
 }) {
   const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const listRef = useRef<HTMLDivElement>(null);
+
+  // Narrowing the search re-renders the list with fewer, shorter results, but the scrollable
+  // list div keeps whatever scrollTop it already had — which the browser then clamps to the new,
+  // much smaller scrollHeight, landing the view partway or fully down a list that should read
+  // from the top. Reset on every keystroke and on open so it always starts at the top.
+  useEffect(() => {
+    if (open) listRef.current?.scrollTo({ top: 0 });
+  }, [open, search]);
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover
+      open={open}
+      onOpenChange={(next) => {
+        setOpen(next);
+        // Clears the search alongside the close, not just the scroll position — cmdk's own
+        // uncontrolled input used to reset itself for free by unmounting with the popover;
+        // controlling it for the scroll fix above means this list would otherwise reopen
+        // pre-filtered to whatever was last typed instead of the full list.
+        if (!next) setSearch("");
+      }}
+    >
       <PopoverTrigger asChild>
         <Button
           type="button"
@@ -73,8 +93,8 @@ function CityCombobox({
       </PopoverTrigger>
       <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
         <Command filter={cityFilter}>
-          <CommandInput placeholder="Search city..." />
-          <CommandList>
+          <CommandInput placeholder="Search city..." value={search} onValueChange={setSearch} />
+          <CommandList ref={listRef}>
             <CommandEmpty>No city found.</CommandEmpty>
             <CommandGroup>
               {cities.map((c) => (
