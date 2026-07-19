@@ -34,6 +34,23 @@ Set these on the backend (see `backend/.env.example`):
 
 In local dev (`NODE_ENV` unset or not `production`), if the WhatsApp send fails or these vars are unset, the OTP request response includes a `devOtp` field with the plaintext code so you can test the flow without a live WhatsApp send.
 
+## Admin new-registration WhatsApp alerts
+
+Every admin account (`role: "admin"`, see `npm run make-admin`) gets a free-form WhatsApp message naming the student the moment a new user completes onboarding (`backend/src/services/adminNotifyService.ts`). WhatsApp only allows free-form text within the 24h window opened by the *recipient* messaging in first, so this only works for admins who've opted in and stayed opted in:
+
+1. **Opt in**: each admin sends any WhatsApp message (e.g. `HOSTEL`) to the business number. That's it — no app-side toggle. The webhook (`backend/src/routes/whatsapp.routes.ts`) records the timestamp on that admin's `User` document and treats the 24h window as open for the next ~23h.
+2. **Staying opted in**: `backend/src/jobs/waAdminReactivation.ts` runs every 30 minutes and, for each admin whose window is still open, sends up to 3 reminder messages (at 8h/16h/22h since the window opened) using an approved template with a button. Tapping the button re-sends a message to the business number, which reopens the window for another ~23h — same mechanism as step 1.
+3. **If nobody reopens it in time**: once the window fully lapses, that admin stops receiving new-registration alerts (silently — no error) until they message in again.
+
+The reminder template needs to be created and approved in Meta's Template Library yourself (Utility category, no required body variables, one Quick Reply or Call-to-Action button — the exact button text doesn't matter, since any reply reopens the window). Set its name/language via:
+
+| Key | Value |
+| --- | --- |
+| `WHATSAPP_ADMIN_REACTIVATION_TEMPLATE_NAME` | your approved template's name (default `admin_window_reactivation`) |
+| `WHATSAPP_ADMIN_REACTIVATION_TEMPLATE_LANGUAGE` | must match the template's approved language, e.g. `en_US` |
+
+Reuses the same `WHATSAPP_ACCESS_TOKEN`/`WHATSAPP_PHONE_NUMBER_ID` as WhatsApp OTP above — no separate credentials needed.
+
 ## Tech stack
 
 **Backend** (`backend/`): Express, TypeScript, MongoDB Atlas + Mongoose, JWT auth (`jsonwebtoken` + `bcryptjs`), Zod validation.
@@ -120,6 +137,7 @@ Open [http://localhost:5173](http://localhost:5173) and log in with the mobile n
    | `CORS_ORIGIN` | Your deployed frontend URL, e.g. `https://your-frontend.vercel.app` (comma-separate if you also want to allow `http://localhost:5173` for local testing against the prod API) |
    | `NODE_ENV` | `production` |
    | `WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_API_VERSION`, `WHATSAPP_OTP_TEMPLATE_NAME`, `WHATSAPP_OTP_TEMPLATE_LANGUAGE` | See "WhatsApp OTP setup" above — required for self-registration and forgot-code to send real messages |
+   | `WHATSAPP_ADMIN_REACTIVATION_TEMPLATE_NAME`, `WHATSAPP_ADMIN_REACTIVATION_TEMPLATE_LANGUAGE` | See "Admin new-registration WhatsApp alerts" above — required for admin opt-in reminders |
 3. In MongoDB Atlas → Network Access, allow Render's outbound IPs (or `0.0.0.0/0`).
 4. Deploy. Your API will be live at something like `https://hostel-dpqg.onrender.com` — note this URL, the frontend needs it.
 5. Run `npm run make-admin -- <mobile>`, `npm run seed`, and `npm run seed:cities` locally (or from any machine) pointed at the same `MONGODB_URI` — these are one-off maintenance scripts, not part of the deployed service.

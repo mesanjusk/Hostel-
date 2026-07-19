@@ -16,6 +16,7 @@ import { generatePin, hashPin } from "@/lib/pin";
 import { generateUniqueUsername } from "@/lib/username";
 import { ensureAutoJoinCommunities } from "@/services/communityService";
 import { ensurePlacesForCity } from "@/services/placeAutoFetchService";
+import { notifyAdminsOfNewRegistration } from "@/services/adminNotifyService";
 import type { OnboardingInput } from "@/validations/auth";
 import type { ProfileUpdateInput } from "@/validations/profile";
 import { LEGACY_COLLEGE_CATEGORY_MAP, type UserRole } from "@/types";
@@ -41,6 +42,13 @@ async function resolveLegacyCollegeCategory(collegeCategoryId: string) {
 
 export async function completeOnboarding(userId: string, input: OnboardingInput) {
   await connectDB();
+
+  // `name` is the signal for "this account is genuinely new" (see needsOnboarding — !user.name)
+  // rather than the earlier mobile-only account creation, since that's the first point a real
+  // name exists to notify admins with.
+  const before = await User.findById(userId).select("name").lean();
+  const isFirstOnboarding = Boolean(before) && !before!.name;
+
   const updated = await User.findByIdAndUpdate(
     userId,
     {
@@ -54,6 +62,13 @@ export async function completeOnboarding(userId: string, input: OnboardingInput)
   // College/city aren't collected here anymore (see completeCommunityProfileSetup) — this
   // only picks up the global Country community until then.
   if (updated) await ensureAutoJoinCommunities(updated);
+
+  if (updated && isFirstOnboarding) {
+    notifyAdminsOfNewRegistration(updated.name ?? "New user").catch((error) => {
+      console.error("Failed to notify admins of new registration:", error);
+    });
+  }
+
   return updated;
 }
 

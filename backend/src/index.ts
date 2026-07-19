@@ -13,6 +13,7 @@ import { ensureCitiesSeeded } from "@/services/cityService";
 import { ensureGlobalCommunitiesSeeded } from "@/services/communityService";
 import { ensureCollegesSeeded } from "@/services/collegeService";
 import { initSocketServer } from "@/lib/socket";
+import { startWaAdminReactivationJob } from "@/jobs/waAdminReactivation";
 import { analyticsContext } from "@/middleware/analyticsContext";
 import { authRouter } from "@/routes/auth.routes";
 import { profileRouter } from "@/routes/profile.routes";
@@ -262,6 +263,7 @@ connectDB()
     httpServer.listen(PORT, () => {
       console.log(`Backend listening on port ${PORT}`);
     });
+    startWaAdminReactivationJob();
   })
   .catch((error) => {
     console.error("Failed to connect to MongoDB:", error);
