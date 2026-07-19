@@ -2,6 +2,7 @@ import { connectDB } from "@/db";
 import { Place } from "@/models/Place";
 import { User } from "@/models/User";
 import { escapeRegex } from "@/lib/regex";
+import { resolveCityAlias } from "@/lib/cityAliases";
 import type { PlaceCategory } from "@/types";
 import type { PlaceInput, PlaceUpdateInput } from "@/validations/admin";
 
@@ -17,7 +18,10 @@ import type { PlaceInput, PlaceUpdateInput } from "@/validations/admin";
 export async function listPlaces(city?: string, category?: PlaceCategory, search?: string, imagesFirst = false) {
   await connectDB();
   const filter: Record<string, unknown> = {};
-  if (city) filter.city = new RegExp(`^${city}$`, "i");
+  // A district-style destination city (e.g. "Ahmedabad, Gujarat") resolves to the plain name
+  // (e.g. "Ahmedabad") the curated/auto-fetched Place data is actually keyed on — see
+  // cityAliases.ts.
+  if (city) filter.city = new RegExp(`^${escapeRegex(resolveCityAlias(city))}$`, "i");
   if (category) filter.category = category;
   if (search) filter.name = new RegExp(escapeRegex(search), "i");
 

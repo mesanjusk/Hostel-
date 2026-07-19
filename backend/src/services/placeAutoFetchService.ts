@@ -2,6 +2,7 @@ import { connectDB } from "@/db";
 import { Place } from "@/models/Place";
 import { PlaceCityFetch } from "@/models/PlaceCityFetch";
 import { escapeRegex } from "@/lib/regex";
+import { resolveCityAlias } from "@/lib/cityAliases";
 import { findPlaceImage, sleep, WIKI_REQUEST_DELAY_MS } from "@/services/placeImageService";
 import type { PlaceCategory } from "@/types";
 
@@ -122,8 +123,14 @@ function categorize(tags: Record<string, string>): PlaceCategory | null {
   return TAG_RULES.find((rule) => tags[rule.key] === rule.value)?.category ?? null;
 }
 
+/** Free-form `q=` rather than the structured `city=` field — the City catalog also holds
+ * district-level entries like "Mumbai City, Maharashtra" (see City.state), and a comma-joined
+ * "district, state" string doesn't resolve as a single structured `city` field. Free-text search
+ * handles both a plain city name and a "District, State" pair the same way a human typing it into
+ * a maps search box would. `countrycodes` (a general filter, not a structured field) keeps the
+ * India scoping the structured query used to provide via `country=`. */
 async function geocodeCity(city: string): Promise<{ lat: number; lon: number } | null> {
-  const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&country=India&city=${encodeURIComponent(city)}`;
+  const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=in&q=${encodeURIComponent(`${city}, India`)}`;
   const res = await fetch(url, { headers: { "User-Agent": NOMINATIM_USER_AGENT } });
   if (!res.ok) throw new Error(`Nominatim request failed: ${res.status}`);
   const results = (await res.json()) as Array<{ lat: string; lon: string }>;
@@ -295,5 +302,8 @@ async function autoFetchPlacesForCity(city: string): Promise<void> {
  * since the cheap indexed existence check above is what actually gates any network call. */
 export function ensurePlacesForCity(city: string | null | undefined): void {
   if (!city) return;
-  void autoFetchPlacesForCity(city);
+  // Resolved first so a district-style destination city (e.g. "Ahmedabad, Gujarat") fetches
+  // into/dedupes against the same curated "Ahmedabad" places listPlaces queries for, instead of
+  // building a second, lower-quality OSM-only place list under the raw district string.
+  void autoFetchPlacesForCity(resolveCityAlias(city));
 }

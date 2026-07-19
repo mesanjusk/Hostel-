@@ -8,10 +8,15 @@ import { PlacesView } from "@/features/places/places-view";
 export default function ExplorePage() {
   const { user } = useAuth();
 
+  const city = user?.city ?? "";
+
   return (
     <div>
-      <PageHeader title="Explore" description="Places to explore in your destination city" />
-      <PlacesView city={user?.city ?? ""} />
+      <PageHeader
+        title="Explore"
+        description={city ? `Places to explore in ${city}` : "Places to explore in your destination city"}
+      />
+      <PlacesView city={city} />
     </div>
   );
 }
