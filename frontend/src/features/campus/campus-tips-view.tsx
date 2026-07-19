@@ -12,16 +12,20 @@ import { toCampusTipDTO, type CampusTipDTO, type CampusTipRaw } from "@/features
 
 const ANY = "__any__";
 
-/** @param city/@param college - the student's own campus, from their profile. Like Explore,
- * there's no campus picker: this page is about the one campus that's relevant to them. */
-export function CampusTipsView({ city, college }: { city: string; college: string }) {
+/** @param college - the student's own college, from their profile, shown only for copy (the
+ * server derives the actual campus scope itself — see campusTips.routes.ts's ownCampus — so
+ * there's nothing here to trust). Like Explore, there's no campus picker: this page is about
+ * the one campus that's relevant to them. */
+export function CampusTipsView({ college }: { college: string }) {
   const [category, setCategory] = useState("");
   // null until the first fetch resolves, so the page doesn't flash the empty state — same
   // pattern as places-view.
   const [tips, setTips] = useState<CampusTipDTO[] | null>(null);
 
   async function fetchTips() {
-    const params = new URLSearchParams({ city, college });
+    // No city/college here — the server always scopes to the caller's own profile, so a
+    // student can never fetch (or, via TipFormDialog, post) another campus's tips.
+    const params = new URLSearchParams();
     if (category) params.set("category", category);
     try {
       const { tips: raw } = await api.get<{ tips: CampusTipRaw[] }>(`/api/campus-tips?${params.toString()}`);
@@ -34,7 +38,7 @@ export function CampusTipsView({ city, college }: { city: string; college: strin
   useEffect(() => {
     fetchTips();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [city, college, category]);
+  }, [category]);
 
   /** New tips join at the top rather than re-sorting mid-read: a fresh tip has score 0 and
    * strict score-order would bury it instantly. Server order returns on the next fetch. */
@@ -63,7 +67,7 @@ export function CampusTipsView({ city, college }: { city: string; college: strin
           </SelectContent>
         </Select>
         <div className="ml-auto">
-          <TipFormDialog city={city} college={college} onSaved={handleCreated} />
+          <TipFormDialog college={college} onSaved={handleCreated} />
         </div>
       </div>
 
@@ -72,7 +76,7 @@ export function CampusTipsView({ city, college }: { city: string; college: strin
           icon={Lightbulb}
           title="No tips yet"
           description={`Know something useful about ${college}? Be the first to share it.`}
-          action={<TipFormDialog city={city} college={college} onSaved={handleCreated} />}
+          action={<TipFormDialog college={college} onSaved={handleCreated} />}
         />
       ) : (
         <div className="columns-1 gap-4 sm:columns-2 xl:columns-3">

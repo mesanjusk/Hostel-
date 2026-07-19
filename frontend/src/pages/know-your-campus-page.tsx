@@ -19,7 +19,7 @@ export default function KnowYourCampusPage() {
     <div>
       <PageHeader title="Know Your Campus" description="Share your experience in and around campus" />
       {city && college ? (
-        <CampusTipsView city={city} college={college} />
+        <CampusTipsView college={college} />
       ) : (
         <EmptyState
           icon={GraduationCap}

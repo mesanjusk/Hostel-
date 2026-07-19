@@ -26,13 +26,13 @@ const tipSchema = z.object({
 type TipInput = z.infer<typeof tipSchema>;
 
 export function TipFormDialog({
-  city,
   college,
   tip,
   onSaved,
   trigger,
 }: {
-  city: string;
+  /** Display only ("Share a tip about {college}") — the server derives the actual campus scope
+   * from the caller's own profile, so this is never sent in the request. */
   college: string;
   /** Present → edit mode. */
   tip?: CampusTipDTO;
@@ -65,9 +65,11 @@ export function TipFormDialog({
   async function onSubmit(values: TipInput) {
     setIsSubmitting(true);
     try {
+      // No city/college in the payload — the server always posts to the caller's own campus
+      // (see campusTips.routes.ts's ownCampus), so there's nothing to send here.
       const { tip: raw } = isEdit
         ? await api.patch<{ tip: CampusTipRaw }>(`/api/campus-tips/${tip!.id}`, values)
-        : await api.post<{ tip: CampusTipRaw }>("/api/campus-tips", { ...values, city, college });
+        : await api.post<{ tip: CampusTipRaw }>("/api/campus-tips", values);
       onSaved(toCampusTipDTO(raw));
       toast.success(isEdit ? "Tip updated" : "Tip shared");
       setOpen(false);

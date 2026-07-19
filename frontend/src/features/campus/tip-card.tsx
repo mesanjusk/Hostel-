@@ -48,7 +48,6 @@ export function TipCard({ tip: initialTip, onDeleted }: { tip: CampusTipDTO; onD
         {tip.isMine && (
           <div className="flex gap-1">
             <TipFormDialog
-              city={tip.city}
               college={tip.college}
               tip={tip}
               onSaved={(updated) => setTip(updated)}
