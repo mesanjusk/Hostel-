@@ -25,59 +25,14 @@ import "dotenv/config";
 import mongoose from "mongoose";
 
 import { Place } from "@/models/Place";
-
-const USER_AGENT = "PackWithMe-PlaceImageFetcher/1.0 (+https://packwithme.instify.in)";
-const MATCH_THRESHOLD = 0.5;
-const REQUEST_DELAY_MS = 1200;
-const MAX_RETRIES = 4;
-
-function sleep(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-function tokenize(s: string): string[] {
-  return s
-    .toLowerCase()
-    .replace(/[^a-z0-9\s]/g, " ")
-    .split(/\s+/)
-    .filter(Boolean);
-}
-
-/** Fraction of the place name's words that appear in the candidate article title. */
-function matchScore(placeName: string, articleTitle: string): number {
-  const nameTokens = tokenize(placeName);
-  if (nameTokens.length === 0) return 0;
-  const titleTokens = new Set(tokenize(articleTitle));
-  const common = nameTokens.filter((t) => titleTokens.has(t));
-  return common.length / nameTokens.length;
-}
-
-interface WikiPage {
-  title: string;
-  thumbnail?: { source: string };
-}
-
-async function searchWikipediaImage(query: string): Promise<WikiPage | null> {
-  const url =
-    "https://en.wikipedia.org/w/api.php?action=query&generator=search&gsrlimit=1" +
-    "&prop=pageimages&piprop=thumbnail&pithumbsize=1000&format=json" +
-    `&gsrsearch=${encodeURIComponent(query)}`;
-
-  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
-    const res = await fetch(url, { headers: { "User-Agent": USER_AGENT } });
-    const text = await res.text();
-    try {
-      const data = JSON.parse(text);
-      const pages = data?.query?.pages;
-      const page = pages ? (Object.values(pages)[0] as WikiPage) : null;
-      return page ?? null;
-    } catch {
-      // Wikipedia returns a plain-text rate-limit notice instead of JSON when throttling.
-      await sleep(REQUEST_DELAY_MS * (attempt + 1));
-    }
-  }
-  throw new Error(`Wikipedia API request failed after ${MAX_RETRIES} retries: ${query}`);
-}
+import {
+  WIKI_REQUEST_DELAY_MS as REQUEST_DELAY_MS,
+  isAcceptableMatch,
+  matchScore,
+  searchWikipediaImage,
+  sleep,
+  type WikiPage,
+} from "@/services/placeImageService";
 
 async function main() {
   const args = process.argv.slice(2);
@@ -109,7 +64,7 @@ async function main() {
     }
 
     const score = page ? matchScore(place.name, page.title) : 0;
-    const accept = Boolean(page?.thumbnail?.source) && score >= MATCH_THRESHOLD;
+    const accept = isAcceptableMatch(place.name, place.city, page);
 
     if (accept && page?.thumbnail) {
       console.log(`  MATCH  ${query} -> "${page.title}" (score ${score.toFixed(2)})`);

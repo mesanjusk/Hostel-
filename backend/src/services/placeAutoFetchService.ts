@@ -1,6 +1,7 @@
 import { connectDB } from "@/db";
 import { Place } from "@/models/Place";
 import { escapeRegex } from "@/lib/regex";
+import { findPlaceImage, sleep, WIKI_REQUEST_DELAY_MS } from "@/services/placeImageService";
 import type { PlaceCategory } from "@/types";
 
 /**
@@ -11,13 +12,19 @@ import type { PlaceCategory } from "@/types";
  *
  * Source: OpenStreetMap (Nominatim for geocoding, Overpass for venues near that point) — free,
  * keyless, no billing to set up. Unlike seedPlaces.ts's "nothing invented" curation, `rating`,
- * `imageUrl`, `openingHours` and `description` are left unset here too (same reasoning: OSM's
+ * `openingHours` and `description` are left unset here too (same reasoning: OSM's
  * `opening_hours` is a compact machine syntax, not something to surface unparsed as if it were
- * human-written copy, and there's no rating/photo data to draw from without a paid API). Data
- * quality is rougher than the curated cities — expect solid tourist spots/temples/stations, and
+ * human-written copy, and there's no rating data to draw from without a paid API). Data quality
+ * is rougher than the curated cities — expect solid tourist spots/temples/stations, and
  * thinner/occasionally-missing restaurant and shop coverage. "Nearby Attraction" is deliberately
  * never populated here — that category is for admin-picked day trips outside the city, not
  * something to infer from a radius query.
+ *
+ * Once the venues themselves are saved, a second pass (backfillImagesForCity) looks up a display
+ * photo for each one via placeImageService — the same Wikipedia-matching logic
+ * scripts/fetchPlaceImages.ts already used for manual/admin backfills, just triggered
+ * automatically here instead of by hand. Runs after the bulkWrite, in the same background task,
+ * so a slow or failed image lookup never affects whether the places themselves get saved.
  */
 
 const NOMINATIM_USER_AGENT = "PackWithMe-PlaceAutoFetch/1.0 (+https://packwithme.instify.in)";
@@ -151,6 +158,26 @@ async function queryOverpass(lat: number, lon: number): Promise<OverpassElement[
   throw lastError;
 }
 
+/** Best-effort: looks up a Wikipedia photo for each newly-inserted place, one at a time with a
+ * politeness delay between requests (same pacing scripts/fetchPlaceImages.ts uses). A single
+ * place's lookup failing just skips that place — never aborts the rest of the batch. */
+async function backfillImagesForCity(city: string, names: string[]): Promise<void> {
+  let matched = 0;
+  for (const name of names) {
+    try {
+      const imageUrl = await findPlaceImage(name, city);
+      if (imageUrl) {
+        await Place.updateOne({ city, name, imageUrl: null }, { imageUrl });
+        matched += 1;
+      }
+    } catch (error) {
+      console.error(`[placeAutoFetch] image lookup failed for "${name}" (${city}):`, error);
+    }
+    await sleep(WIKI_REQUEST_DELAY_MS);
+  }
+  console.log(`[placeAutoFetch] added images for ${matched}/${names.length} place(s) in "${city}"`);
+}
+
 async function autoFetchPlacesForCity(city: string): Promise<void> {
   const trimmed = city.trim();
   if (!trimmed) return;
@@ -218,6 +245,15 @@ async function autoFetchPlacesForCity(city: string): Promise<void> {
 
     await Place.bulkWrite(operations);
     console.log(`[placeAutoFetch] seeded ${operations.length} place(s) for "${trimmed}" from OpenStreetMap`);
+
+    const insertedNames = operations.map((op) => op.updateOne.filter.name);
+    try {
+      await backfillImagesForCity(trimmed, insertedNames);
+    } catch (error) {
+      // Never let a failed image pass look like the place-seeding itself failed — the places
+      // above are already saved regardless of what happens here.
+      console.error(`[placeAutoFetch] image backfill failed for "${trimmed}":`, error);
+    }
   } catch (error) {
     console.error(`[placeAutoFetch] failed for "${trimmed}":`, error);
   } finally {
