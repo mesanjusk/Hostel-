@@ -26,6 +26,16 @@ const UserSchema = new Schema(
     theme: { type: String, enum: ["light", "dark", "system"], default: "system" },
     notificationsEnabled: { type: Boolean, default: true },
     optedOutOfBroadcast: { type: Boolean, default: false },
+    /** WhatsApp customer-service-window bookkeeping — only meaningful for role:"admin"
+     * accounts. Set the moment an inbound WhatsApp message from this admin's mobile is seen at
+     * the webhook (waAdminWindow.ts), mirroring Meta's real 24h window semantics rather than a
+     * flag we control ourselves. New-registration broadcasts (adminNotifyService.ts) only go to
+     * admins whose window is still open; waAdminReactivation.ts's job nudges admins to reopen it
+     * with a template+button before it lapses. */
+    waWindowOpenedAt: { type: Date, default: null },
+    /** How many reactivation-reminder templates have gone out since waWindowOpenedAt last
+     * refreshed — reset to 0 every time it does, caps waAdminReactivation.ts at 3 per window. */
+    waReactivationCount: { type: Number, default: 0 },
     /** bcrypt hash of an admin-issued 7-digit login code. Never store or return the plain code. */
     loginPinHash: { type: String, default: null },
     /** Bumped whenever a previously-issued JWT should stop being accepted (PIN reset/regenerate)

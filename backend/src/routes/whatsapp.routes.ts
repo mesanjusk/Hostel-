@@ -4,6 +4,9 @@ import type { Request } from "express";
 import { createAsyncRouter } from "@/lib/asyncRouter";
 
 import { completeRegistrationFromWhatsApp, completeResendFromWhatsApp } from "@/services/waRegisterService";
+import { connectDB } from "@/db";
+import { User } from "@/models/User";
+import { normalizeMobile } from "@/lib/phone";
 
 export const whatsappRouter = createAsyncRouter();
 
@@ -110,6 +113,19 @@ function hasActiveSession(phone: string): boolean {
   return typeof lastActivity === "number" && Date.now() - lastActivity < SESSION_TTL_MS;
 }
 
+/** Any inbound WhatsApp message from an admin's mobile opens/refreshes that admin's 24h
+ * customer-service window — this is Meta's real window semantics, not a flag this app
+ * controls, so it runs unconditionally here regardless of message content or the
+ * HOSTEL-keyword session gate below. Resets waReactivationCount so waAdminReactivation.ts's
+ * job starts its 3-reminder cycle over from this fresh window. No-ops for non-admin senders. */
+async function refreshAdminWindowIfApplicable(rawFrom: string): Promise<void> {
+  const mobile = normalizeMobile(rawFrom);
+  if (!mobile) return;
+
+  await connectDB();
+  await User.updateOne({ mobile, role: "admin" }, { waWindowOpenedAt: new Date(), waReactivationCount: 0 });
+}
+
 async function processMetabspMessage(payload: MetabspPayload): Promise<void> {
   try {
     // Metabsp also forwards the bot's own outbound sends back through this webhook
@@ -136,6 +152,8 @@ async function processMetabspMessage(payload: MetabspPayload): Promise<void> {
     if (!from) {
       return;
     }
+
+    await refreshAdminWindowIfApplicable(from);
 
     // /wa-login self-registration: handled independently of the HOSTEL keyword gate and
     // any active session below — it's a one-shot handshake with the web form, not a
