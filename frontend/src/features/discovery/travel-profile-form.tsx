@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { useForm, type DefaultValues, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2 } from "lucide-react";
@@ -72,11 +73,13 @@ function SectionHeading({ title, hint, divided }: { title: string; hint: string;
  * hasn't set one has to start the field *empty* so the student is asked for it — seeding 0
  * would both look like an answer and quietly pass validation.
  *
- * @param registeredCity - The account's registration city (`User.city`), i.e. their college /
- * destination. Only used as a fallback when no travel profile has been saved yet, so it never
- * overwrites a destination the student already chose here.
- * @param registeredCollege - The account's registered college (`User.college`), same fallback
- * treatment as registeredCity. */
+ * @param registeredCity - The account's destination city (`User.city`, set on the Profile page).
+ * Always wins for `destinationCity` — that field is frozen here and only editable on Profile —
+ * so a stale value saved on an old travel profile can never linger after the account's city
+ * changes.
+ * @param registeredCollege - The account's registered college (`User.college`), used only as a
+ * fallback when no travel profile has been saved yet, so it never overwrites a college the
+ * student already chose here. */
 function buildDefaults(
   profile: TravelProfileDTO | null,
   registeredCity: string | null,
@@ -84,7 +87,7 @@ function buildDefaults(
 ): DefaultValues<FormInput> {
   return {
     currentCity: profile?.currentCity ?? "",
-    destinationCity: profile?.destinationCity || registeredCity || "",
+    destinationCity: registeredCity ?? "",
     college: profile?.college || registeredCollege || "",
     budgetMin: profile?.budgetMin ?? undefined,
     budgetMax: profile?.budgetMax ?? undefined,
@@ -142,6 +145,13 @@ function TravelProfileFields({
     defaultValues: buildDefaults(profile, user?.city ?? null, user?.college ?? null),
   });
 
+  // Keeps the frozen destinationCity field current if the account's city changes (Profile page)
+  // while this form is already mounted, rather than only picking it up on the next fresh load.
+  useEffect(() => {
+    form.setValue("destinationCity", user?.city ?? "");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.city]);
+
   async function onSubmit(values: FormInput) {
     setIsSubmitting(true);
     try {
@@ -178,8 +188,15 @@ function TravelProfileFields({
                 <FormItem>
                   <FormLabel>Destination city</FormLabel>
                   <FormControl>
-                    <Input placeholder="Pune" {...field} />
+                    <Input {...field} disabled />
                   </FormControl>
+                  <p className="text-muted-foreground text-xs">
+                    {field.value ? "Set from your account profile." : "Not set yet."}{" "}
+                    <Link to="/profile" className="text-primary underline">
+                      Change it in Profile
+                    </Link>
+                    .
+                  </p>
                   <FormMessage />
                 </FormItem>
               )}

@@ -1,30 +1,17 @@
-import { useEffect, useState } from "react";
-
 import { PageHeader } from "@/components/shared/page-header";
-import { api, peekCache } from "@/lib/api";
+import { useAuth } from "@/context/auth-context";
 import { PlacesView } from "@/features/places/places-view";
-import { toTravelProfileDTO, type TravelProfileRaw } from "@/features/discovery/discovery-dto";
 
-const DISCOVERY_PROFILE_PATH = "/api/discovery/profile";
-
+/** City comes straight from the account profile (`User.city`, set on the Profile page) — the
+ * travel profile's own destinationCity is always a mirror of it, so there's no need to fetch
+ * or wait on that separately here. */
 export default function ExplorePage() {
-  const cachedProfile = peekCache<{ profile: TravelProfileRaw | null }>(DISCOVERY_PROFILE_PATH);
-  const [defaultCity, setDefaultCity] = useState(() => toTravelProfileDTO(cachedProfile?.profile ?? null).destinationCity);
-  const [loaded, setLoaded] = useState(() => cachedProfile !== undefined);
-
-  useEffect(() => {
-    api
-      .get<{ profile: TravelProfileRaw | null }>(DISCOVERY_PROFILE_PATH)
-      .then(({ profile }) => setDefaultCity(toTravelProfileDTO(profile).destinationCity))
-      .finally(() => setLoaded(true));
-  }, []);
-
-  if (!loaded) return null;
+  const { user } = useAuth();
 
   return (
     <div>
       <PageHeader title="Explore" description="Places to explore in your destination city" />
-      <PlacesView city={defaultCity} />
+      <PlacesView city={user?.city ?? ""} />
     </div>
   );
 }

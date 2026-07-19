@@ -14,10 +14,10 @@ import { toPlaceDTO, type PlaceDTO, type PlaceRaw } from "@/features/places/plac
 
 const ANY = "__any__";
 
-/** @param city - The student's destination city, taken directly from their travel profile.
- * There's no picker any more: Explore is meant to show the one city that's actually relevant,
- * not let a student browse the whole country. Blank (no travel profile / no destination city
- * saved yet) shows an actionable empty state instead of an empty picker. */
+/** @param city - The student's destination city, taken directly from their account profile
+ * (`User.city`). There's no picker any more: Explore is meant to show the one city that's
+ * actually relevant, not let a student browse the whole country. Blank (no city set yet) shows
+ * an actionable empty state instead of an empty picker. */
 export function PlacesView({ city }: { city: string }) {
   const [category, setCategory] = useState("");
   const [search, setSearch] = useState("");
@@ -75,7 +75,7 @@ export function PlacesView({ city }: { city: string }) {
     : !city.trim()
       ? {
           title: "Set your destination city",
-          description: "Add your destination city in Find a Roomie's profile tab and we'll show places to explore there.",
+          description: "Add your destination city in your Profile and we'll show places to explore there.",
         }
       : { title: "No places found", description: "Try a different category or search." };
 
@@ -118,7 +118,7 @@ export function PlacesView({ city }: { city: string }) {
           action={
             !showFavorites && !city.trim() ? (
               <Button asChild size="sm">
-                <Link to="/find-a-roomie">Set destination city</Link>
+                <Link to="/profile">Set destination city</Link>
               </Button>
             ) : undefined
           }
