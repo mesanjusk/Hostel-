@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { useAuth } from "@/context/auth-context";
 import { Skeleton } from "@/components/ui/skeleton";
 import { emitComingSoon } from "@/lib/coming-soon-bus";
+import { cn } from "@/lib/utils";
 import { HUB_CARDS } from "@/features/welcome/hub-widget-registry";
 import { useHubLayout } from "@/features/welcome/use-hub-layout";
 
@@ -39,7 +40,14 @@ export function WaLoginHomeView() {
       return found ? { ...found, live: entry.live } : undefined;
     })
     .filter((c): c is { card: (typeof HUB_CARDS)[number]; i: number; live: boolean } => c !== undefined);
-  const isOddCount = visibleCards.length % 2 === 1;
+  // The grid is 2 columns below `md`, 3 columns at `md` and up (see grid-cols-2 md:grid-cols-3
+  // below). Either width can leave the last row short one or two cards, which — left to CSS
+  // Grid's default auto-placement — would just sit stuck at the left instead of centered, and
+  // (at 2 columns specifically) stretch to fill the whole row instead of matching its siblings'
+  // size. Both remainders are computed so the lone-last-card fix below is correct at both
+  // breakpoints independently, not just the 2-column case it originally handled.
+  const isLoneOnMobile = visibleCards.length % 2 === 1;
+  const isLoneOnDesktop = visibleCards.length % 3 === 1;
 
   return (
     <div className="mx-auto flex max-w-5xl flex-col gap-8">
@@ -89,14 +97,24 @@ export function WaLoginHomeView() {
                 </>
               );
 
+              const isLast = displayIndex === visibleCards.length - 1;
+
               return (
                 <div
                   key={card.id}
-                  className={
-                    isOddCount && displayIndex === visibleCards.length - 1
-                      ? "max-md:col-span-2 max-md:mx-auto max-md:w-[calc(50%-0.5rem)]"
-                      : undefined
-                  }
+                  className={cn(
+                    // 2-column layout: center the lone last card at half width, matching its
+                    // siblings' size instead of stretching to fill the whole row. Explicitly
+                    // reset back to a normal grid item at `md:` so this can never affect the
+                    // 3-column layout, regardless of card count.
+                    isLast && isLoneOnMobile && "max-md:col-span-2 max-md:mx-auto max-md:w-[calc(50%-0.5rem)]",
+                    isLast && "md:col-span-1 md:mx-0 md:w-auto",
+                    // 3-column layout: a lone last card in an otherwise-empty row would auto-place
+                    // at the left (column 1); shifting it to the middle column both centers it
+                    // and — since that column is already taken by an earlier card in the same
+                    // row — pushes it onto its own row, same as the 2-column case above.
+                    isLast && isLoneOnDesktop && "md:col-start-2",
+                  )}
                 >
                   {live ? (
                     <Link to={card.href} className={noteClassName} style={noteStyle}>
