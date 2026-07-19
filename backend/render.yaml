@@ -38,7 +38,7 @@ services:
         value: en_US
       - key: WHATSAPP_ADMIN_CAMPAIGN_INTERVAL_MINUTES
         value: "30"
-      - key: WHATSAPP_ADMIN_CAMPAIGN_HOURS
-        value: "24"
+      - key: WHATSAPP_ADMIN_CAMPAIGN_END_AT
+        sync: false
       - key: METABSP_WEBHOOK_SECRET
         sync: false
