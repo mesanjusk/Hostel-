@@ -82,6 +82,14 @@ jobs:
           npm run seed:products
           npm run seed:places
 
+          # Same gap as products/places: City.ensureCitiesSeeded and College.ensureCollegesSeeded
+          # only auto-seed an EMPTY collection, so once either collection has any doc at all,
+          # new entries added to indianCities.ts / collegeSeedData.ts never reach production on
+          # their own. Both scripts upsert by a stable key (city name / city+category+slug), so
+          # they're safe and cheap to re-run on every deploy.
+          npm run seed:cities
+          npm run seed:colleges
+
           # Imports any DEFAULT_CHECKLIST_TEMPLATE item (e.g. the "Hobbies" category added
           # after launch) that isn't yet in the live DefaultChecklistItem catalog, matched by
           # template+category+title — never duplicates or overwrites an admin edit, so it's a
