@@ -17,7 +17,10 @@ export default function KnowYourCampusPage() {
 
   return (
     <div>
-      <PageHeader title="Know Your Campus" description="Share your experience in and around campus" />
+      <PageHeader
+        title="Know Your Campus"
+        description={college ? `Share your experience in and around ${college} campus` : "Share your experience in and around campus"}
+      />
       {city && college ? (
         <CampusTipsView college={college} />
       ) : (
