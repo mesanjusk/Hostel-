@@ -78,12 +78,14 @@ jobs:
           NEW_SHA="$(git rev-parse HEAD)"
 
           # Every seed/migration script below is upsert-based and safe to re-run, but several
-          # make a DB round-trip per record and two (seed:places, images:places) also call
-          # rate-limited external APIs (Nominatim, Wikipedia) — on this 1GB box that's the
-          # difference between a 2-minute deploy and a 20-minute one. Skip a script unless the
-          # source data (or the script itself) it reads from actually changed since the commit
-          # this box was last deployed at. `should_run` always says yes when there's no PREV_SHA
-          # to diff against (first-ever deploy on a fresh clone) or when force_seed was passed.
+          # make a DB round-trip per record and seed:places also geocodes via the rate-limited
+          # Nominatim API — on this 1GB box that's the difference between a 2-minute deploy and
+          # a 20-minute one. Skip a script unless the source data (or the script itself) it
+          # reads from actually changed since the commit this box was last deployed at.
+          # `should_run` always says yes when there's no PREV_SHA to diff against (first-ever
+          # deploy on a fresh clone) or when force_seed was passed. images:places (further down)
+          # isn't part of this git-diff scheme — its cost tracks DB state, not source files, so
+          # it's bounded a different way; see the comment at its own call site.
           if [ -z "$PREV_SHA" ] || [ "${FORCE_SEED:-false}" = "true" ]; then
             RUN_ALL=true
             CHANGED_FILES=""
@@ -159,12 +161,16 @@ jobs:
           # anyone who already has it, so also a no-op once caught up.
           run_seed categories:add-hobbies backend/scripts/addHobbiesCategory.ts
 
-          # Not gated like the scripts above: this backfills imageUrl on whatever places
-          # currently have none, which depends on live DB state (places added via the site's
-          # own auto-fetch, or by an admin) as much as on seedPlaces.ts. It's already cheap when
-          # caught up — a single query that finds nothing — so there's no deploy-time win to
-          # skipping it, only a correctness risk. See fetchPlaceImages.ts.
-          npm run images:places
+          # Not gated like the scripts above by git diff — it backfills imageUrl on whatever
+          # places currently have none, which depends on live DB state (site auto-fetch, admin
+          # edits) as much as on seedPlaces.ts. Bounded a different way instead: Place now tracks
+          # imageLookupAttemptedAt, so a place is only ever looked up once by default (a place
+          # with no matching Wikipedia article — most small local eateries — used to get
+          # re-queried, and re-charged its ~1.2s rate-limit delay, on every deploy forever). The
+          # explicit --limit caps a single run even when the never-attempted backlog is large
+          # (e.g. right after a bulk city import), draining the rest over the next few deploys
+          # instead of stalling this one. See fetchPlaceImages.ts.
+          npm run images:places -- --limit=75
 
           cd ~/hostel-git/frontend
           npm ci --no-audit --no-fund

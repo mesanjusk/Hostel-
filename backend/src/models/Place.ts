@@ -11,6 +11,13 @@ const PlaceSchema = new Schema(
     category: { type: String, enum: PLACE_CATEGORIES, required: true, index: true },
     name: { type: String, required: true, trim: true, maxlength: 150 },
     imageUrl: { type: String, default: null },
+    /** Set by fetchPlaceImages.ts the first time it looks this place up on Wikipedia, whether
+     * or not a match was found — without this, a place with no matching Wikipedia article (see
+     * imageUrl's own comment) gets re-queried, and re-charged its ~1.2s rate-limit delay, on
+     * every single deploy forever. `null` means "never attempted"; that's the only state the
+     * script's default run picks up — see its --retry-attempted flag to intentionally re-check
+     * ones that already came up empty (e.g. after Wikipedia coverage improves). */
+    imageLookupAttemptedAt: { type: Date, default: null },
     rating: { type: Number, default: null, min: 0, max: 5 },
     address: { type: String, default: "", trim: true, maxlength: 300 },
     mapsLink: { type: String, default: null, trim: true, maxlength: 500 },
