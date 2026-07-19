@@ -21,7 +21,7 @@ placesRouter.get("/", async (req, res) => {
     res.status(400).json({ error: parsed.error.issues[0]?.message ?? "Invalid filters" });
     return;
   }
-  const places = await listPlaces(parsed.data.city, parsed.data.category, parsed.data.search);
+  const places = await listPlaces(parsed.data.city, parsed.data.category, parsed.data.search, true);
   res.json({ places });
 });
 
