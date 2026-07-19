@@ -7,7 +7,12 @@ name: Deploy to EC2
 on:
   push:
     branches: [main]
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      force_seed:
+        description: "Run every seed/migration script even if its source data didn't change (recovers a deploy that failed mid-seed, or re-applies a script whose own logic changed without its watched file changing)"
+        type: boolean
+        default: false
 
 # The remote step SSHes into one 1GB EC2 box and does `git reset --hard` + npm ci + tsc/vite
 # builds for both apps in the SAME ~/hostel-git checkout. A burst of pushes to main used to
@@ -44,7 +49,8 @@ jobs:
 
       - name: Deploy over SSH
         run: |
-          ssh -o StrictHostKeyChecking=accept-new -i /tmp/deploy_key "${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}" bash -s <<'REMOTE'
+          ssh -o StrictHostKeyChecking=accept-new -i /tmp/deploy_key "${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}" \
+            "FORCE_SEED='${{ github.event.inputs.force_seed || 'false' }}' bash -s" <<'REMOTE'
           set -euo pipefail
 
           # 1GB box has no swap by default, so a single tsc/vite build spiking memory
@@ -66,57 +72,105 @@ jobs:
           export NODE_OPTIONS=--max-old-space-size=768
 
           cd ~/hostel-git
+          PREV_SHA="$(git rev-parse HEAD 2>/dev/null || true)"
           git fetch origin main
           git reset --hard origin/main
+          NEW_SHA="$(git rev-parse HEAD)"
+
+          # Every seed/migration script below is upsert-based and safe to re-run, but several
+          # make a DB round-trip per record and seed:places also geocodes via the rate-limited
+          # Nominatim API — on this 1GB box that's the difference between a 2-minute deploy and
+          # a 20-minute one. Skip a script unless the source data (or the script itself) it
+          # reads from actually changed since the commit this box was last deployed at.
+          # `should_run` always says yes when there's no PREV_SHA to diff against (first-ever
+          # deploy on a fresh clone) or when force_seed was passed. images:places (further down)
+          # isn't part of this git-diff scheme — its cost tracks DB state, not source files, so
+          # it's bounded a different way; see the comment at its own call site.
+          if [ -z "$PREV_SHA" ] || [ "${FORCE_SEED:-false}" = "true" ]; then
+            RUN_ALL=true
+            CHANGED_FILES=""
+          else
+            RUN_ALL=false
+            CHANGED_FILES="$(git diff --name-only "$PREV_SHA" "$NEW_SHA")"
+          fi
+
+          should_run() {
+            [ "$RUN_ALL" = "true" ] && return 0
+            for path in "$@"; do
+              echo "$CHANGED_FILES" | grep -qF "$path" && return 0
+            done
+            return 1
+          }
+
+          # Plain `should_run ... && npm run X || echo skip` would work when the run succeeds,
+          # but under `set -e` an actual failure of `npm run X` gets swallowed by the trailing
+          # `|| echo` (the whole `&&`/`||` chain's exit status is the echo's, i.e. always 0) and
+          # misreported as "skipping" — this if/else form lets a real failure abort the deploy
+          # like every other command here does.
+          run_seed() {
+            local script="$1"
+            shift
+            if should_run "$@"; then
+              npm run "$script"
+            else
+              echo "Skipping $script — source unchanged since last deploy"
+            fi
+          }
 
           cd ~/hostel-git/backend
           npm ci --no-audit --no-fund
           npm run build
 
           # Both scripts upsert by a stable key (name+store / city+name) and touch only their
-          # own collection, so they're safe to re-run on every deploy — unlike `npm run seed`,
-          # which also overwrites Guide article content and would stomp an admin's edits if it
-          # ran unattended like this. Without this step, a fresh production database never gets
+          # own collection, so they're safe to re-run — unlike `npm run seed`, which also
+          # overwrites Guide article content and would stomp an admin's edits if it ran
+          # unattended like this. Without this step, a fresh production database never gets
           # products/places at all: nothing else runs these after a deploy. See ensureCitiesSeeded
-          # in cityService.ts for the same gap already fixed for the City collection.
-          npm run seed:products
-          npm run seed:places
+          # in cityService.ts for the same gap already fixed for the City collection. Their
+          # curated data lives inline in the script itself (no separate data file), so that's
+          # what's watched.
+          run_seed seed:products backend/scripts/seedProducts.ts
+          run_seed seed:places backend/scripts/seedPlaces.ts
 
           # Same gap as products/places: City.ensureCitiesSeeded and College.ensureCollegesSeeded
           # only auto-seed an EMPTY collection, so once either collection has any doc at all,
           # new entries added to indianCities.ts / collegeSeedData.ts never reach production on
-          # their own. Both scripts upsert by a stable key (city name / city+category+slug), so
-          # they're safe and cheap to re-run on every deploy.
-          npm run seed:cities
-          npm run seed:colleges
+          # their own. Both scripts upsert by a stable key (city name / city+category+slug).
+          run_seed seed:cities backend/scripts/seedCities.ts backend/src/lib/indianCities.ts
+          run_seed seed:colleges backend/scripts/seedColleges.ts backend/src/lib/collegeSeedData.ts
 
           # Imports any DEFAULT_CHECKLIST_TEMPLATE item (e.g. the "Hobbies" category added
           # after launch) that isn't yet in the live DefaultChecklistItem catalog, matched by
           # template+category+title — never duplicates or overwrites an admin edit, so it's a
           # no-op once caught up. Without this, new template items never reach production:
           # ensureTemplateHasDefaultItems only seeds a template that has zero items at all.
-          npm run seed:checklist-taxonomy
+          run_seed seed:checklist-taxonomy backend/scripts/seedChecklistTaxonomy.ts backend/src/lib/defaultChecklistTemplate.ts
 
           # Retags the handful of DefaultChecklistItem docs (e.g. "Trimmer / Razor",
           # "Sanitary Products") that defaultChecklistTemplate.ts now targets at a specific
           # gender, matched by template+category+title — only flips a doc whose gender is
           # CURRENTLY exactly "All" (the untouched default), so it never overwrites an admin's
-          # manual gender edit. Safe/no-op to rerun every deploy once every matching doc is
-          # caught up. See scripts/retagChecklistGender.ts for the one known limitation (an
-          # admin manually resetting one back to "All" gets re-tagged on the next deploy).
-          npm run migrate:checklist-gender
+          # manual gender edit. See scripts/retagChecklistGender.ts for the one known limitation
+          # (an admin manually resetting one back to "All" gets re-tagged on the next run that
+          # touches defaultChecklistTemplate.ts).
+          run_seed migrate:checklist-gender backend/scripts/retagChecklistGender.ts backend/src/lib/defaultChecklistTemplate.ts
 
           # Category.ts only seeds a user's default folders once (existingCount === 0), so a
           # category added to the template after a user already onboarded — like Hobbies —
           # never reaches them on its own. Backfills that folder onto existing users; skips
           # anyone who already has it, so also a no-op once caught up.
-          npm run categories:add-hobbies
+          run_seed categories:add-hobbies backend/scripts/addHobbiesCategory.ts
 
-          # Fills imageUrl on any place seedPlaces.ts just created (or left) with none, from
-          # Wikipedia — no API key needed. Only touches places where imageUrl is still null,
-          # so on a caught-up DB this is a single no-op query; only newly-added placeless
-          # places cost the ~1.2s/place Wikipedia lookup. See fetchPlaceImages.ts.
-          npm run images:places
+          # Not gated like the scripts above by git diff — it backfills imageUrl on whatever
+          # places currently have none, which depends on live DB state (site auto-fetch, admin
+          # edits) as much as on seedPlaces.ts. Bounded a different way instead: Place now tracks
+          # imageLookupAttemptedAt, so a place is only ever looked up once by default (a place
+          # with no matching Wikipedia article — most small local eateries — used to get
+          # re-queried, and re-charged its ~1.2s rate-limit delay, on every deploy forever). The
+          # explicit --limit caps a single run even when the never-attempted backlog is large
+          # (e.g. right after a bulk city import), draining the rest over the next few deploys
+          # instead of stalling this one. See fetchPlaceImages.ts.
+          npm run images:places -- --limit=75
 
           cd ~/hostel-git/frontend
           npm ci --no-audit --no-fund
