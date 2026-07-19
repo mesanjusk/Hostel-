@@ -23,6 +23,7 @@ import {
 } from "@/services/guideService";
 import { saveDashboardLayout, saveHomeLayout, saveNavLayout } from "@/services/uiLayoutService";
 import { saveLandingDesign } from "@/services/landingDesignService";
+import { getLandingPageSettings, updateLandingPageSettings } from "@/services/landingPageSettingsService";
 import { createCity, deleteCity, listCities, updateCity } from "@/services/cityService";
 import {
   GENDER_THEME_KEYS,
@@ -46,6 +47,7 @@ import {
   guideArticleSchema,
   guideArticleUpdateSchema,
   landingDesignSchema,
+  landingPageSettingsUpdateSchema,
   listingSchema,
   listingUpdateSchema,
   placeSchema,
@@ -383,6 +385,28 @@ adminRouter.patch("/gender-theme/:key", async (req, res) => {
       blue: asColor(noteColors.blue),
       lavender: asColor(noteColors.lavender),
     },
+  });
+  res.json({ settings });
+});
+
+// --- Landing page settings (girl/boy placeholder images for the pre-login /welcome cards) ---
+
+adminRouter.get("/landing-settings", async (_req, res) => {
+  res.json({ settings: await getLandingPageSettings() });
+});
+
+adminRouter.put("/landing-settings", async (req, res) => {
+  const parsed = landingPageSettingsUpdateSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.issues[0]?.message ?? "Invalid input" });
+    return;
+  }
+  // "" from the form means "clear this image back to the neutral placeholder" — store as null,
+  // not an empty string, same asColor pattern as gender-theme above.
+  const asUrl = (v: string) => (v === "" ? null : v);
+  const settings = await updateLandingPageSettings({
+    girlImageUrl: asUrl(parsed.data.girlImageUrl),
+    boyImageUrl: asUrl(parsed.data.boyImageUrl),
   });
   res.json({ settings });
 });

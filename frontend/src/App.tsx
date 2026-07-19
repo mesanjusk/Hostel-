@@ -54,6 +54,7 @@ const AdminHomeScreenPage = lazyRetry(() => import("@/pages/admin-home-screen-pa
 const AdminGuideScreenPage = lazyRetry(() => import("@/pages/admin-guide-screen-page"));
 const AdminCitiesPage = lazyRetry(() => import("@/pages/admin-cities-page"));
 const AdminGenderThemePage = lazyRetry(() => import("@/pages/admin-gender-theme-page"));
+const AdminLandingSettingsPage = lazyRetry(() => import("@/pages/admin-landing-settings-page"));
 const AdminCommunitiesPage = lazyRetry(() => import("@/pages/admin-communities-page"));
 const AdminPlacesPage = lazyRetry(() => import("@/pages/admin-places-page"));
 const AdminHostelPgFlatPage = lazyRetry(() => import("@/pages/admin-hostel-pg-flat-page"));
@@ -257,6 +258,14 @@ export default function App() {
               element={
                 <AdminRoute>
                   <AdminGenderThemePage />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/admin/landing-settings"
+              element={
+                <AdminRoute>
+                  <AdminLandingSettingsPage />
                 </AdminRoute>
               }
             />
