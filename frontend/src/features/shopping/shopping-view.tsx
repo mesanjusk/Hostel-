@@ -5,13 +5,6 @@ import { ExternalLink, ShoppingBag, Check, X, Star, Sparkles } from "lucide-reac
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { EmptyState } from "@/components/shared/empty-state";
 import { PageHeader } from "@/components/shared/page-header";
 import { getProductIcon, getProductIconColorClasses } from "@/lib/product-icons";
@@ -173,25 +166,37 @@ export function ShoppingView({ products }: { products: ProductDTO[] }) {
 
   return (
     <div>
-      <PageHeader
-        title="Shopping Recommendations"
-        description="Curated picks for what to buy before you move in"
-        action={
-          <Select value={category} onValueChange={setCategory}>
-            <SelectTrigger className="w-48">
-              <SelectValue placeholder="All categories" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All categories</SelectItem>
-              {DEFAULT_CHECKLIST_CATEGORIES.map((c) => (
-                <SelectItem key={c} value={c}>
-                  {c}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        }
-      />
+      <PageHeader title="Buy Smart, Pack Better" description="Curated picks for what to buy before you move in" />
+
+      <div className="scrollbar-none -mx-1 mb-4 flex gap-1.5 overflow-x-auto px-1 pb-1">
+        <button
+          type="button"
+          onClick={() => setCategory("all")}
+          className={cn(
+            "shrink-0 rounded-full border px-3.5 py-1.5 text-sm font-medium whitespace-nowrap transition-colors",
+            category === "all"
+              ? "border-primary bg-primary text-primary-foreground"
+              : "border-border/70 text-muted-foreground hover:text-foreground",
+          )}
+        >
+          All
+        </button>
+        {DEFAULT_CHECKLIST_CATEGORIES.map((c) => (
+          <button
+            key={c}
+            type="button"
+            onClick={() => setCategory(c)}
+            className={cn(
+              "shrink-0 rounded-full border px-3.5 py-1.5 text-sm font-medium whitespace-nowrap transition-colors",
+              category === c
+                ? "border-primary bg-primary text-primary-foreground"
+                : "border-border/70 text-muted-foreground hover:text-foreground",
+            )}
+          >
+            {c}
+          </button>
+        ))}
+      </div>
 
       {filtered.length === 0 ? (
         <EmptyState
