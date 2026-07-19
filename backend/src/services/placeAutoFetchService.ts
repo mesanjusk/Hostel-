@@ -1,14 +1,20 @@
 import { connectDB } from "@/db";
 import { Place } from "@/models/Place";
+import { PlaceCityFetch } from "@/models/PlaceCityFetch";
 import { escapeRegex } from "@/lib/regex";
 import { findPlaceImage, sleep, WIKI_REQUEST_DELAY_MS } from "@/services/placeImageService";
 import type { PlaceCategory } from "@/types";
 
 /**
  * Fills the Place collection for a city the moment a user's profile first names it, so Explore
- * isn't empty for whoever gets there next. seedPlaces.ts's hand-curated 20 cities stay
- * authoritative where they exist (this never touches a city that already has any Place docs);
- * this only covers the long tail those 20 don't.
+ * isn't empty for whoever gets there next. Runs for every city, including seedPlaces.ts's 20
+ * hand-curated ones — a curated city just starts from a non-empty set of names to skip.
+ * Whatever's already on file (curated or previously auto-fetched) always takes precedence:
+ * this only ever adds names that don't already exist in that city, never touches or replaces an
+ * existing doc. Runs at most once per city ever, tracked via PlaceCityFetch — not gated on
+ * "does this city have Place docs" (curated cities already do, on day one), so a separate record
+ * of "has the OSM pass itself already run here" is what actually prevents re-scanning Mumbai on
+ * every single Mumbai profile save.
  *
  * Source: OpenStreetMap (Nominatim for geocoding, Overpass for venues near that point) — free,
  * keyless, no billing to set up. Unlike seedPlaces.ts's "nothing invented" curation, `rating`,
@@ -187,19 +193,29 @@ async function autoFetchPlacesForCity(city: string): Promise<void> {
 
   try {
     await connectDB();
-    const alreadySeeded = await Place.exists({ city: new RegExp(`^${escapeRegex(trimmed)}$`, "i") });
-    if (alreadySeeded) return;
+    const cityFilter = new RegExp(`^${escapeRegex(trimmed)}$`, "i");
+    const alreadyFetched = await PlaceCityFetch.exists({ city: cityFilter });
+    if (alreadyFetched) return;
 
     const location = await geocodeCity(trimmed);
     if (!location) {
+      // Transient/config problem, not "nothing here" — no PlaceCityFetch record written, so a
+      // later profile save for this city gets to try again instead of being skipped forever.
       console.warn(`[placeAutoFetch] could not geocode "${trimmed}" — skipping`);
       return;
     }
 
+    // Existing names in this city — curated (seedPlaces.ts), previously auto-fetched, or
+    // admin-added — take precedence over anything OSM finds. Seeding seenNames with these means
+    // an OSM element sharing a name with one is silently dropped rather than considered "new",
+    // so nothing already on file is ever duplicated or touched.
+    const existing = await Place.find({ city: cityFilter }).select("name").lean();
+    const existingNames = existing.map((p) => p.name);
+    const seenNames = new Set(existingNames.map((n) => n.trim().toLowerCase()));
+
     const elements = await queryOverpass(location.lat, location.lon);
 
     const byCategory = new Map<PlaceCategory, OverpassElement[]>();
-    const seenNames = new Set<string>();
     for (const el of elements) {
       const name = el.tags?.name?.trim();
       if (!name || seenNames.has(name.toLowerCase())) continue;
@@ -239,21 +255,34 @@ async function autoFetchPlacesForCity(city: string): Promise<void> {
     );
 
     if (operations.length === 0) {
-      console.warn(`[placeAutoFetch] no recognizable places found for "${trimmed}" via OpenStreetMap`);
-      return;
+      console.log(
+        `[placeAutoFetch] no new places for "${trimmed}" beyond the ${existingNames.length} already on file`,
+      );
+    } else {
+      await Place.bulkWrite(operations);
+      console.log(
+        `[placeAutoFetch] added ${operations.length} new place(s) for "${trimmed}" from OpenStreetMap ` +
+          `(${existingNames.length} already on file were left untouched)`,
+      );
+
+      const insertedNames = operations.map((op) => op.updateOne.filter.name);
+      try {
+        await backfillImagesForCity(trimmed, insertedNames);
+      } catch (error) {
+        // Never let a failed image pass look like the place-seeding itself failed — the places
+        // above are already saved regardless of what happens here.
+        console.error(`[placeAutoFetch] image backfill failed for "${trimmed}":`, error);
+      }
     }
 
-    await Place.bulkWrite(operations);
-    console.log(`[placeAutoFetch] seeded ${operations.length} place(s) for "${trimmed}" from OpenStreetMap`);
-
-    const insertedNames = operations.map((op) => op.updateOne.filter.name);
-    try {
-      await backfillImagesForCity(trimmed, insertedNames);
-    } catch (error) {
-      // Never let a failed image pass look like the place-seeding itself failed — the places
-      // above are already saved regardless of what happens here.
-      console.error(`[placeAutoFetch] image backfill failed for "${trimmed}":`, error);
-    }
+    // Written only once the OSM pass genuinely completed (whether or not it found anything new)
+    // — this, not Place data, is what stops "${trimmed}" from being re-scanned on every future
+    // profile save naming it.
+    await PlaceCityFetch.updateOne(
+      { city: cityFilter },
+      { $setOnInsert: { city: trimmed, placesAdded: operations.length } },
+      { upsert: true },
+    );
   } catch (error) {
     console.error(`[placeAutoFetch] failed for "${trimmed}":`, error);
   } finally {
