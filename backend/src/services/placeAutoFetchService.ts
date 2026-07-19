@@ -2,6 +2,7 @@ import { connectDB } from "@/db";
 import { Place } from "@/models/Place";
 import { PlaceCityFetch } from "@/models/PlaceCityFetch";
 import { escapeRegex } from "@/lib/regex";
+import { resolveCityAlias } from "@/lib/cityAliases";
 import { findPlaceImage, sleep, WIKI_REQUEST_DELAY_MS } from "@/services/placeImageService";
 import type { PlaceCategory } from "@/types";
 
@@ -301,5 +302,8 @@ async function autoFetchPlacesForCity(city: string): Promise<void> {
  * since the cheap indexed existence check above is what actually gates any network call. */
 export function ensurePlacesForCity(city: string | null | undefined): void {
   if (!city) return;
-  void autoFetchPlacesForCity(city);
+  // Resolved first so a district-style destination city (e.g. "Ahmedabad, Gujarat") fetches
+  // into/dedupes against the same curated "Ahmedabad" places listPlaces queries for, instead of
+  // building a second, lower-quality OSM-only place list under the raw district string.
+  void autoFetchPlacesForCity(resolveCityAlias(city));
 }
