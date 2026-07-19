@@ -74,6 +74,18 @@
   --note-pink: #ffd6e8;
   --note-blue: #cfeaff;
   --note-lavender: #e3d9ff;
+
+  /** Pre-login auth screens' background (layouts/auth-layout.tsx: landing/gender-pick, OTP
+   * login, onboarding) — a soft pastel gradient plus three blurred blobs, byte-identical to the
+   * hardcoded hex values that shipped before these tokens existed. Pulled out as tokens (same
+   * pattern as --note-* above) so the "boy" pick below gets its own cool-toned backdrop instead
+   * of staying pink for both genders. */
+  --auth-bg-from: #ffe8d6;
+  --auth-bg-via: #ffd9e8;
+  --auth-bg-to: #fdf6ee;
+  --auth-blob-1: #ffc9a8;
+  --auth-blob-2: #ffb3d1;
+  --auth-blob-3: #fff3c4;
 }
 
 /** "Boy" theme — navy/steel/charcoal, applied only when <html data-gender="male">. Set/cleared
@@ -132,6 +144,15 @@
   --note-pink: #9db4c9;
   --note-blue: #bcd8ee;
   --note-lavender: #8fa3ba;
+
+  /** Boy-theme auth background — cool steel/ice blue, echoing --primary/--accent above instead
+   * of the girl set's warm peach/pink. */
+  --auth-bg-from: #dce9f5;
+  --auth-bg-via: #e6edf7;
+  --auth-bg-to: #f2f5f9;
+  --auth-blob-1: #b8d4ea;
+  --auth-blob-2: #9fc3e0;
+  --auth-blob-3: #cfe3f0;
 }
 
 @theme inline {
