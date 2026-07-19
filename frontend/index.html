@@ -5,14 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="Plan, pack, and organize everything for hostel life — checklists, budget, documents, and more." />
     <meta name="theme-color" content="#c96b9a" />
-    <!-- Paints the very first frame before any external stylesheet has loaded — iOS standalone
-         (Add to Home Screen) launches have no splash-screen config of their own
-         (apple-touch-startup-image), so absent this WebKit's default unstyled background shows
-         through for the whole cold-start network round trip, which reads as a black flash. This
-         is synchronous and part of the initial HTML parse, so it applies before the Tailwind
-         bundle (or the manifest's own background_color, which iOS doesn't honor here) ever has
-         a chance to. Matches manifest.webmanifest's background_color and index.css's
-         --background so there's no visible handoff once the real stylesheet does load. -->
+    <!-- Paints the very first frame before any external stylesheet has loaded, so the shell
+         itself never flashes unstyled/black while the CSS bundle loads. Matches
+         manifest.webmanifest's background_color and index.css's --background so there's no
+         visible handoff once the real stylesheet does load. This is the second-phase fix; the
+         apple-touch-startup-image links below cover the first phase (see that comment). -->
     <style>
       html, body { background-color: #fdf6ee; }
     </style>
@@ -23,11 +20,31 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Pack with Me" />
+    <!-- iOS standalone (Add to Home Screen) launches show one of these *before* the WebView
+         starts loading anything at all — no HTML has parsed yet at that point, so the inline
+         background-color style above can't reach this phase. Without an explicit match here,
+         iOS falls back to its own default (black on many devices/versions), which is the
+         "black screen on open" users actually see: it's this native pre-load phase, not a slow
+         page load. Each is a solid #fdf6ee (index.css's --background) rectangle at one device's
+         exact portrait pixel size — iOS matches by exact device-width/height/pixel-ratio, so a
+         mismatched size is simply skipped, not scaled. Covers iPhone SE through 15 Pro Max;
+         newer models fall back to the closest still-unmatched size or, worst case, black, until
+         their exact dimensions are added here. -->
+    <link rel="apple-touch-startup-image" href="/splash/splash-640x1136.png" media="(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" />
+    <link rel="apple-touch-startup-image" href="/splash/splash-750x1334.png" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" />
+    <link rel="apple-touch-startup-image" href="/splash/splash-1242x2208.png" media="(device-width: 414px) and (device-height: 736px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" />
+    <link rel="apple-touch-startup-image" href="/splash/splash-828x1792.png" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" />
+    <link rel="apple-touch-startup-image" href="/splash/splash-1242x2688.png" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" />
+    <link rel="apple-touch-startup-image" href="/splash/splash-1125x2436.png" media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" />
+    <link rel="apple-touch-startup-image" href="/splash/splash-1170x2532.png" media="(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" />
+    <link rel="apple-touch-startup-image" href="/splash/splash-1284x2778.png" media="(device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" />
+    <link rel="apple-touch-startup-image" href="/splash/splash-1179x2556.png" media="(device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" />
+    <link rel="apple-touch-startup-image" href="/splash/splash-1290x2796.png" media="(device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" />
     <!-- Open the API origin's DNS+TLS+TCP handshake in parallel with JS parsing, so the very
          first fetch (auth/me) starts on a warm connection instead of paying it serially.
          %VITE_API_URL% is substituted at build time from the same env var lib/api.ts uses. -->
     <link rel="preconnect" href="%VITE_API_URL%" crossorigin />
-    <!-- Fonts are self-hosted via @fontsource (imported in index.css) rather than loaded from
+    <!-- Fonts are self-hosted via @fontsource (imported in main.tsx) rather than loaded from
          Google Fonts — see the comment there for why: it's what lets the service worker cache
          them like any other static asset, instead of a cross-origin fetch the SW never touches
          and iOS evicts from its own HTTP cache between PWA launches. -->
