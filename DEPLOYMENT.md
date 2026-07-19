@@ -1,418 +1,322 @@
-# Pack with Me — Deployment & Operations Runbook
-
-This document is a complete handover for running the **Pack with Me** (Hostel) app on AWS.
-It is written so that an assistant (Claude) or a developer can operate, update, and — if needed —
-rebuild the whole stack from scratch, with minimal back-and-forth.
-
-> **Reading order for an assistant:** skim §1–§3 for the mental model, then use §5 (operate),
-> §6 (deploy updates), and §11 (troubleshoot) as your working references. §10 is the full
-> from-scratch rebuild if the instance is ever lost.
-
----
-
-## 0. What you (the operator) must obtain first
-
-These are **not** in this repo (on purpose — they're secrets). Get them from the project owner
-privately, then place them as noted:
-
-| Secret / access | What it's for | Where it goes |
-| --- | --- | --- |
-| **SSH private key** `hostel-key` | SSH into the server | Save to `~/.ssh/hostel-key`, then `chmod 600 ~/.ssh/hostel-key` |
-| **AWS credentials** (an IAM user with EC2/VPC access) | Manage the instance via CLI | `aws configure` (region `ap-south-1`) |
-| **MSG91 dashboard login** | Whitelist domains, toggle OTP settings | msg91.com console |
-
-The app's runtime secrets (JWT secret, DB encryption key, MSG91 auth key, etc.) **already exist
-on the server** in `/home/ubuntu/hostel/backend/.env`. You normally never need to touch them.
-See §7 if you do.
-
-Tooling you need locally: **AWS CLI v2**, an **SSH client**, and (only to build updates) **Node 20+**.
-
----
-
-## 1. Architecture
-
-Single self-contained EC2 box. No external database or PaaS.
-
-```
-                Internet
-                   │  http://52.66.179.25   (port 80)
-                   ▼
-            ┌──────────────────────────────────────────┐
-            │  EC2  t3.micro  Ubuntu 24.04 (Mumbai)     │
-            │                                            │
-            │   nginx :80                                │
-            │    ├─ /            → static SPA            │
-            │    │                 (/var/www/hostel/dist)│
-            │    ├─ /api/         → 127.0.0.1:4000       │
-            │    ├─ /socket.io/   → 127.0.0.1:4000 (ws)  │
-            │    └─ /health       → 127.0.0.1:4000       │
-            │                                            │
-            │   pm2 → node backend  :4000  (hostel-api)  │
-            │             │                              │
-            │             ▼                              │
-            │   MongoDB 8  127.0.0.1:27017 / hostel_prod │
-            └──────────────────────────────────────────┘
-```
-
-- **Frontend:** Vite + React SPA, built to static files, served by nginx.
-- **Backend:** Express + TypeScript (compiled to `dist/`), run by **pm2**, listens on `:4000`.
-- **Database:** **self-hosted MongoDB 8** on the same box (not Atlas). DB name `hostel_prod`.
-- **Auth:** passwordless **MSG91 "Login with OTP"** (mobile + SMS OTP). See §8.
-
----
-
-## 2. Server facts (source of truth)
-
-| Item | Value |
-| --- | --- |
-| Public URL | **http://52.66.179.25** |
-| AWS account | `966042699555` ("Instify") |
-| Region | `ap-south-1` (Mumbai) |
-| EC2 instance ID | `i-07ab26518f4cfdefd` |
-| Instance type | `t3.micro` (2 vCPU, ~1 GB RAM) + **2 GB swap** |
-| OS | Ubuntu 24.04 LTS |
-| Elastic IP | `52.66.179.25` (alloc `eipalloc-0741ee3e84de7b173`) |
-| Security group | `sg-0ad4c5058e16d6fb4` (inbound 22, 80, 443 from anywhere) |
-| Key pair (AWS) | `hostel-key` (imported; private key is `~/.ssh/hostel-key`) |
-| SSH user | `ubuntu` |
-| App source on box | `/home/ubuntu/hostel` (`backend/`, `frontend/`) |
-| Web root (static) | `/var/www/hostel/dist` |
-| Backend env file | `/home/ubuntu/hostel/backend/.env` |
-| pm2 process name | `hostel-api` |
-| Deployed branch | **`priyal`** (MSG91 passwordless login) |
-
-> The box holds **built source shipped over SCP**, not a git clone — there is no `.git` on the
-> server. See §6 for how updates are shipped (and how to switch to git-based deploys).
-
----
-
-## 3. Runtime layout on the box
-
-```
-/home/ubuntu/hostel/
-  backend/            Express API (TypeScript)
-    .env              runtime secrets (see §7)      ← DO NOT COMMIT
-    dist/             compiled JS (node dist/index.js)
-    node_modules/
-  frontend/           Vite SPA source
-    .env              build-time public vars (see §7)
-    dist/             build output (copied to web root)
-/var/www/hostel/dist/ what nginx actually serves
-/etc/nginx/sites-available/hostel   nginx site (symlinked into sites-enabled)
-/etc/mongod.conf      MongoDB config (wiredTiger cache capped at 0.25 GB)
-/swapfile             2 GB swap (needed so builds don't OOM)
-```
-
----
-
-## 4. Connecting
-
-```bash
-ssh -i ~/.ssh/hostel-key ubuntu@52.66.179.25
-```
-
-If you see *"UNPROTECTED PRIVATE KEY FILE"*: `chmod 600 ~/.ssh/hostel-key` (Linux/macOS) or fix
-the file's ACL on Windows.
-
-All service management below assumes you're either SSH'd in, or wrapping commands as
-`ssh -i ~/.ssh/hostel-key ubuntu@52.66.179.25 '<command>'`.
-
----
-
-## 5. Day-to-day operations
-
-**Health check (from anywhere):**
-```bash
-curl http://52.66.179.25/health          # → {"status":"ok"}
-```
-
-**Backend (pm2):**
-```bash
-pm2 status                 # list processes
-pm2 logs hostel-api        # tail live logs (Ctrl-C to stop)
-pm2 logs hostel-api --lines 200 --nostream   # last 200 lines
-pm2 restart hostel-api     # restart after an env/code change
-pm2 stop hostel-api
-```
-
-**nginx:**
-```bash
-sudo nginx -t              # validate config
-sudo systemctl reload nginx
-sudo tail -f /var/log/nginx/error.log
-```
-
-**MongoDB:**
-```bash
-systemctl status mongod
-mongosh hostel_prod        # open a shell on the app DB
-```
-
-**System:**
-```bash
-free -m                    # memory + swap
-df -h /                    # disk
-```
-
----
-
-## 6. Deploying an update
-
-The app is built from the **`priyal`** branch and shipped as a tarball. Two ways:
-
-### 6a. Ship-from-local (current method — no GitHub auth on the box)
-
-On a machine that has the repo checked out (branch `priyal`) and Node installed:
-
-```bash
-# 1) package the source (exclude junk)
-cd <path-to>/Hostel-
-tar --exclude=.git --exclude=node_modules --exclude=dist --exclude='*.log' \
-    --exclude=backend/.env --exclude=frontend/.env \
-    -czf /tmp/hostel-src.tgz backend frontend README.md
-
-# 2) copy up
-scp -i ~/.ssh/hostel-key /tmp/hostel-src.tgz ubuntu@52.66.179.25:/tmp/
-
-# 3) build + release on the box (see deploy script below)
-ssh -i ~/.ssh/hostel-key ubuntu@52.66.179.25 'bash /tmp/deploy.sh'
-```
-
-The **`deploy.sh`** that lives on the box (`/tmp/deploy.sh`) does: extract → keep existing
-`.env` files → `npm ci` + build backend → `npm ci` + build frontend → copy `frontend/dist` to
-the web root → `pm2 restart` → reload nginx. If you need to recreate it, its body is:
-
-```bash
-#!/usr/bin/env bash
-set -euo pipefail
-APP=/home/ubuntu/hostel ; WEBROOT=/var/www/hostel/dist
-export NODE_OPTIONS=--max-old-space-size=1536   # <-- REQUIRED: 1GB box OOMs tsc/vite without this
-# preserve existing env, refresh source
-cp "$APP/backend/.env"  /tmp/keep-backend.env  2>/dev/null || true
-cp "$APP/frontend/.env" /tmp/keep-frontend.env 2>/dev/null || true
-rm -rf "$APP"; mkdir -p "$APP"; tar -xzf /tmp/hostel-src.tgz -C "$APP"
-cp /tmp/keep-backend.env  "$APP/backend/.env"
-cp /tmp/keep-frontend.env "$APP/frontend/.env"
-cd "$APP/backend"  && npm ci --no-audit --no-fund && npm run build
-cd "$APP/frontend" && npm ci --no-audit --no-fund && npm run build
-sudo mkdir -p "$WEBROOT"; sudo rm -rf "${WEBROOT:?}/"*; sudo cp -r "$APP/frontend/dist/." "$WEBROOT/"
-cd "$APP/backend" && pm2 restart hostel-api --update-env || pm2 start dist/index.js --name hostel-api --time
-pm2 save
-sudo nginx -t && sudo systemctl reload nginx
-echo DEPLOY_DONE
-```
-
-> **Critical:** always keep `NODE_OPTIONS=--max-old-space-size=1536`. The default V8 heap on a
-> 1 GB box is ~460 MB and both `tsc` and `vite` exceed it → `Aborted (core dumped)`. The 2 GB
-> swap backs the larger heap.
-
-### 6b. Recommended upgrade: git-based deploys
-
-To make updates a one-liner, put a **read-only GitHub deploy key** on the box:
-
-```bash
-ssh -i ~/.ssh/hostel-key ubuntu@52.66.179.25
-ssh-keygen -t ed25519 -f ~/.ssh/gh_deploy -N ""     # then add ~/.ssh/gh_deploy.pub as a
-                                                    # Deploy Key on the mesanjusk/Hostel- repo
-git clone git@github.com:mesanjusk/Hostel-.git ~/hostel-git
-```
-Then a deploy becomes: `cd ~/hostel-git && git pull && <build + release>`. (Only do this once
-`priyal` is merged, or clone `-b priyal`.)
-
----
-
-## 7. Environment variables
-
-### Backend — `/home/ubuntu/hostel/backend/.env` (secret, already set on box)
-
-| Key | Meaning | Notes |
-| --- | --- | --- |
-| `NODE_ENV` | `production` | |
-| `PORT` | `4000` | nginx proxies to this |
-| `MONGODB_URI` | `mongodb://127.0.0.1:27017/hostel_prod` | local Mongo |
-| `JWT_SECRET` | session token signing secret | generated; keep stable (rotating logs everyone out) |
-| `IP_HASH_SALT` | salts hashed visitor IPs (analytics) | generated |
-| `PIN_ENCRYPTION_KEY` | AES-256 key (64 hex) for stored PINs | generated |
-| `MSG91_AUTH_KEY` | **secret** MSG91 account auth key | verifies OTP tokens server-side |
-| `CORS_ORIGIN` | `http://52.66.179.25` | allowed frontend origin(s) |
-| `FRONTEND_URL` | `http://52.66.179.25` | |
-
-After editing this file: `pm2 restart hostel-api --update-env`.
-
-### Frontend — `/home/ubuntu/hostel/frontend/.env` (public, baked into the build)
-
-| Key | Value |
-| --- | --- |
-| `VITE_API_URL` | `http://52.66.179.25` |
-| `VITE_MSG91_WIDGET_ID` | `3666786f316c313635323337` |
-| `VITE_MSG91_TOKEN_AUTH` | `312759TRZYCE2x67e4f528P1` |
-
-These are public (safe in the bundle). Changing them requires a **frontend rebuild** (§6).
-
----
-
-## 8. MSG91 OTP login
-
-Login is passwordless: user enters mobile → MSG91 sends an SMS OTP via its "Login with OTP"
-widget → the browser gets a signed access token → the backend confirms it with MSG91
-(`POST control.msg91.com/api/v5/widget/verifyAccessToken`, using `MSG91_AUTH_KEY`) and reads the
-verified number. New numbers auto-register; returning numbers log in. Code:
-`frontend/src/lib/msg91.ts`, `frontend/src/pages/otp-login-page.tsx`,
-`backend/src/services/msg91Service.ts`, route `POST /api/auth/otp/widget-verify`.
-
-**⚠️ Required for login to work on a domain:** the site's origin must be in the MSG91 widget's
-**allowed-domains whitelist** (MSG91 dashboard → the widget → settings), or the widget script
-refuses to load and "Send code" fails. Add `52.66.179.25` (and any real domain you attach later).
-The same widget/account is shared with the WhatsLocal project — don't create a new widget.
-
----
-
-## 9. Database (self-hosted MongoDB)
-
-- Runs locally, DB `hostel_prod`, no auth (bound to localhost only — not exposed). Cache capped
-  at 0.25 GB in `/etc/mongod.conf` for the small box.
-- **Make a user an admin** (there's no admin UI login — role lives in the DB):
-  ```bash
-  mongosh hostel_prod --eval 'db.users.updateOne({mobile:"91XXXXXXXXXX"}, {$set:{role:"admin"}})'
-  ```
-  (Mobile is stored as `91` + 10 digits. Register once via OTP first so the user row exists.)
-- **Backup / restore:**
-  ```bash
-  mongodump --db hostel_prod --archive=/home/ubuntu/hostel_$(date +%F).gz --gzip
-  mongorestore --archive=<file> --gzip
-  ```
-- If you'd rather use MongoDB Atlas later, just change `MONGODB_URI` in the backend `.env`
-  (and allowlist the server's IP `52.66.179.25` in Atlas Network Access), then
-  `pm2 restart hostel-api --update-env`.
-
----
-
-## 10. Rebuild from scratch (if the instance is lost)
-
-All via AWS CLI (`region ap-south-1`). On Windows Git Bash, prefix EC2 commands with
-`MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL='*'` so `/dev/...` args aren't mangled.
-
-```bash
-# key pair (import your existing public key)
-aws ec2 import-key-pair --key-name hostel-key \
-  --public-key-material fileb://~/.ssh/hostel-key.pub
-
-# network
-VPC=$(aws ec2 describe-vpcs --filters Name=isDefault,Values=true --query 'Vpcs[0].VpcId' --output text)
-SUBNET=$(aws ec2 describe-subnets --filters Name=vpc-id,Values=$VPC Name=default-for-az,Values=true \
-         --query 'Subnets[0].SubnetId' --output text)
-
-# security group (22/80/443)
-SG=$(aws ec2 create-security-group --group-name hostel-sg \
-     --description "Hostel SSH/HTTP/HTTPS" --vpc-id $VPC --query GroupId --output text)
-for p in 22 80 443; do aws ec2 authorize-security-group-ingress \
-  --group-id $SG --protocol tcp --port $p --cidr 0.0.0.0/0; done
-
-# latest Ubuntu 24.04 AMI
-AMI=$(aws ec2 describe-images --owners 099720109477 \
-  --filters "Name=name,Values=ubuntu/images/hvm-ssd-gp3/ubuntu-noble-24.04-amd64-server-*" \
-            "Name=state,Values=available" \
-  --query 'sort_by(Images,&CreationDate)[-1].ImageId' --output text)
-
-# launch
-IID=$(aws ec2 run-instances --image-id $AMI --instance-type t3.micro --key-name hostel-key \
-  --security-group-ids $SG --subnet-id $SUBNET --associate-public-ip-address \
-  --block-device-mappings 'DeviceName=/dev/sda1,Ebs={VolumeSize=20,VolumeType=gp3}' \
-  --tag-specifications 'ResourceType=instance,Tags=[{Key=Name,Value=hostel}]' \
-  --count 1 --query 'Instances[0].InstanceId' --output text)
-aws ec2 wait instance-running --instance-ids $IID
-
-# (optional) reuse the existing Elastic IP, or allocate a new one and associate
-aws ec2 associate-address --instance-id $IID --allocation-id eipalloc-0741ee3e84de7b173
-```
-
-Then **provision the software** over SSH (swap, Node 22, nginx, pm2, MongoDB) — the exact script
-is in this repo's deploy notes / can be regenerated; the essential steps are:
-
-```bash
-# 2 GB swap
-sudo fallocate -l 2G /swapfile && sudo chmod 600 /swapfile && sudo mkswap /swapfile && \
-  sudo swapon /swapfile && echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
-# base + node 22 + pm2
-sudo apt-get update -y && sudo apt-get install -y nginx git curl
-curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash - && sudo apt-get install -y nodejs
-sudo npm i -g pm2
-# MongoDB 8
-curl -fsSL https://www.mongodb.org/static/pgp/server-8.0.asc | \
-  sudo gpg -o /usr/share/keyrings/mongodb-server-8.0.gpg --dearmor
-echo "deb [ signed-by=/usr/share/keyrings/mongodb-server-8.0.gpg ] https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.0 multiverse" | \
-  sudo tee /etc/apt/sources.list.d/mongodb-org-8.0.list
-sudo apt-get update -y && sudo apt-get install -y mongodb-org
-sudo systemctl enable --now mongod
-```
-
-Finally recreate the two `.env` files (§7), run the deploy (§6a), and write the nginx site (§12).
-
----
-
-## 11. Troubleshooting
-
-| Symptom | Cause / fix |
-| --- | --- |
-| `Aborted (core dumped)` during build | V8 OOM on the 1 GB box. Ensure `NODE_OPTIONS=--max-old-space-size=1536` and that swap is on (`swapon --show`). |
-| `502 Bad Gateway` | Backend down. `pm2 status`; `pm2 logs hostel-api`; likely a crash on boot (bad `.env` / Mongo down). |
-| Backend won't start, exits immediately | Missing required env var (`MONGODB_URI`, `JWT_SECRET`, `IP_HASH_SALT`, `PIN_ENCRYPTION_KEY`). Check `pm2 logs`. |
-| Login "Send code" fails / widget won't load | Site origin not whitelisted in MSG91 (§8), or `MSG91_AUTH_KEY` missing/blank. |
-| Login says "OTP verification failed" | `MSG91_AUTH_KEY` wrong, or the OTP expired. |
-| Mongo connection refused | `systemctl status mongod`; `sudo systemctl restart mongod`; check disk with `df -h /`. |
-| Site unreachable but instance running | Security group / Elastic IP association, or nginx stopped (`systemctl status nginx`). |
-| Disk full | `df -h /`; clear old builds/logs; pm2 logrotate: `pm2 install pm2-logrotate`. |
-
----
-
-## 12. nginx site (`/etc/nginx/sites-available/hostel`)
-
-```nginx
-server {
-    listen 80 default_server;
-    listen [::]:80 default_server;
-    server_name _;
-    root /var/www/hostel/dist;
-    index index.html;
-    client_max_body_size 12m;
-
-    location /api/       { proxy_pass http://127.0.0.1:4000; proxy_http_version 1.1;
-                           proxy_set_header Host $host; proxy_set_header X-Real-IP $remote_addr;
-                           proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-                           proxy_set_header X-Forwarded-Proto $scheme; }
-    location /socket.io/ { proxy_pass http://127.0.0.1:4000; proxy_http_version 1.1;
-                           proxy_set_header Upgrade $http_upgrade; proxy_set_header Connection "upgrade";
-                           proxy_set_header Host $host; }
-    location = /health   { proxy_pass http://127.0.0.1:4000/health; }
-    location /           { try_files $uri $uri/ /index.html; }
-}
-```
-Enable: `sudo ln -sf /etc/nginx/sites-available/hostel /etc/nginx/sites-enabled/hostel && sudo rm -f /etc/nginx/sites-enabled/default && sudo nginx -t && sudo systemctl reload nginx`
-
----
-
-## 13. Add a domain + HTTPS (recommended next step)
-
-1. Point an A record for your domain → `52.66.179.25`.
-2. `sudo snap install --classic certbot && sudo certbot --nginx -d yourdomain.com`
-   (certbot edits the nginx site and auto-renews).
-3. Update backend `.env` `CORS_ORIGIN`/`FRONTEND_URL` and frontend `VITE_API_URL` to
-   `https://yourdomain.com`, rebuild frontend, `pm2 restart hostel-api --update-env`.
-4. Add the domain to the **MSG91 allowed-domains** whitelist (§8).
+IyBQYWNrIHdpdGggTWUg4oCUIERlcGxveW1lbnQgJiBPcGVyYXRpb25zIFJ1bmJvb2sKClRoaXMg
+ZG9jdW1lbnQgaXMgYSBjb21wbGV0ZSBoYW5kb3ZlciBmb3IgcnVubmluZyB0aGUgKipQYWNrIHdp
+dGggTWUqKiAoSG9zdGVsKSBhcHAgb24gQVdTLgpJdCBpcyB3cml0dGVuIHNvIHRoYXQgYW4gYXNz
+aXN0YW50IChDbGF1ZGUpIG9yIGEgZGV2ZWxvcGVyIGNhbiBvcGVyYXRlLCB1cGRhdGUsIGFuZCDi
+gJQgaWYgbmVlZGVkIOKAlApyZWJ1aWxkIHRoZSB3aG9sZSBzdGFjayBmcm9tIHNjcmF0Y2gsIHdp
+dGggbWluaW1hbCBiYWNrLWFuZC1mb3J0aC4KCj4gKipSZWFkaW5nIG9yZGVyIGZvciBhbiBhc3Np
+c3RhbnQ6Kiogc2tpbSDCpzHigJPCpzMgZm9yIHRoZSBtZW50YWwgbW9kZWwsIHRoZW4gdXNlIMKn
+NSAob3BlcmF0ZSksCj4gwqc2IChkZXBsb3kgdXBkYXRlcyksIGFuZCDCpzExICh0cm91Ymxlc2hv
+b3QpIGFzIHlvdXIgd29ya2luZyByZWZlcmVuY2VzLiDCpzEwIGlzIHRoZSBmdWxsCj4gZnJvbS1z
+Y3JhdGNoIHJlYnVpbGQgaWYgdGhlIGluc3RhbmNlIGlzIGV2ZXIgbG9zdC4KCi0tLQoKIyMgMC4g
+V2hhdCB5b3UgKHRoZSBvcGVyYXRvcikgbXVzdCBvYnRhaW4gZmlyc3QKClRoZXNlIGFyZSAqKm5v
+dCoqIGluIHRoaXMgcmVwbyAob24gcHVycG9zZSDigJQgdGhleSdyZSBzZWNyZXRzKS4gR2V0IHRo
+ZW0gZnJvbSB0aGUgcHJvamVjdCBvd25lcgpwcml2YXRlbHksIHRoZW4gcGxhY2UgdGhlbSBhcyBu
+b3RlZDoKCnwgU2VjcmV0IC8gYWNjZXNzIHwgV2hhdCBpdCdzIGZvciB8IFdoZXJlIGl0IGdvZXMg
+fAp8IC0tLSB8IC0tLSB8IC0tLSB8CnwgKipTU0ggcHJpdmF0ZSBrZXkqKiBgaG9zdGVsLWtleWAg
+fCBTU0ggaW50byB0aGUgc2VydmVyIHwgU2F2ZSB0byBgfi8uc3NoL2hvc3RlbC1rZXlgLCB0aGVu
+IGBjaG1vZCA2MDAgfi8uc3NoL2hvc3RlbC1rZXlgIHwKfCAqKkFXUyBjcmVkZW50aWFscyoqIChh
+biBJQU0gdXNlciB3aXRoIEVDMi9WUEMgYWNjZXNzKSB8IE1hbmFnZSB0aGUgaW5zdGFuY2Ugdmlh
+IENMSSB8IGBhd3MgY29uZmlndXJlYCAocmVnaW9uIGBhcC1zb3V0aC0xYCkgfAp8ICoqTVNHOTEg
+ZGFzaGJvYXJkIGxvZ2luKiogfCBXaGl0ZWxpc3QgZG9tYWlucywgdG9nZ2xlIE9UUCBzZXR0aW5n
+cyB8IG1zZzkxLmNvbSBjb25zb2xlIHwKClRoZSBhcHAncyBydW50aW1lIHNlY3JldHMgKEpXVCBz
+ZWNyZXQsIERCIGVuY3J5cHRpb24ga2V5LCBNU0c5MSBhdXRoIGtleSwgZXRjLikgKiphbHJlYWR5
+IGV4aXN0Cm9uIHRoZSBzZXJ2ZXIqKiBpbiBgL2hvbWUvdWJ1bnR1L2hvc3RlbC9iYWNrZW5kLy5l
+bnZgLiBZb3Ugbm9ybWFsbHkgbmV2ZXIgbmVlZCB0byB0b3VjaCB0aGVtLgpTZWUgwqc3IGlmIHlv
+dSBkby4KClRvb2xpbmcgeW91IG5lZWQgbG9jYWxseTogKipBV1MgQ0xJIHYyKiosIGFuICoqU1NI
+IGNsaWVudCoqLCBhbmQgKG9ubHkgdG8gYnVpbGQgdXBkYXRlcykgKipOb2RlIDIwKyoqLgoKLS0t
+CgojIyAxLiBBcmNoaXRlY3R1cmUKClNpbmdsZSBzZWxmLWNvbnRhaW5lZCBFQzIgYm94LiBObyBl
+eHRlcm5hbCBkYXRhYmFzZSBvciBQYWFTLgoKYGBgCiAgICAgICAgICAgICAgICBJbnRlcm5ldAog
+ICAgICAgICAgICAgICAgICAg4pSCICBodHRwOi8vNTIuNjYuMTc5LjI1ICAgKHBvcnQgODApCiAg
+ICAgICAgICAgICAgICAgICDilrIKICAgICAgICAgICAg4pSM4pSA4pSA4pSA4pSA4pSA4pSA4pSA
+4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSQCiAg
+ICAgICAgICAgIOKUgiAgRUMyICB0My5taWNybyAgVWJ1bnR1IDI0LjA0IChNdW1iYWkpICAgICDi
+lIIKICAgICAgICAgICDilIIgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAg
+ICAg4pSCCiAgICAgICAgICAg4pSCICAgbmdpbnggOjgwICAgICAgICAgICAgICAgICAgICAgICAg
+ICAgICAgICAg4pSCCiAgICAgICAgICAg4pSCICAgIOKUnOKUgCAvICAgICAgICAgICAg4oaSIHN0
+YXRpYyBTUEEgICAgICAgICAgICDilIIKICAgICAgICAgICDilIIgICAgIOKUgiAgICAgICAgICAg
+ICAgICAoL3Zhci93d3cvaG9zdGVsL2Rpc3Qp4pSCCiAgICAgICAgICAg4pSCICAgIOKUnOKUgCAv
+YXBpLyAgICAgICAgIOKGkiAxMjcuMC4wLjE6NDAwMCAgICAgICDilIIKICAgICAgICAgICDilIIg
+ICAg4pSc4pSAIC9zb2NrZXQuaW8vICAg4oaSIDEyNy4wLjAuMTo0MDAwICh3cykgIOKUggogICAg
+ICAgICAgIOKUgiAgICDilJTilIAgL2hlYWx0aCAgICAgICDihpIgMTI3LjAuMC4xOjQwMDAgICAg
+ICAg4pSCCiAgICAgICAgICAg4pSCICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAg
+ICAgICDilIIKICAgICAgICAgICDilIIgICBwbTIg4oaSIG5vZGUgYmFja2VuZCAgOjQwMDAgICho
+b3N0ZWwtYXBpKSAg4pSCCiAgICAgICAgICAg4pSCICAgICAgICAgICAgIOKUgiAgICAgICAgICAg
+ICAgICAgICAgICAgICAg4pSCCiAgICAgICAgICAg4pSCICAgICAgICAgICAgIOKWvCAgICAgICAg
+ICAgICAgICAgICAgICAgICAg4pSCCiAgICAgICAgICAg4pSCICAgTW9uZ29EQiA4ICAxMjcuMC4w
+LjE6MjcwMTcgLyBob3N0ZWxfcHJvZCDilIIKICAgICAgICAgICDilJTilIDilIDilIDilIDilIDi
+lIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDi
+lJgKYGBgCgotICoqRnJvbnRlbmQ6KiogVml0ZSArIFJlYWN0IFNQQSwgYnVpbHQgdG8gc3RhdGlj
+IGZpbGVzLCBzZXJ2ZWQgYnkgbmdpbnguCi0gKipCYWNrZW5kOioqIEV4cHJlc3MgKyBUeXBlU2Ny
+aXB0IChjb21waWxlZCB0byBgZGlzdC9gKSwgcnVuIGJ5ICoqcG0yKiosIGxpc3RlbnMgb24gYDo0
+MDAwYC4KLSAqKkRhdGFiYXNlOioqICoqc2VsZi1ob3N0ZWQgTW9uZ29EQiA4Kiogb24gdGhlIHNh
+bWUgYm94IChub3QgQXRsYXMpLiBEQiBuYW1lIGBob3N0ZWxfcHJvZGAuCi0gKipBdXRoOioqIHBh
+c3N3b3JkbGVzcyAqKk1TRzkxICJMb2dpbiB3aXRoIE9UUCIqKiAobW9iaWxlICsgU01TIE9UUCku
+IFNlZSDCpzguCgotLS0KCiMjIDIuIFNlcnZlciBmYWN0cyAoc291cmNlIG9mIHRydXRoKQoKfCBJ
+dGVtIHwgVmFsdWUgfAp8IC0tLSB8IC0tLSB8CnwgUHVibGljIFVSTCB8ICoqaHR0cDovLzUyLjY2
+LjE3OS4yNSoqIHwKfCBBV1MgYWNjb3VudCB8IGA5NjYwNDI2OTk1NTVgICgiSW5zdGlmeSIpIHwK
+fCBSZWdpb24gfCBgYXAtc291dGgtMWAgKE11bWJhaSkgfAp8IEVDMiBpbnN0YW5jZSBJRCB8IGBp
+LTA3YWIyNjUxOGY0Y2ZkZWZkYCB8CnwgSW5zdGFuY2UgdHlwZSB8IGB0My5taWNyb2AgKDIgdkNQ
+VSwgfjEgR0IgUkFNKSArICoqMiBHQiBzd2FwKiogfAp8IE9TIHwgVWJ1bnR1IDI0LjA0IExUUyB8
+CnwgRWxhc3RpYyBJUCB8IGA1Mi42Ni4xNzkuMjVgIChhbGxvYyBgZWlwYWxsb2MtMDc0MWVlM2U4
+NGRlN2IxNzNgKSB8CnwgU2VjdXJpdHkgZ3JvdXAgfCBgc2ctMGFkNGM1MDU4ZTE2ZDZmYjRgIChp
+bmJvdW5kIDIyLCA4MCwgNDQzIGZyb20gYW55d2hlcmUpIHwKfCBLZXkgcGFpciAoQVdTKSB8IGBo
+b3N0ZWwta2V5YCAoaW1wb3J0ZWQ7IHByaXZhdGUga2V5IGlzIGB+Ly5zc2gvaG9zdGVsLWtleWAp
+IHwKfCBTU0ggdXNlciB8IGB1YnVudHVgIHwKfCBBcHAgc291cmNlIG9uIGJveCB8IGAvaG9tZS91
+YnVudHUvaG9zdGVsYCAoYGJhY2tlbmQvYCwgYGZyb250ZW5kL2ApIHwKfCBXZWIgcm9vdCAoc3Rh
+dGljKSB8IGAvdmFyL3d3dy9ob3N0ZWwvZGlzdGAgfAp8IEJhY2tlbmQgZW52IGZpbGUgfCBgL2hv
+bWUvdWJ1bnR1L2hvc3RlbC9iYWNrZW5kLy5lbnZgIHwKfCBwbTIgcHJvY2VzcyBuYW1lIHwgYGhv
+c3RlbC1hcGlgIHwKfCBEZXBsb3llZCBicmFuY2ggfCAqKmBwcml5YWxgKiogKE1TRzkxIHBhc3N3
+b3JkbGVzcyBsb2dpbikgfAoKPiBUaGUgYm94IGhvbGRzICoqYnVpbHQgc291cmNlIHNoaXBwZWQg
+b3ZlciBTQ1AqKiwgbm90IGEgZ2l0IGNsb25lIOKAlCB0aGVyZSBpcyBubyBgLmdpdGAgb24gdGhl
+CnNlcnZlci4gU2VlIMKnNiBmb3IgaG93IHVwZGF0ZXMgYXJlIHNoaXBwZWQgKGFuZCBob3cgdG8g
+c3dpdGNoIHRvIGdpdC1iYXNlZCBkZXBsb3lzKS4KCi0tLQoKIyMgMy4gUnVudGltZSBsYXlvdXQg
+b24gdGhlIGJveAoKYGBgCi9ob21lL3VidW50dS9ob3N0ZWwvCiAgYmFja2VuZC8gICAgICAgICAg
+ICBFeHByZXNzIEFQSSAoVHlwZVNjcmlwdCkKICAgIC5lbnYgICAgICAgICAgICAgIHJ1bnRpbWUg
+c2VjcmV0cyAoc2VlIMKnNykgICAgICDihpAgRE8gTk9UIENPTU1JVAogICAgZGlzdC8gICAgICAg
+ICAgICAgY29tcGlsZWQgSlMgKG5vZGUgZGlzdC9pbmRleC5qcykKICAgIG5vZGVfbW9kdWxlcy8K
+ICBmcm9udGVuZC8gICAgICAgICAgIFZpdGUgU1BBIHNvdXJjZQogICAgLmVudiAgICAgICAgICAg
+ICAgYnVpbGQtdGltZSBwdWJsaWMgdmFycyAoc2VlIMKnNykKICAgIGRpc3QvICAgICAgICAgICAg
+IGJ1aWxkIG91dHB1dCAoY29waWVkIHRvIHdlYiByb290KQovdmFyL3d3dy9ob3N0ZWwvZGlzdC8g
+d2hhdCBuZ2lueCBhY3R1YWxseSBzZXJ2ZXMKL2V0Yy9uZ2lueC9zaXRlcy1hdmFpbGFibGUvaG9z
+dGVsICAgbmdpbnggc2l0ZSAoc3ltbGlua2VkIGludG8gc2l0ZXMtZW5hYmxlZCkKL2V0Yy9tb25n
+b2QuY29uZiAgICAgIE1vbmdvREIgY29uZmlnICh3aXJlZFRpZ2VyIGNhY2hlIGNhcHBlZCBhdCAw
+LjI1IEdCKQovc3dhcGZpbGUgICAgICAgICAgICAgMiBHQiBzd2FwIChuZWVkZWQgc28gYnVpbGRz
+IGRvbid0IE9PTSkKYGBgCgotLS0KCiMjIDQuIENvbm5lY3RpbmcKCmBgYGJhc2gKc3NoIC1pIH4v
+LnNzaC9ob3N0ZWwta2V5IHVidW50dUA1Mi42Ni4xNzkuMjUKYGBgCgpJZiB5b3Ugc2VlICoiVU5Q
+Uk9URUNURUQgUFJJVkFURSBLRVkgRklMRSIqOiBgY2htb2QgNjAwIH4vLnNzaC9ob3N0ZWwta2V5
+YCAoTGludXgvbWFjT1MpIG9yIGZpeAp0aGUgZmlsZSdzIEFDTCBvbiBXaW5kb3dzLgoKQWxsIHNl
+cnZpY2UgbWFuYWdlbWVudCBiZWxvdyBhc3N1bWVzIHlvdSdyZSBlaXRoZXIgU1NIJ2QgaW4sIG9y
+IHdyYXBwaW5nIGNvbW1hbmRzIGFzCmBzc2ggLWkgfi8uc3NoL2hvc3RlbC1rZXkgdWJ1bnR1QDUy
+LjY2LjE3OS4yNSAnPGNvbW1hbmQ+J2AuCgotLS0KCiMjIDUuIERheS10by1kYXkgb3BlcmF0aW9u
+cwoKKipIZWFsdGggY2hlY2sgKGZyb20gYW55d2hlcmUpOioqCmBgYGJhc2gKY3VybCBodHRwOi8v
+NTIuNjYuMTc5LjI1L2hlYWx0aCAgICAgICAgICAjIOKGkiB7InN0YXR1cyI6Im9rIn0KYGBgCgoq
+KkJhY2tlbmQgKHBtMik6KioKYGBgYmFzaApwbTIgc3RhdHVzICAgICAgICAgICAgICAgICMgbGlz
+dCBwcm9jZXNzZXMKcG0yIGxvZ3MgaG9zdGVsLWFwaSAgICAgICAgIyB0YWlsIGxpdmUgbG9ncyAo
+Q3RybC1DIHRvIHN0b3ApCnBtMiBsb2dzIGhvc3RlbC1hcGkgLS1saW5lcyAyMDAgLS1ub3N0cmVh
+bSAgICMgbGFzdCAyMDAgbGluZXMKcG0yIHJlc3RhcnQgaG9zdGVsLWFwaSAgICAgIyByZXN0YXJ0
+IGFmdGVyIGFuIGVudi9jb2RlIGNoYW5nZQpwbTIgc3RvcCBob3N0ZWwtYXBpCmBgYAoKKipuZ2lu
+eDoqKgpgYGBiYXNoCnN1ZG8gbmdpbnggLXQgICAgICAgICAgICAgICMgdmFsaWRhdGUgY29uZmln
+CnN1ZG8gc3lzdGVtY3RsIHJlbG9hZCBuZ2lueApzdWRvIHRhaWwgLWYgL3Zhci9sb2cvbmdpbngv
+ZXJyb3IubG9nCmBgYAoKKipNb25nb0RCOioqCmBgYGJhc2gKc3lzdGVtY3RsIHN0YXR1cyBtb25n
+b2QKbW9uZ29zaCBob3N0ZWxfcHJvZCAgICAgICAgIyBvcGVuIGEgc2hlbGwgb24gdGhlIGFwcCBE
+QgpgYGAKCioqU3lzdGVtOioqCmBgYGJhc2gKZnJlZSAtbSAgICAgICAgICAgICAgICAgICAg
+IyBtZW1vcnkgKyBzd2FwCmRmIC1oIC8gICAgICAgICAgICAgICAgICAgICMgZGlzawpgYGAKCi0t
+LQoKIyMgNi4gRGVwbG95aW5nIGFuIHVwZGF0ZQoKVGhlIGFwcCBpcyBidWlsdCBmcm9tIHRoZSAq
+KmBwcml5YWxgKiogYnJhbmNoIGFuZCBzaGlwcGVkIGFzIGEgdGFyYmFsbC4gVHdvIHdheXM6Cgoj
+IyMgNmEuIFNoaXAtZnJvbS1sb2NhbCAoY3VycmVudCBtZXRob2Qg4oCUIG5vIEdpdEh1YiBhdXRo
+IG9uIHRoZSBib3gpCgpPbiBhIG1hY2hpbmUgdGhhdCBoYXMgdGhlIHJlcG8gY2hlY2tlZCBvdXQg
+KGJyYW5jaCBgcHJpeWFsYCkgYW5kIE5vZGUgaW5zdGFsbGVkOgoKYGBgYmFzaAojIDEpIHBhY2th
+Z2UgdGhlIHNvdXJjZSAoZXhjbHVkZSBqdW5rKQpjZCA8cGF0aC10bz4vSG9zdGVsLQp0YXIgLS1l
+eGNsdWRlPS5naXQgLS1leGNsdWRlPW5vZGVfbW9kdWxlcyAtLWV4Y2x1ZGU9ZGlzdCAtLWV4Y2x1
+ZGU9JyoubG9nJyBcCiAgICAtLWV4Y2x1ZGU9YmFja2VuZC8uZW52IC0tZXhjbHVkZT1mcm9udGVu
+ZC8uZW52IFwKICAgIC1jemYgL3RtcC9ob3N0ZWwtc3JjLnRneiBiYWNrZW5kIGZyb250ZW5kIFJF
+QURNRS5tZAoKIyAyKSBjb3B5IHVwCnNjcCAtaSB+Ly5zc2gvaG9zdGVsLWtleSAvdG1wL2hvc3Rl
+bC1zcmMudGd6IHVidW50dUA1Mi42Ni4xNzkuMjU6L3RtcC8KCiMgMykgYnVpbGQgKyByZWxlYXNl
+IG9uIHRoZSBib3ggKHNlZSBkZXBsb3kgc2NyaXB0IGJlbG93KQpzc2ggLWkgfi8uc3NoL2hvc3Rl
+bC1rZXkgdWJ1bnR1QDUyLjY2LjE3OS4yNSAnYmFzaCAvdG1wL2RlcGxveS5zaCcKYGBgCgpUaGUg
+KipgZGVwbG95LnNoYCoqIHRoYXQgbGl2ZXMgb24gdGhlIGJveCAoYC90bXAvZGVwbG95LnNoYCkg
+ZG9lczogZXh0cmFjdCDihpIga2VlcCBleGlzdGluZwpgLmVudmAgZmlsZXMg4oaSIGBucG0gY2lg
+ICsgYnVpbGQgYmFja2VuZCDihpIgYG5wbSBjaWAgKyBidWlsZCBmcm9udGVuZCDihpIgY29weSBg
+ZnJvbnRlbmQvZGlzdGAgdG8gdGhlCndlYiByb290IOKGkiBgcG0yIHJlc3RhcnRgIOKGkiByZWxv
+YWQgbmdpbnguIElmIHlvdSBuZWVkIHRvIHJlY3JlYXRlIGl0LCBpdHMgYm9keSBpczoKCmBgYGJh
+c2gKIyEvdXNyL2Jpbi9lbnYgYmFzaApzZXQgLWV1byBwaXBlZmFpbApBUFA9L2hvbWUvdWJ1bnR1
+L2hvc3RlbCA7IFdFQlJPT1Q9L3Zhci93d3cvaG9zdGVsL2Rpc3QKZXhwb3J0IE5PREVfT1BUSU9O
+Uz0tLW1heC1vbGQtc3BhY2Utc2l6ZT0xNTM2ICAgIyA8LS0gUkVRVUlSRUQ6IDFHQiBib3ggT09N
+cyB0c2Mvdml0ZSB3aXRob3V0IHRoaXMKIyBwcmVzZXJ2ZSBleGlzdGluZyBlbnYsIHJlZnJlc2gg
+c291cmNlCmNwICIkQVBQL2JhY2tlbmQvLmVudiIgIC90bXAva2VlcC1iYWNrZW5kLmVudiAgMj4v
+ZGV2L251bGwgfHwgdHJ1ZQpjcCAiJEFQUC9mcm9udGVuZC8uZW52IiAvdG1wL2tlZXAtZnJvbnRl
+bmQuZW52IDI+L2Rldi9udWxsIHx8IHRydWUKcm0gLXJmICIkQVBQIjsgbWtkaXIgLXAgIiRBUFAi
+OyB0YXIgLXh6ZiAvdG1wL2hvc3RlbC1zcmMudGd6IC1DICIkQVBQIgpjcCAvdG1wL2tlZXAtYmFj
+a2VuZC5lbnYgICIkQVBQL2JhY2tlbmQvLmVudiIKY3AgL3RtcC9rZWVwLWZyb250ZW5kLmVudiAi
+JEFQUC9mcm9udGVuZC8uZW52IgpjZCAiJEFQUC9iYWNrZW5kIiAgJiYgbnBtIGNpIC0tbm8tYXVk
+aXQgLS1uby1mdW5kICYmIG5wbSBydW4gYnVpbGQKY2QgIiRBUFAvZnJvbnRlbmQiICYmIG5wbSBj
+aSAtLW5vLWF1ZGl0IC0tbm8tZnVuZCAmJiBucG0gcnVuIGJ1aWxkCnN1ZG8gbWtkaXIgLXAgIiRX
+RUJST09UIjsgc3VkbyBybSAtcmYgIiR7V0VCUk9PVDo/fS8iKjsgc3VkbyBjcCAtciAiJEFQUC9m
+cm9udGVuZC9kaXN0Ly4iICIkV0VCUk9PVC8iCmNkICIkQVBQL2JhY2tlbmQiICYmIHBtMiByZXN0
+YXJ0IGhvc3RlbC1hcGkgLS11cGRhdGUtZW52IHx8IHBtMiBzdGFydCBkaXN0L2luZGV4LmpzIC0t
+bmFtZSBob3N0ZWwtYXBpIC0tdGltZQpwbTIgc2F2ZQpzdWRvIG5naW54IC10ICYmIHN1ZG8gc3lz
+dGVtY3RsIHJlbG9hZCBuZ2lueAplY2hvIERFUExPWV9ET05FCmBgYAoKPiAqKkNyaXRpY2FsOioq
+IGFsd2F5cyBrZWVwIGBOT0RFX09QVElPTlM9LS1tYXgtb2xkLXNwYWNlLXNpemU9MTUzNmAuIFRo
+ZSBkZWZhdWx0IFY4IGhlYXAgb24gYQoxIEdCIGJveCBpcyB+NDYwIE1CIGFuZCBib3RoIGB0c2Ng
+IGFuZCBgdml0ZWAgZXhjZWVkIGl0IOKGkiBgQWJvcnRlZCAoY29yZSBkdW1wZWQpYC4gVGhlIDIg
+R0IKc3dhcCBiYWNrcyB0aGUgbGFyZ2VyIGhlYXAuCgojIyMgNmIuIFJlY29tbWVuZGVkIHVwZ3Jh
+ZGU6IGdpdC1iYXNlZCBkZXBsb3lzCgpUbyBtYWtlIHVwZGF0ZXMgYSBvbmUtbGluZXIsIHB1dCBh
+ICoqcmVhZC1vbmx5IEdpdEh1YiBkZXBsb3kga2V5Kiogb24gdGhlIGJveDoKCmBgYGJhc2gKc3No
+IC1pIH4vLnNzaC9ob3N0ZWwta2V5IHVidW50dUA1Mi42Ni4xNzkuMjUKc3NoLWtleWdlbiAtdCBl
+ZDI1NTE5IC1mIH4vLnNzaC9naF9kZXBsb3kgLU4gIiIgICAgICMgdGhlbiBhZGQgfi8uc3NoL2do
+X2RlcGxveS5wdWIgYXMgYQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAg
+ICAgICAgICAgICAgICAgICAgICAgICAgICAgIERlcGxveSBLZXkgb24gdGhlIG1lc2FuanVzay9I
+b3N0ZWwtIHJlcG8KZ2l0IGNsb25lIGdpdEBnaXRodWIuY29tOm1lc2FuanVzay9Ib3N0ZWwtLmdp
+dCB+L2hvc3RlbC1naXQKYGBgClRoZW4gYSBkZXBsb3kgYmVjb21lczogYGNkIH4vaG9zdGVsLWdp
+dCAmJiBnaXQgcHVsbCAmJiA8YnVpbGQgKyByZWxlYXNlPmAuIChPbmx5IGRvIHRoaXMgb25jZQpg
+cHJpeWFsYCBpcyBtZXJnZWQsIG9yIGNsb25lIGAtYiBwcml5YWxgLikKCi0tLQoKIyMgNy4gRW52
+aXJvbm1lbnQgdmFyaWFibGVzCgojIyMgQmFja2VuZCDigJQgYC9ob21lL3VidW50dS9ob3N0ZWwv
+YmFja2VuZC8uZW52YCAoc2VjcmV0LCBhbHJlYWR5IHNldCBvbiBib3gpCgp8IEtleSB8IE1lYW5p
+bmcgfCBOb3RlcyB8CnwgLS0tIHwgLS0tIHwgLS0tIHwKfCBgTk9ERV9FTlZgIHwgYHByb2R1Y3Rp
+b25gIHwgfAp8IGBQT1JUYCB8IGA0MDAwYCB8IG5naW54IHByb3hpZXMgdG8gdGhpcyB8CnwgYE1P
+TkdPREJfVVJJYCB8IGBtb25nb2RiOi8vMTI3LjAuMC4xOjI3MDE3L2hvc3RlbF9wcm9kYCB8IGxv
+Y2FsIE1vbmdvIHwKfCBgSldUX1NFQ1JFVGAgfCBzZXNzaW9uIHRva2VuIHNpZ25pbmcgc2VjcmV0
+IHwgZ2VuZXJhdGVkOyBrZWVwIHN0YWJsZSAocm90YXRpbmcgbG9ncyBldmVyeW9uZSBvdXQpIHwK
+fCBgSVBfSEFTSF9TQUxUYCB8IHNhbHRzIGhhc2hlZCB2aXNpdG9yIElQcyAoYW5hbHl0aWNzKSB8
+IGdlbmVyYXRlZCB8CnwgYFBJTl9FTkNSWVBUSU9OX0tFWWAgfCBBRVMtMjU2IGtleSAoNjQgaGV4
+KSBmb3Igc3RvcmVkIFBJTnMgfCBnZW5lcmF0ZWQgfAp8IGBNU0c5MV9BVVRIX0tFWWAgfCAqKnNl
+Y3JldCoqIE1TRzkxIGFjY291bnQgYXV0aCBrZXkgfCB2ZXJpZmllcyBPVFAgdG9rZW5zIHNlcnZl
+ci1zaWRlIHwKfCBgQ09SU19PUklHSU5gIHwgYGh0dHA6Ly81Mi42Ni4xNzkuMjVgIHwgYWxsb3dl
+ZCBmcm9udGVuZCBvcmlnaW4ocykgfAp8IGBGUk9OVEVORF9VUkxgIHwgYGh0dHA6Ly81Mi42Ni4x
+NzkuMjVgIHwgfAoKQWZ0ZXIgZWRpdGluZyB0aGlzIGZpbGU6IGBwbTIgcmVzdGFydCBob3N0ZWwt
+YXBpIC0tdXBkYXRlLWVudmAuCgojIyMgRnJvbnRlbmQg4oCUIGAvaG9tZS91YnVudHUvaG9zdGVs
+L2Zyb250ZW5kLy5lbnZgIChwdWJsaWMsIGJha2VkIGludG8gdGhlIGJ1aWxkKQoKfCBLZXkgfCBW
+YWx1ZSB8CnwgLS0tIHwgLS0tIHwKfCBgVklURV9BUElfVVJMYCB8IGBodHRwOi8vNTIuNjYuMTc5
+LjI1YCB8CnwgYFZJVEVfTVNHOTFfV0lER0VUX0lEYCB8IGAzNjY2Nzg2ZjMxNmMzMTM2MzUzMjMz
+MzdgIHwKfCBgVklURV9NU0c5MV9UT0tFTl9BVVRIYCB8IGAzMTI3NTlUUlpZQ0UyeDY3ZTRmNTI4
+UDFgIHwKClRoZXNlIGFyZSBwdWJsaWMgKHNhZmUgaW4gdGhlIGJ1bmRsZSkuIENoYW5naW5nIHRo
+ZW0gcmVxdWlyZXMgYSAqKmZyb250ZW5kIHJlYnVpbGQqKiAowqc2KS4KCi0tLQoKIyMgOC4gTVNH
+OTEgT1RQIGxvZ2luCgpMb2dpbiBpcyBwYXNzd29yZGxlc3M6IHVzZXIgZW50ZXJzIG1vYmlsZSDi
+opIgTVNHOTEgc2VuZHMgYW4gU01TIE9UUCB2aWEgaXRzICJMb2dpbiB3aXRoIE9UUCIKd2lkZ2V0
+IOKAkiB0aGUgYnJvd3NlciBnZXRzIGEgc2lnbmVkIGFjY2VzcyB0b2tlbiDihpIgdGhlIGJhY2tl
+bmQgY29uZmlybXMgaXQgd2l0aCBNU0c5MQooYFBPU1QgY29udHJvbC5tc2c5MS5jb20vYXBpL3Y1
+L3dpZGdldC92ZXJpZnlBY2Nlc3NUb2tlbmAsIHVzaW5nIGBNU0c5MV9BVVRIX0tFWWApIGFuZCBy
+ZWFkcyB0aGUKdmVyaWZpZWQgbnVtYmVyLiBOZXcgbnVtYmVycyBhdXRvLXJlZ2lzdGVyOyByZXR1
+cm5pbmcgbnVtYmVycyBsb2cgaW4uIENvZGU6CmBmcm9udGVuZC9zcmMvbGliL21zZzkxLnRzYCwg
+YGZyb250ZW5kL3NyYy9wYWdlcy9vdHAtbG9naW4tcGFnZS50c3hgLApgYmFja2VuZC9zcmMvc2Vy
+dmljZXMvbXNnOTFTZXJ2aWNlLnRzYCwgcm91dGUgYFBPU1QgL2FwaS9hdXRoL290cC93aWRnZXQt
+dmVyaWZ5YC4KCioq4pqg77iPIFJlcXVpcmVkIGZvciBsb2dpbiB0byB3b3JrIG9uIGEgZG9tYWlu
+OioqIHRoZSBzaXRlJ3Mgb3JpZ2luIG11c3QgYmUgaW4gdGhlIE1TRzkxIHdpZGdldCdzCioqYWxs
+b3dlZC1kb21haW5zIHdoaXRlbGlzdCoqIChNU0c5MSBkYXNoYm9hcmQg4oaSIHRoZSB3aWRnZXQg
+4oaSIHNldHRpbmdzKSwgb3IgdGhlIHdpZGdldCBzY3JpcHQKcmVmdXNlcyB0byBsb2FkIGFuZCAi
+U2VuZCBjb2RlIiBmYWlscy4gQWRkIGA1Mi42Ni4xNzkuMjVgIChhbmQgYW55IHJlYWwgZG9tYWlu
+IHlvdSBhdHRhY2ggbGF0ZXIpLgpUaGUgc2FtZSB3aWRnZXQvYWNjb3VudCBpcyBzaGFyZWQgd2l0
+aCB0aGUgV2hhdHNMb2NhbCBwcm9qZWN0IOKAlCBkb24ndCBjcmVhdGUgYSBuZXcgd2lkZ2V0Lgoc
+LS0tCgojIyA5LiBEYXRhYmFzZSAoc2VsZi1ob3N0ZWQgTW9uZ29EQikKCi0gUnVucyBsb2NhbGx5
+LCBEQiBgaG9zdGVsX3Byb2RgLCBubyBhdXRoIChib3VuZCB0byBsb2NhbGhvc3Qgb25seSDigJQg
+bm90IGV4cG9zZWQpLiBDYWNoZSBjYXBwZWQKICBhdCAwLjI1IEdCIGluIGAvZXRjL21vbmdvZC5j
+b25mYCBmb3IgdGhlIHNtYWxsIGJveC4KLSAqKk1ha2UgYSB1c2VyIGFuIGFkbWluKiogKHRoZXJl
+J3Mgbm8gYWRtaW4gVUkgbG9naW4g4oCUIHJvbGUgbGl2ZXMgaW4gdGhlIERCKToKICBgYGBiYXNo
+CiAgbW9uZ29zaCBob3N0ZWxfcHJvZCAtLWV2YWwgJ2RiLnVzZXJzLnVwZGF0ZU9uZSh7bW9iaWxl
+OiI5MVhYWFhYWFhYWFgifSwge3NldDp7cm9sZToiYWRtaW4ifX0pJwogIGBgYAogIChNb2JpbGUg
+aXMgc3RvcmVkIGFzIGA5MWAgKyAxMCBkaWdpdHMuIFJlZ2lzdGVyIG9uY2UgdmlhIE9UUCBmaXJz
+dCBzbyB0aGUgdXNlciByb3cgZXhpc3RzLikKLSAqKkJhY2t1cCAvIHJlc3RvcmU6KioKICBgYGBi
+YXNoCiAgbW9uZ29kdW1wIC0tZGIgaG9zdGVsX3Byb2QgLS1hcmNoaXZlPS9ob21lL3VidW50dS9o
+b3N0ZWxfJChkYXRlICUrJUYpLmd6IC0tZ3ppcAogIG1vbmdvcmVzdG9yZSAtLWFyY2hpdmU9PGZp
+bGU+IC0tZ3ppcAogIGBgYAotIElmIHlvdSdkIHJhdGhlciB1c2UgTW9uZ29EQiBBdGxhcyBsYXRl
+ciwganVzdCBjaGFuZ2UgYE1PTkdPREJfVVJJYCBpbiB0aGUgYmFja2VuZCBgLmVudmAKICAoYW5k
+IGFsbG93bGlzdCB0aGUgc2VydmVyJ3MgSVAgYDUyLjY2LjE3OS4yNWAgaW4gQXRsYXMgTmV0d29y
+ayBBY2Nlc3MpLCB0aGVuCiAgYHBtMiByZXN0YXJ0IGhvc3RlbC1hcGkgLS11cGRhdGUtZW52YC4K
+Ci0tLQoKIyMgMTAuIFJlYnVpbGQgZnJvbSBzY3JhdGNoIChpZiB0aGUgaW5zdGFuY2UgaXMgbG9z
+dCkKCkFsbCB2aWEgQVdTIENMSSAoYHJlZ2lvbiBhcC1zb3V0aC0xYCkuIE9uIFdpbmRvd3MgR2l0
+IEJhc2gsIHByZWZpeCBFQzIgY29tbWFuZHMgd2l0aApgTVNZU19OT19QQVRIQ09OVj0xIE1TWVMy
+X0FSR19DT05WX0VYQ0w9JyonYCBzbyBgL2Rldi8uLi5gIGFyZ3MgYXJlbid0IG1hbmdsZWQuCgpg
+YGBiYXNoCiMga2V5IHBhaXIgKGltcG9ydCB5b3VyIGV4aXN0aW5nIHB1YmxpYyBrZXkpCmF3cyBl
+YzIgaW1wb3J0LWtleS1wYWlyIC0ta2V5LW5hbWUgaG9zdGVsLWtleSBcCiAgLS1wdWJsaWMta2V5
+LW1hdGVyaWFsIGZpbGViOi8vfi8uc3NoL2hvc3RlbC1rZXkucHViCgojIG5ldHdvcmsKVlBDPSQo
+YXdzIGVjMiBkZXNjcmliZS12cGNzIC0tZmlsdGVycyBOYW1lPWlzRGVmYXVsdCxWYWx1ZXM9dHJ1
+ZSAtLXF1ZXJ5ICdWcGNzWzBdLlZwY0lkJyAtLW91dHB1dCB0ZXh0KQpTVUJORVQ9JChhd3MgZWMy
+IGRlc2NyaWJlLXN1Ym5ldHMgLS1maWx0ZXJzIE5hbWU9dnBjLWlkLFZhbHVlcz0kVlBDIE5hbWU9
+ZGVmYXVsdC1mb3ItYXosVmFsdWVzPXRydWUgXAogICAgICAgICAtLXF1ZXJ5ICdTdWJuZXRzWzBd
+LlN1Ym5ldElkJyAtLW91dHB1dCB0ZXh0KQoKIyBzZWN1cml0eSBncm91cCAoMjIvODAvNDQzKQpT
+Rz0kKGF3cyBlYzIgY3JlYXRlLXNlY3VyaXR5LWdyb3VwIC0tZ3JvdXAtbmFtZSBob3N0ZWwtc2cg
+XAogICAgIC0tZGVzY3JpcHRpb24gIkhvc3RlbCBTU0gvSFRUUC9IVFRQUyIgLS12cGMtaWQgJFZQ
+QyAtLXF1ZXJ5IEdyb3VwSWQgLS1vdXRwdXQgdGV4dCkKZm9yIHAgaW4gMjIgODAgNDQzOyBkbyBh
+d3MgZWMyIGF1dGhvcml6ZS1zZWN1cml0eS1ncm91cC1pbmdyZXNzIFwKICAtLWdyb3VwLWlkICRT
+RyAtLXByb3RvY29sIHRjcCAtLXBvcnQgJHAgLS1jaWRyIDAuMC4wLjAvMDsgZG9uZQoKIyBsYXRl
+c3QgVWJ1bnR1IDI0LjA0IEFNSQpBTUk9JChhd3MgZWMyIGRlc2NyaWJlLWltYWdlcyAtLW93bmVy
+cyAwOTk3MjAxMDk0NzcgXAogIC0tZmlsdGVycyAiTmFtZT1uYW1lLFZhbHVlcz11YnVudHUvaW1h
+Z2VzL2h2bS1zc2QtZ3AzL3VidW50dS1ub2JsZS0yNC4wNC1hbWQ2NC1zZXJ2ZXItKiIgXAogICAg
+ICAgICAgICAiTmFtZT1zdGF0ZSxWYWx1ZXM9YXZhaWxhYmxlIiBcCiAgLS1xdWVyeSAnc29ydF9i
+eShJbWFnZXMsJkNyZWF0aW9uRGF0ZSlbLTFdLkltYWdlSWQnIC0tb3V0cHV0IHRleHQpCgojIGxh
+dW5jaApJSUQ9JChhd3MgZWMyIHJ1bi1pbnN0YW5jZXMgLS1pbWFnZS1pZCAkQU1JIC0taW5zdGFu
+Y2UtdHlwZSB0My5taWNybyAtLWtleS1uYW1lIGhvc3RlbC1rZXkgXAogIC0tc2VjdXJpdHktZ3Jv
+dXAtaWRzICRTRyAtLXN1Ym5ldC1pZCAkU1VCTkVUIC0tYXNzb2NpYXRlLXB1YmxpYy1pcC1hZGRy
+ZXNzIFwKICAtLWJsb2NrLWRldmljZS1tYXBwaW5ncyAnRGV2aWNlTmFtZT0vZGV2L3NkYTEsRWJz
+PXtWb2x1bWVTaXplPTIwLFZvbHVtZVR5cGU9Z3AzfScgXAogIC0tdGFnLXNwZWNpZmljYXRpb25z
+ICdSZXNvdXJjZVR5cGU9aW5zdGFuY2UsVGFncz1be0tleT1OYW1lLFZhbHVlPWhvc3RlbH1dJyBc
+CiAgLS1jb3VudCAxIC0tcXVlcnkgJ0luc3RhbmNlc1swXS5JbnN0YW5jZUlkJyAtLW91dHB1dCB0
+ZXh0KQphd3MgZWMyIHdhaXQgaW5zdGFuY2UtcnVubmluZyAtLWluc3RhbmNlLWlkcyAkSUlECgoj
+IChvcHRpb25hbCkgcmV1c2UgdGhlIGV4aXN0aW5nIEVsYXN0aWMgSVAsIG9yIGFsbG9jYXRlIGEg
+bmV3IG9uZSBhbmQgYXNzb2NpYXRlCmF3cyBlYzIgYXNzb2NpYXRlLWFkZHJlc3MgLS1pbnN0YW5j
+ZS1pZCAkSUlEIC0tYWxsb2NhdGlvbi1pZCBlaXBhbGxvYy0wNzQxZWUzZTg0ZGU3YjE3MwpgYGAK
+ClRoZW4gKipwcm92aXNpb24gdGhlIHNvZnR3YXJlKiogb3ZlciBTU0ggKHN3YXAsIE5vZGUgMjIs
+IG5naW54LCBwbTIsIE1vbmdvREIpIOKAlCB0aGUgZXhhY3Qgc2NyaXB0CmlzIGluIHRoaXMgcmVw
+bydzIGRlcGxveSBub3RlcyAvIGNhbiBiZSByZWdlbmVyYXRlZDsgdGhlIGVzc2VudGlhbCBzdGVw
+cyBhcmU6CgpgYGBiYXNoCiMgMiBHQiBzd2FwCnN1ZG8gZmFsbG9jYXRlIC1sIDJHIC9zd2FwZmls
+ZSAmJiBzdWRvIGNobW9kIDYwMCAvc3dhcGZpbGUgJiYgc3VkbyBta3N3YXAgL3N3YXBmaWxlICYm
+IFwKICBzdWRvIHN3YXBvbiAvc3dhcGZpbGUgJiYgZWNobyAnL3N3YXBmaWxlIG5vbmUgc3dhcCBz
+dyAwIDAnIHwgc3VkbyB0ZWUgLWEgL2V0Yy9mc3RhYgojIGJhc2UgKyBub2RlIDIyICsgcG0yCnN1
+ZG8gYXB0LWdldCB1cGRhdGUgLXkgJiYgc3VkbyBhcHQtZ2V0IGluc3RhbGwgLXkgbmdpbnggZ2l0
+IGN1cmwKY3VybCAtZnNTTCBodHRwczovL2RlYi5ub2Rlc291cmNlLmNvbS9zZXR1cF8yMi54IHwg
+c3VkbyAtRSBiYXNoIC0gJiYgc3VkbyBhcHQtZ2V0IGluc3RhbGwgLXkgbm9kZWpzCnN1ZG8gbnBt
+IGkgLWcgcG0yCiMgTW9uZ29EQiA4CmN1cmwgLWZzU0wgaHR0cHM6Ly93d3cubW9uZ29kYi5vcmcv
+c3RhdGljL3BncC9zZXJ2ZXItOC4wLmFzYyB8IFwKICBzdWRvIGdwZyAtbyAvdXNyL3NoYXJlL2tl
+eXJpbmdzL21vbmdvZGItc2VydmVyLTguMC5ncGcgLS1kZWFybW9yCmVjaG8gImRlYiBbIHNpZ25l
+ZC1ieT0vdXNyL3NoYXJlL2tleXJpbmdzL21vbmdvZGItc2VydmVyLTguMC5ncGcgXSBodHRwczov
+L3JlcG8ubW9uZ29kYi5vcmcvYXB0L3VidW50dSBub2JsZS9tb25nb2RiLW9yZy84LjAgbXVsdGl2
+ZXJzZSIgfCBcCiAgc3VkbyB0ZWUgL2V0Yy9hcHQvc291cmNlcy5saXN0LmQvbW9uZ29kYi1vcmct
+OC4wLmxpc3QKc3VkbyBhcHQtZ2V0IHVwZGF0ZSAteSAmJiBzdWRvIGFwdC1nZXQgaW5zdGFsbCAt
+eSBtb25nb2RiLW9yZwpzdWRvIHN5c3RlbWN0bCBlbmFibGUgLS1ub3cgbW9uZ29kCmBgYAoKRmlu
+YWxseSByZWNyZWF0ZSB0aGUgdHdvIGAuZW52YCBmaWxlcyAowqc3KSwgcnVuIHRoZSBkZXBsb3kg
+KMKnNmEpLCBhbmQgd3JpdGUgdGhlIG5naW54IHNpdGUgKMKnMTIpLgoKLS0tCgojIyAxMS4gVHJv
+dWJsZXNob290aW5nCgp8IFN5bXB0b20gfCBDYXVzZSAvIGZpeCB8CnwgLS0tIHwgLS0tIHwKfCBg
+QWJvcnRlZCAoY29yZSBkdW1wZWQpYCBkdXJpbmcgYnVpbGQgfCBWOCBPT00gb24gdGhlIDEgR0Ig
+Ym94LiBFbnN1cmUgYE5PREVfT1BUSU9OUz0tLW1heC1vbGQtc3BhY2Utc2l6ZT0xNTM2YCBhbmQg
+dGhhdCBzd2FwIGlzIG9uIChgc3dhcG9uIC0tc2hvd2ApLiB8CnwgYDUwMiBCYWQgR2F0ZXdheWAg
+fCBCYWNrZW5kIGRvd24uIGBwbTIgc3RhdHVzYDsgYHBtMiBsb2dzIGhvc3RlbC1hcGlgOyBsaWtl
+bHkgYSBjcmFzaCBvbiBib290IChiYWQgYC5lbnZgIC8gTW9uZ28gZG93bikuIHwKfCBCYWNrZW5k
+IHdvbid0IHN0YXJ0LCBleGl0cyBpbW1lZGlhdGVseSB8IE1pc3NpbmcgcmVxdWlyZWQgZW52IHZh
+ciAoYE1PTkdPREJfVVJJYCwgYEpXVF9TRUNSRVRgLCBgSVBfSEFTSF9TQUxUYCwgYFBJTl9FTkNS
+WVBUSU9OX0tFWWApLiBDaGVjayBgcG0yIGxvZ3NgLiB8CnwgTG9naW4gIlNlbmQgY29kZSIgZmFp
+bHMgLyB3aWRnZXQgd29uJ3QgbG9hZCB8IFNpdGUgb3JpZ2luIG5vdCB3aGl0ZWxpc3RlZCBpbiBN
+U0c5MSAowqc4KSwgb3IgYE1TRzkxX0FVVEhfS0VZYCBtaXNzaW5nL2JsYW5rLiB8CnwgTG9naW4g
+c2F5cyAiT1RQIHZlcmlmaWNhdGlvbiBmYWlsZWQiIHwgYE1TRzkxX0FVVEhfS0VZYCB3cm9uZywg
+b3IgdGhlIE9UUCBleHBpcmVkLiB8CnwgTW9uZ28gY29ubmVjdGlvbiByZWZ1c2VkIHwgYHN5c3Rl
+bWN0bCBzdGF0dXMgbW9uZ29kYDsgYHN1ZG8gc3lzdGVtY3RsIHJlc3RhcnQgbW9uZ29kYDsgY2hl
+Y2sgZGlzayB3aXRoIGBkZiAtaCAvYC4gfAp8IFNpdGUgdW5yZWFjaGFibGUgYnV0IGluc3RhbmNl
+IHJ1bm5pbmcgfCBTZWN1cml0eSBncm91cCAvIEVsYXN0aWMgSVAgYXNzb2NpYXRpb24sIG9yIG5n
+aW54IHN0b3BwZWQgKGBzeXN0ZW1jdGwgc3RhdHVzIG5naW54YCkuIHwKfCBEaXNrIGZ1bGwgfCBg
+ZGYgLWggL2A7IGNsZWFyIG9sZCBidWlsZHMvbG9nczsgcG0yIGxvZ3JvdGF0ZTogYHBtMiBpbnN0
+YWxsIHBtMi1sb2dyb3RhdGVgLiB8CgotLS0KCiMjIDEyLiBuZ2lueCBzaXRlIChgL2V0Yy9uZ2lu
+eC9zaXRlcy1hdmFpbGFibGUvaG9zdGVsYCkKCmBgYG5naW54CnNlcnZlciB7CiAgICBsaXN0ZW4g
+ODAgZGVmYXVsdF9zZXJ2ZXI7CiAgICBsaXN0ZW4gWzo6XTo4MCBkZWZhdWx0X3NlcnZlcjsKICAg
+IHNlcnZlcl9uYW1lIF87CiAgICByb290IC92YXIvd3d3L2hvc3RlbC9kaXN0OwogICAgaW5kZXgg
+aW5kZXguaHRtbDsKICAgIGNsaWVudF9tYXhfYm9keV9zaXplIDEybTsKCiAgICBsb2NhdGlvbiAv
+YXBpLyAgICAgICB7IHByb3h5X3Bhc3MgaHR0cDovLzEyNy4wLjAuMTo0MDAwOyBwcm94eV9odHRw
+X3ZlcnNpb24gMS4xOwogICAgICAgICAgICAgICAgICAgICAgICAgICBwcm94eV9zZXRfaGVhZGVy
+IEhvc3QgJGhvc3Q7IHByb3h5X3NldF9oZWFkZXIgWC1SZWFsLUlQICRyZW1vdGVfYWRkcjsKICAg
+ICAgICAgICAgICAgICAgICAgICAgICAgcHJveHlfc2V0X2hlYWRlciBYLUZvcndhcmRlZC1Gb3Ig
+JHByb3h5X2FkZF94X2ZvcndhcmRlZF9mb3I7CiAgICAgICAgICAgICAgICAgICAgICAgICAgIHBy
+b3h5X3NldF9oZWFkZXIgWC1Gb3J3YXJkZWQtUHJvdG8gJHNjaGVtZTsgfQogICAgbG9jYXRpb24g
+L3NvY2tldC5pby8geyBwcm94eV9wYXNzIGh0dHA6Ly8xMjcuMC4wLjE6NDAwMDsgcHJveHlfaHR0
+cF92ZXJzaW9uIDEuMTsKICAgICAgICAgICAgICAgICAgICAgICAgICAgcHJveHlfc2V0X2hlYWRl
+ciBVcGdyYWRlICRodHRwX3VwZ3JhZGU7IHByb3h5X3NldF9oZWFkZXIgQ29ubmVjdGlvbiAidXBn
+cmFkZSI7CiAgICAgICAgICAgICAgICAgICAgICAgICAgIHByb3h5X3NldF9oZWFkZXIgSG9zdCAk
+aG9zdDsgfQogICAgbG9jYXRpb24gPSAvaGVhbHRoICAgeyBwcm94eV9wYXNzIGh0dHA6Ly8xMjcu
+MC4wLjE6NDAwMC9oZWFsdGg7IH0KICAgIGxvY2F0aW9uIC8gICAgICAgICAgIHsgdHJ5X2ZpbGVz
+ICR1cmkgJHVyaS8gL2luZGV4Lmh0bWw7IH0KfQpgYGAKRW5hYmxlOiBgc3VkbyBsbiAtc2YgL2V0
+Yy9uZ2lueC9zaXRlcy1hdmFpbGFibGUvaG9zdGVsIC9ldGMvbmdpbngvc2l0ZXMtZW5hYmxlZC9o
+b3N0ZWwgJiYgc3VkbyBybSAtZiAvZXRjL25naW54L3NpdGVzLWVuYWJsZWQvZGVmYXVsdCAmJiBz
+dWRvIG5naW54IC10ICYmIHN1ZG8gc3lzdGVtY3RsIHJlbG9hZCBuZ2lueGAKCi0tLQoKIyMgMTMu
+IEFkZCBhIGRvbWFpbiArIEhUVFBTIChyZWNvbW1lbmRlZCBuZXh0IHN0ZXApCgoxLiBQb2ludCBh
+biBBIHJlY29yZCBmb3IgeW91ciBkb21haW4g4oaSIGA1Mi42Ni4xNzkuMjVgLgoyLiBgc3VkbyBz
+bmFwIGluc3RhbGwgLS1jbGFzc2ljIGNlcnRib3QgJiYgc3VkbyBjZXJ0Ym90IC0tbmdpbnggLWQg
+eW91cmRvbWFpbi5jb21gCiAgICg&#8203; certbot edits the nginx site and auto-renews).
+3. Update backend .env CORS_ORIGIN/FRONTEND_URL and frontend VITE_API_URL to
+   https://yourdomain.com, rebuild frontend, pm2 restart hostel-api --update-env.
+4. Add the domain to the MSG91 allowed-domains whitelist (§8).
 
 ---
 
 ## 14. Security & housekeeping follow-ups
 
-- **Rotate the initial AWS access key** if it was ever shared in plaintext; keep keys only in
-  `~/.aws/credentials`.
-- **Tighten SSH:** restrict security-group port 22 to known IPs instead of `0.0.0.0/0`.
-- **Backups:** schedule `mongodump` (cron) off-box (e.g. to S3).
-- **Cost:** the `t3.micro` is free-tier-eligible for 12 months; the Elastic IP / public IPv4
-  incurs a small charge (~$3–4/mo) regardless. One instance, one EIP — nothing else billable.
-- **Merge `priyal` → main** once reviewed.
+- Rotate the initial AWS access key if it was ever shared in plaintext; keep keys only in
+  ~/.aws/credentials.
+- Tighten SSH: restrict security-group port 22 to known IPs instead of 0.0.0.0/0.
+- Backups: schedule mongodump (cron) off-box (e.g. to S3).
+- Cost: the t3.micro is free-tier-eligible for 12 months; the Elastic IP / public IPv4
+  incurs a small charge (~$3-4/mo) regardless. One instance, one EIP - nothing else billable.
+- Merge priyal -> main once reviewed.
 
 ---
 
-*Generated as a handover runbook. Server of record: `52.66.179.25` (EC2 `i-07ab26518f4cfdefd`,
-account `966042699555`, region `ap-south-1`).*
+*Generated as a handover runbook. Server of record: 52.66.179.25 (EC2 i-07ab26518f4cfdefd,
+account 966042699555, region ap-south-1).*
+
+<!-- redeploy-trigger: 2026-07-19T00:00:00Z -->
