@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import type { ComponentProps } from "react";
 import type { FieldPath, UseFormReturn } from "react-hook-form";
 import { Check, ChevronsUpDown, MapPin, School } from "lucide-react";
 import { toast } from "sonner";
@@ -29,6 +30,14 @@ import {
 } from "@/features/auth/college-taxonomy-dto";
 
 const OTHER_COLLEGE = "__other__";
+
+/** cmdk's default `filter` is a fuzzy subsequence match (via `command-score`), not a substring
+ * match — against the ~1000-entry city catalog (plain names plus a district-level import like
+ * "Nagpur, Maharashtra") it happily surfaces cities whose letters merely appear in the right
+ * order somewhere in the name, not ones that actually contain what was typed. Plain
+ * case-insensitive "contains" is what a search box is expected to do here. */
+const cityFilter: NonNullable<ComponentProps<typeof Command>["filter"]> = (value, search) =>
+  value.toLowerCase().includes(search.toLowerCase()) ? 1 : 0;
 
 /** Searchable city picker — the plain `Select` doesn't scale to the full Indian-city catalog,
  * so this swaps in a filterable command palette inside a popover instead. */
@@ -63,7 +72,7 @@ function CityCombobox({
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
-        <Command>
+        <Command filter={cityFilter}>
           <CommandInput placeholder="Search city..." />
           <CommandList>
             <CommandEmpty>No city found.</CommandEmpty>
