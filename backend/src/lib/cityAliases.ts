@@ -1,45 +1,54 @@
-/** Maps the handful of Indian-district-style City catalog entries (added via a bulk district
- * import — see City.state) back to the plain city name that scripts/seedPlaces.ts's curated data
- * and placeAutoFetchService's auto-fetch pipeline actually key Place.city on. Without this, a
- * user who picked one of these district variants as their destination city sees an empty Explore
- * page instead of the already-curated places for their city, and auto-fetch would build a second,
- * lower-quality OSM-only place list under the district string instead of reusing/supplementing
- * the curated one.
- *
- * Deliberately a short, hand-verified list — one entry per curated city (scripts/seedPlaces.ts)
- * that also has a same-city district import, not a general-purpose district→city normalizer for
- * the full ~800-entry district catalog. Manipal has no matching district entry (it's a town
- * within Udupi district, not a district itself), so it isn't listed here. Delhi's district import
- * uses the same plain "Delhi" name, so it needs no alias either.
- */
-const CITY_ALIASES: Record<string, string> = {
-  "mumbai city, maharashtra": "Mumbai",
-  "mumbai suburban, maharashtra": "Mumbai",
-  "bengaluru urban, karnataka": "Bengaluru",
-  "bengaluru north, karnataka": "Bengaluru",
-  "bengaluru south, karnataka": "Bengaluru",
-  "bengaluru, karnataka": "Bengaluru",
-  "chennai, tamil nadu": "Chennai",
-  "kolkata, west bengal": "Kolkata",
-  "hyderabad, telangana": "Hyderabad",
-  "pune, maharashtra": "Pune",
-  "ahmedabad, gujarat": "Ahmedabad",
-  "jaipur, rajasthan": "Jaipur",
-  "jaipur rural, rajasthan": "Jaipur",
-  "lucknow, uttar pradesh": "Lucknow",
-  "chandigarh, chandigarh": "Chandigarh",
-  "indore, madhya pradesh": "Indore",
-  "nagpur, maharashtra": "Nagpur",
-  "kota, rajasthan": "Kota",
-  "dehradun, uttarakhand": "Dehradun",
-  "bhopal, madhya pradesh": "Bhopal",
-  "vadodara, gujarat": "Vadodara",
-  "coimbatore, tamil nadu": "Coimbatore",
-  "vellore, tamil nadu": "Vellore",
-};
+import { INDIAN_CITY_NAMES } from "@/lib/indianCities";
 
-/** Case-insensitive; returns the canonical curated city name for a known district alias, or
- * `city` unchanged if it isn't one. */
+/** Case-insensitive city name -> canonical spelling (e.g. "mumbai" -> "Mumbai"), built from the
+ * same curated list City/Place/College all key their `city` field on. */
+const CANONICAL_CITY_BY_LOWERCASE = new Map(INDIAN_CITY_NAMES.map((name) => [name.toLowerCase(), name]));
+
+/** Directional/administrative qualifier words that show up in India's official district names
+ * (from the bulk district import into City — see City.state) but aren't part of the city name
+ * itself, e.g. "Mumbai City", "Mumbai Suburban", "Bengaluru Urban", "North Goa", "East Delhi",
+ * "Jaipur Rural", "Warangal Urban". Stripping these out of a "District, State" string and
+ * checking what's left against the catalogued city names resolves the ~150 real districts that
+ * happen to share a catalogued city's name — the other ~650 districts (e.g. "24 Parganas",
+ * "Adilabad") genuinely don't correspond to any catalogued city and are correctly left
+ * unresolved, since there's no city-specific Place/College data for them either. Verified against
+ * the live City catalog (993 entries, 815 district-style) rather than assumed. */
+const QUALIFIER_WORDS = new Set([
+  "city",
+  "urban",
+  "suburban",
+  "rural",
+  "metropolitan",
+  "division",
+  "central",
+  "north",
+  "south",
+  "east",
+  "west",
+  "new",
+]);
+
+/** Resolves a destination city string to the plain catalogued city name that Place.city and
+ * College.city are actually keyed on. A plain name (or a string that doesn't match anything) is
+ * returned unchanged; a "District, State" string is resolved by dropping the state and any
+ * qualifier words from the district name, then matching what's left against the catalogued city
+ * list. Without this, a user whose profile city is a district-style entry (e.g. "Ahmedabad,
+ * Gujarat") would see an empty Explore page or an empty college list instead of the data already
+ * catalogued under the plain city name. */
 export function resolveCityAlias(city: string): string {
-  return CITY_ALIASES[city.trim().toLowerCase()] ?? city;
+  const trimmed = city.trim();
+  if (!trimmed) return city;
+
+  const exact = CANONICAL_CITY_BY_LOWERCASE.get(trimmed.toLowerCase());
+  if (exact) return exact;
+
+  const districtPart = trimmed.split(",")[0]?.trim();
+  if (!districtPart) return city;
+
+  const core = districtPart
+    .split(/\s+/)
+    .filter((word) => !QUALIFIER_WORDS.has(word.toLowerCase()))
+    .join(" ");
+
+  return CANONICAL_CITY_BY_LOWERCASE.get(core.toLowerCase()) ?? city;
 }

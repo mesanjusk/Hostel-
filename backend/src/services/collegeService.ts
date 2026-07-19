@@ -5,6 +5,7 @@ import { User } from "@/models/User";
 import { escapeRegex } from "@/lib/regex";
 import { COLLEGE_SEEDS_BY_CATEGORY } from "@/lib/collegeSeedData";
 import { ensureBaselineCategoriesSeeded } from "@/services/collegeCategoryService";
+import { resolveCityAlias } from "@/lib/cityAliases";
 
 function slugify(name: string) {
   return name
@@ -83,11 +84,14 @@ function byRankThenName(
 }
 
 /** Public listing — active colleges for a given city + category, best-ranked first, for the
- * onboarding/profile college picker (which cascades off both the city and category selects). */
+ * onboarding/profile college picker (which cascades off both the city and category selects).
+ * `city` comes straight from the picker's city select, which can be a district-style City
+ * catalog entry (e.g. "Ahmedabad, Gujarat") rather than the plain name College.city is keyed
+ * on — resolved here the same way listPlaces resolves it for Explore (see cityAliases.ts). */
 export async function listActiveCollegesByCityAndCategory(city: string, collegeCategoryId: string) {
   await connectDB();
   await ensureCollegesSeeded();
-  const colleges = await College.find({ city, collegeCategoryId, active: true }).lean();
+  const colleges = await College.find({ city: resolveCityAlias(city), collegeCategoryId, active: true }).lean();
   return colleges.sort(byRankThenName);
 }
 
