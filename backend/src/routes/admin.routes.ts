@@ -407,6 +407,8 @@ adminRouter.put("/landing-settings", async (req, res) => {
   const settings = await updateLandingPageSettings({
     girlImageUrl: asUrl(parsed.data.girlImageUrl),
     boyImageUrl: asUrl(parsed.data.boyImageUrl),
+    logoUrl: asUrl(parsed.data.logoUrl),
+    logoRedirectUrl: asUrl(parsed.data.logoRedirectUrl),
   });
   res.json({ settings });
 });

@@ -4,17 +4,23 @@ import { LandingPageSettings } from "@/models/LandingPageSettings";
 export interface LandingPageSettingsDTO {
   girlImageUrl: string | null;
   boyImageUrl: string | null;
+  logoUrl: string | null;
+  logoRedirectUrl: string | null;
 }
 
 interface LandingPageSettingsDocLike {
   girlImageUrl?: string | null;
   boyImageUrl?: string | null;
+  logoUrl?: string | null;
+  logoRedirectUrl?: string | null;
 }
 
 function toDTO(doc: LandingPageSettingsDocLike | null): LandingPageSettingsDTO {
   return {
     girlImageUrl: doc?.girlImageUrl ?? null,
     boyImageUrl: doc?.boyImageUrl ?? null,
+    logoUrl: doc?.logoUrl ?? null,
+    logoRedirectUrl: doc?.logoRedirectUrl ?? null,
   };
 }
 

@@ -223,6 +223,8 @@ const urlOrEmpty = z.string().trim().max(2000).refine((val) => val === "" || z.s
 export const landingPageSettingsUpdateSchema = z.object({
   girlImageUrl: urlOrEmpty,
   boyImageUrl: urlOrEmpty,
+  logoUrl: urlOrEmpty,
+  logoRedirectUrl: urlOrEmpty,
 });
 
 export type ProductInput = z.infer<typeof productSchema>;
