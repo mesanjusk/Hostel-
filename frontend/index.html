@@ -23,27 +23,14 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Pack with Me" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <!-- Open the API origin's DNS+TLS+TCP handshake in parallel with JS parsing, so the very
          first fetch (auth/me) starts on a warm connection instead of paying it serially.
          %VITE_API_URL% is substituted at build time from the same env var lib/api.ts uses. -->
     <link rel="preconnect" href="%VITE_API_URL%" crossorigin />
-    <!-- Load fonts without blocking first paint: fetch as a print stylesheet (non-blocking),
-         then flip to `all` once it arrives. display=swap already renders text in a fallback
-         face meanwhile, so the swap is seamless. <noscript> keeps it working without JS. -->
-    <link
-      rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600;700;800&family=Alex+Brush&family=Caveat:wght@600;700&display=swap"
-      media="print"
-      onload="this.media='all'"
-    />
-    <noscript>
-      <link
-        rel="stylesheet"
-        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600;700;800&family=Alex+Brush&family=Caveat:wght@600;700&display=swap"
-      />
-    </noscript>
+    <!-- Fonts are self-hosted via @fontsource (imported in index.css) rather than loaded from
+         Google Fonts — see the comment there for why: it's what lets the service worker cache
+         them like any other static asset, instead of a cross-origin fetch the SW never touches
+         and iOS evicts from its own HTTP cache between PWA launches. -->
     <title>Pack with Me</title>
   </head>
   <body>
