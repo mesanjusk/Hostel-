@@ -115,6 +115,12 @@ export const GUIDE_GAMER_STICKER_SLUGS = [
   "playstation-family-logo",
 ] as const;
 
+/** The 29 `.webp` files GUIDE_GAMER_STICKER_SLUGS points at were never uploaded to
+ * /stickers/boy/ — every one 404s, and the browser renders the sticker's alt text in place of
+ * the missing image. Flip to true once the admin has actually added those files; until then
+ * resolveStickerSrc skips the guide-only mapping and falls back to the hand-drawn boy set. */
+const GAMER_ASSETS_READY = false;
+
 const DEFAULT_BOY_SLUG_SET = new Set<string>([...BOY_STICKER_SLUGS, ...GUIDE_GAMER_STICKER_SLUGS]);
 
 /** Slugs whose boy art is a raster image (`.webp`) rather than the default hand-drawn `.svg` —
@@ -239,7 +245,7 @@ export function setAdminCustomStickers(gender: "Male" | "Female", stickers: Cust
   adminCustomStickers[gender] = stickers ?? [];
 }
 
-function girlDefaultSrc(slugOrPath: string): string {
+export function girlDefaultSrc(slugOrPath: string): string {
   return slugOrPath.startsWith("/stickers/") ? slugOrPath : `/stickers/${slugOrPath}.webp`;
 }
 
@@ -275,7 +281,10 @@ export function resolveStickerSrc(
     if (slug) {
       const direct = enabled.has(slug) ? slug : null;
       const guideMapped =
-        context === "guide" && GUIDE_GIRL_TO_BOY_SLUG[slug] && enabled.has(GUIDE_GIRL_TO_BOY_SLUG[slug])
+        GAMER_ASSETS_READY &&
+        context === "guide" &&
+        GUIDE_GIRL_TO_BOY_SLUG[slug] &&
+        enabled.has(GUIDE_GIRL_TO_BOY_SLUG[slug])
           ? GUIDE_GIRL_TO_BOY_SLUG[slug]
           : null;
       const mapped =
