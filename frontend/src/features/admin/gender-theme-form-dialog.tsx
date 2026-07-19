@@ -21,7 +21,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { cn } from "@/lib/utils";
 import { api, ApiError } from "@/lib/api";
 import { emitRefresh } from "@/lib/refresh-bus";
-import { BOY_STICKER_SLUGS, GIRL_STICKER_SLUGS } from "@/lib/gender-stickers";
+import { BOY_STICKER_SLUGS, GIRL_STICKER_SLUGS, boyStickerPath } from "@/lib/gender-stickers";
 import { compressImageToDataUrl, MAX_SOURCE_BYTES } from "@/lib/image-compression";
 import type { GenderThemeSettingsDTO } from "@/features/admin/gender-theme-dto";
 
@@ -276,7 +276,7 @@ export function GenderThemeFormDialog({ settings }: { settings: GenderThemeSetti
   const availableSlugs = settings.key === "Male" ? BOY_STICKER_SLUGS : GIRL_STICKER_SLUGS;
 
   function stickerThumbSrc(slug: string) {
-    return settings.key === "Male" ? `/stickers/boy/${slug}.svg` : `/stickers/${slug}.webp`;
+    return settings.key === "Male" ? boyStickerPath(slug) : `/stickers/${slug}.webp`;
   }
 
   function buildDefaults(): FormInput {

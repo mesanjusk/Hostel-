@@ -153,7 +153,7 @@ function CtaLink({ href, children }: { href: string; children: React.ReactNode }
   );
 }
 
-function CardContent({ element }: { element: CanvasElement }) {
+function CardContent({ element, context }: { element: CanvasElement; context?: "guide" }) {
   const { user } = useAuth();
   const isHeading = element.textStyle === "heading";
   const isHeroCard = element.isHero === true;
@@ -167,7 +167,7 @@ function CardContent({ element }: { element: CanvasElement }) {
           <div className="mb-1 flex aspect-square items-center justify-center overflow-hidden rounded-sm bg-gradient-to-br from-[#fdf6ee] to-[#f3e6d5] text-5xl">
             {element.src ? (
               <img
-                src={resolveStickerSrc(element.src, user?.gender)}
+                src={resolveStickerSrc(element.src, user?.gender, context)}
                 alt={element.alt ?? ""}
                 className="h-full w-full object-contain drop-shadow-[1px_4px_8px_rgba(58,46,42,0.25)]"
                 draggable={false}
@@ -229,12 +229,12 @@ function CardContent({ element }: { element: CanvasElement }) {
 /** The element's visual content with no positioning applied — reused by both the public
  * page (percent + translate centering) and the admin editor (plain pixel transform, for
  * Moveable compatibility). */
-export function ElementBody({ element }: { element: CanvasElement }) {
+export function ElementBody({ element, context }: { element: CanvasElement; context?: "guide" }) {
   const { user } = useAuth();
   if (element.kind === "image") {
     return (
       <img
-        src={element.src ? resolveStickerSrc(element.src, user?.gender) : element.src}
+        src={element.src ? resolveStickerSrc(element.src, user?.gender, context) : element.src}
         alt={element.alt ?? ""}
         className="h-full w-full object-contain drop-shadow-[2px_6px_10px_rgba(58,46,42,0.35)]"
         draggable={false}
@@ -244,7 +244,7 @@ export function ElementBody({ element }: { element: CanvasElement }) {
 
   return (
     <CardChrome element={element}>
-      <CardContent element={element} />
+      <CardContent element={element} context={context} />
     </CardChrome>
   );
 }
@@ -253,10 +253,14 @@ export function CanvasElementView({
   element,
   breakpoint,
   layout,
+  context,
 }: {
   element: CanvasElement;
   breakpoint: Breakpoint;
   layout?: ElementLayout;
+  /** Set to "guide" from the survival guide page so Male viewers get the gamer sticker set
+   * (GUIDE_GIRL_TO_BOY_SLUG in lib/gender-stickers.ts) instead of the home page's boy set. */
+  context?: "guide";
 }) {
   const effectiveLayout = layout ?? element.layouts[breakpoint];
 
@@ -266,14 +270,14 @@ export function CanvasElementView({
         style={transformStyle(effectiveLayout, false)}
         className="pointer-events-none block w-20 select-none sm:w-24"
       >
-        <ElementBody element={element} />
+        <ElementBody element={element} context={context} />
       </span>
     );
   }
 
   return (
     <div style={transformStyle(effectiveLayout)}>
-      <ElementBody element={element} />
+      <ElementBody element={element} context={context} />
     </div>
   );
 }

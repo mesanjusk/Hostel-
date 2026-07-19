@@ -8,12 +8,14 @@ export function SectionCanvas({
   elements,
   breakpoint,
   background,
+  context,
 }: {
   section: HomeSectionDef;
   sectionIdx: number;
   elements: CanvasElement[];
   breakpoint: Breakpoint;
   background?: string;
+  context?: "guide";
 }) {
   const { width, height } = section.canvas[breakpoint];
   const sectionElements = elements.filter((e) => e.section === sectionIdx);
@@ -32,7 +34,7 @@ export function SectionCanvas({
       }}
     >
       {sectionElements.map((element) => (
-        <CanvasElementView key={element.id} element={element} breakpoint={breakpoint} />
+        <CanvasElementView key={element.id} element={element} breakpoint={breakpoint} context={context} />
       ))}
     </div>
   );

@@ -77,7 +77,55 @@ export const BOY_STICKER_SLUGS = [
   "badge",
 ] as const;
 
-const DEFAULT_BOY_SLUG_SET = new Set<string>(BOY_STICKER_SLUGS);
+/** Base slugs of the gamer-theme sticker set (raster crops the admin supplies, one file per
+ * slug) added specifically for the Male survival guide — see GUIDE_GIRL_TO_BOY_SLUG below.
+ * Listed separately from the original hand-drawn BOY_STICKER_SLUGS because these ship as
+ * `/stickers/boy/<slug>.webp` (raster, see BOY_RASTER_SLUGS) rather than `.svg`. Still merged
+ * into BOY_STICKER_SLUGS so they behave identically everywhere else a boy slug is valid (the
+ * admin Gender Theme sticker picker, getStickerPool, DEFAULT_BOY_SLUG_SET). */
+export const GUIDE_GAMER_STICKER_SLUGS = [
+  "controller-white",
+  "rockstar-star",
+  "mortal-kombat-logo",
+  "spiderman-hand",
+  "one-up-pixel",
+  "gaming-pc-rgb",
+  "controller-blue-ps5",
+  "game-over-pixel",
+  "arcade-cabinet",
+  "do-not-disturb-gamer",
+  "gamer-zone-sign",
+  "headset-gray",
+  "soldier-with-cat",
+  "chibi-gamer-boy",
+  "nintendo-logo",
+  "lightning-bird-logo",
+  "green-triangle-badge",
+  "ps-buttons-classic",
+  "boo-ghost",
+  "ps-buttons-dark",
+  "uncharted-silhouette",
+  "marvel-logo",
+  "gta-logo",
+  "red-dead-2-logo",
+  "snes-controller",
+  "real-madrid-jersey",
+  "ghost-of-tsushima-red",
+  "ghost-of-tsushima-blue",
+  "playstation-family-logo",
+] as const;
+
+const DEFAULT_BOY_SLUG_SET = new Set<string>([...BOY_STICKER_SLUGS, ...GUIDE_GAMER_STICKER_SLUGS]);
+
+/** Slugs whose boy art is a raster image (`.webp`) rather than the default hand-drawn `.svg` —
+ * currently just the gamer set above. Consulted by boyStickerPath() so callers never have to
+ * know which extension a given slug needs. */
+const BOY_RASTER_SLUGS = new Set<string>(GUIDE_GAMER_STICKER_SLUGS);
+
+/** Builds the on-disk path for a boy sticker slug, picking `.svg` or `.webp` per BOY_RASTER_SLUGS. */
+export function boyStickerPath(slug: string): string {
+  return `/stickers/boy/${slug}.${BOY_RASTER_SLUGS.has(slug) ? "webp" : "svg"}`;
+}
 
 /** Best-effort mapping from a girl-set slug (as used throughout home-elements-default.ts) to
  * its closest boy-set analog, for slugs that don't share the same base name (e.g. "bow" has no
@@ -117,6 +165,43 @@ const GIRL_TO_BOY_SLUG: Record<string, string> = {
   "maggi-therapy": "dice",
   "paise-khatam-emotion-khatam": "dumbbell",
   "budget-zero-stories-hero": "trophy",
+};
+
+/** Guide-only override of GIRL_TO_BOY_SLUG, consulted first (falling back to the general map)
+ * when resolveStickerSrc is called with context: "guide" — i.e. only from the survival guide
+ * page. Kept separate from GIRL_TO_BOY_SLUG so wiring the gamer set into the guide can't also
+ * reskin the home/moodboard page's Male experience, which reuses several of the same girl slugs
+ * (camera, bow, cherries, extension-board, etc.) at different, already-tuned positions. */
+const GUIDE_GIRL_TO_BOY_SLUG: Record<string, string> = {
+  camera: "controller-white",
+  bow: "rockstar-star",
+  "evil-eye": "mortal-kombat-logo",
+  cherries: "spiderman-hand",
+  "bandaid-everything-okay": "one-up-pixel",
+  "extension-board": "gaming-pc-rgb",
+  "charging-myself": "controller-blue-ps5",
+  "laundry-again": "game-over-pixel",
+  "laundry-day": "arcade-cabinet",
+  "midnight-maggi": "do-not-disturb-gamer",
+  cookies: "gamer-zone-sign",
+  "maggi-therapy": "headset-gray",
+  "mess-food-survival-food": "soldier-with-cat",
+  "cat-headphones-bubblegum": "chibi-gamer-boy",
+  "bow-2": "nintendo-logo",
+  "small-steps-every-day": "lightning-bird-logo",
+  "potted-plant": "green-triangle-badge",
+  "alarm-clock": "ps-buttons-classic",
+  "sleep-is-overrated": "boo-ghost",
+  "sleepy-moon": "ps-buttons-dark",
+  "cow-boba": "uncharted-silhouette",
+  "choose-happy": "marvel-logo",
+  "room-518-legends": "gta-logo",
+  "budget-zero-stories-hero": "red-dead-2-logo",
+  "paise-khatam-emotion-khatam": "snes-controller",
+  "you-matter": "real-madrid-jersey",
+  "bunny-tulips": "ghost-of-tsushima-red",
+  "tulips-bouquet": "ghost-of-tsushima-blue",
+  "hostel-life-best-life": "playstation-family-logo",
 };
 
 /** Admin-configured restriction of the boy sticker set (see the Gender Theme admin panel /
@@ -172,21 +257,33 @@ function extractGirlSlug(slugOrPath: string): string | null {
  * Resolves a sticker slug (or an already-built `/stickers/<slug>.webp` path) plus the viewer's
  * effective gender to the actual image path to render.
  *
- * - Male gets the boy SVG set: the slug's own boy art if it exists, else its mapped analog
- *   (GIRL_TO_BOY_SLUG), else — if neither exists or the admin has disabled it — the same girl
- *   .webp everyone else gets. Never a 404: every branch bottoms out at a file that exists.
+ * - Male gets the boy set: the slug's own boy art if it exists, else its mapped analog (the
+ *   guide-only map first when `context: "guide"`, then GIRL_TO_BOY_SLUG), else — if none of
+ *   that exists or the admin has disabled it — the same girl image everyone else gets. Never a
+ *   404: every branch bottoms out at a file that exists.
  * - Female / Other / null / gender not yet known: today's exact girl .webp, byte for byte
  *   unchanged from before this feature existed.
  */
-export function resolveStickerSrc(slugOrPath: string, gender: Gender | null | undefined): string {
+export function resolveStickerSrc(
+  slugOrPath: string,
+  gender: Gender | null | undefined,
+  context?: "guide",
+): string {
   if (gender === "Male") {
     const enabled = adminBoyStickerSlugs ?? DEFAULT_BOY_SLUG_SET;
     const slug = extractGirlSlug(slugOrPath);
     if (slug) {
       const direct = enabled.has(slug) ? slug : null;
-      const mapped = !direct && GIRL_TO_BOY_SLUG[slug] && enabled.has(GIRL_TO_BOY_SLUG[slug]) ? GIRL_TO_BOY_SLUG[slug] : null;
-      const boySlug = direct ?? mapped;
-      if (boySlug) return `/stickers/boy/${boySlug}.svg`;
+      const guideMapped =
+        context === "guide" && GUIDE_GIRL_TO_BOY_SLUG[slug] && enabled.has(GUIDE_GIRL_TO_BOY_SLUG[slug])
+          ? GUIDE_GIRL_TO_BOY_SLUG[slug]
+          : null;
+      const mapped =
+        !direct && !guideMapped && GIRL_TO_BOY_SLUG[slug] && enabled.has(GIRL_TO_BOY_SLUG[slug])
+          ? GIRL_TO_BOY_SLUG[slug]
+          : null;
+      const boySlug = direct ?? guideMapped ?? mapped;
+      if (boySlug) return boyStickerPath(boySlug);
     }
   }
   return girlDefaultSrc(slugOrPath);
@@ -218,7 +315,7 @@ const DEFAULT_GIRL_SLUG_SET = new Set<string>(GIRL_STICKER_SLUGS);
 export function getStickerPool(gender: Gender | null | undefined): CustomSticker[] {
   if (gender === "Male") {
     const enabled = adminBoyStickerSlugs ?? DEFAULT_BOY_SLUG_SET;
-    const builtIn = [...enabled].map((slug) => ({ slug, url: `/stickers/boy/${slug}.svg` }));
+    const builtIn = [...enabled].map((slug) => ({ slug, url: boyStickerPath(slug) }));
     return [...builtIn, ...adminCustomStickers.Male];
   }
   const enabled = adminGirlStickerSlugs ?? DEFAULT_GIRL_SLUG_SET;
