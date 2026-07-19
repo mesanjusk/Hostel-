@@ -4,6 +4,8 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { api, ApiError } from "@/lib/api";
 import { emitRefresh } from "@/lib/refresh-bus";
 import type { LandingPageSettingsDTO } from "@/features/admin/landing-settings-dto";
@@ -104,15 +106,24 @@ function ImageUploadField({ label, value, onChange }: ImageUploadFieldProps) {
 export function LandingSettingsView({ settings }: { settings: LandingPageSettingsDTO | null }) {
   const [girlImageUrl, setGirlImageUrl] = useState<string | null>(null);
   const [boyImageUrl, setBoyImageUrl] = useState<string | null>(null);
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [logoRedirectUrl, setLogoRedirectUrl] = useState("");
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (!settings) return;
     setGirlImageUrl(settings.girlImageUrl);
     setBoyImageUrl(settings.boyImageUrl);
+    setLogoUrl(settings.logoUrl);
+    setLogoRedirectUrl(settings.logoRedirectUrl ?? "");
   }, [settings]);
 
-  const dirty = settings !== null && (girlImageUrl !== settings.girlImageUrl || boyImageUrl !== settings.boyImageUrl);
+  const dirty =
+    settings !== null &&
+    (girlImageUrl !== settings.girlImageUrl ||
+      boyImageUrl !== settings.boyImageUrl ||
+      logoUrl !== settings.logoUrl ||
+      logoRedirectUrl !== (settings.logoRedirectUrl ?? ""));
 
   async function handleSave() {
     setSaving(true);
@@ -120,11 +131,13 @@ export function LandingSettingsView({ settings }: { settings: LandingPageSetting
       await api.put("/api/admin/landing-settings", {
         girlImageUrl: girlImageUrl ?? "",
         boyImageUrl: boyImageUrl ?? "",
+        logoUrl: logoUrl ?? "",
+        logoRedirectUrl: logoRedirectUrl.trim(),
       });
       emitRefresh();
-      toast.success("Landing page images saved");
+      toast.success("Landing page settings saved");
     } catch (error) {
-      toast.error(error instanceof ApiError ? error.message : "Failed to save landing page images");
+      toast.error(error instanceof ApiError ? error.message : "Failed to save landing page settings");
     } finally {
       setSaving(false);
     }
@@ -133,16 +146,30 @@ export function LandingSettingsView({ settings }: { settings: LandingPageSetting
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Welcome screen images</CardTitle>
+        <CardTitle>Welcome screen</CardTitle>
         <p className="text-muted-foreground text-sm">
-          Transparent PNGs shown on the two gender-pick cards on the pre-login /welcome screen. Leave blank to show a
-          neutral placeholder instead.
+          The logo and gender-pick images shown on the pre-login /welcome screen. Leave blank to show a neutral
+          placeholder instead.
         </p>
       </CardHeader>
       <CardContent className="flex flex-col gap-6">
         <div className="flex flex-wrap justify-center gap-8 sm:justify-start">
+          <ImageUploadField label="Logo" value={logoUrl} onChange={setLogoUrl} />
           <ImageUploadField label="Girl Image" value={girlImageUrl} onChange={setGirlImageUrl} />
           <ImageUploadField label="Boy Image" value={boyImageUrl} onChange={setBoyImageUrl} />
+        </div>
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="logo-redirect-url">Logo link (optional)</Label>
+          <Input
+            id="logo-redirect-url"
+            type="url"
+            placeholder="https://example.com"
+            value={logoRedirectUrl}
+            onChange={(e) => setLogoRedirectUrl(e.target.value)}
+          />
+          <p className="text-muted-foreground text-xs">
+            Where tapping the logo on the /welcome screen sends visitors. Leave blank to make the logo unclickable.
+          </p>
         </div>
         <div>
           <Button type="button" disabled={!dirty || saving} onClick={handleSave}>

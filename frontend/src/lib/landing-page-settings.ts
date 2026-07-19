@@ -5,6 +5,8 @@ import { api } from "@/lib/api";
 export interface LandingPageSettingsDTO {
   girlImageUrl: string | null;
   boyImageUrl: string | null;
+  logoUrl: string | null;
+  logoRedirectUrl: string | null;
 }
 
 let cache: LandingPageSettingsDTO | null = null;

@@ -11,6 +11,10 @@ const LandingPageSettingsSchema = new Schema(
     key: { type: String, default: "welcome", unique: true },
     girlImageUrl: { type: String, default: null, trim: true, maxlength: 2000 },
     boyImageUrl: { type: String, default: null, trim: true, maxlength: 2000 },
+    // Logo shown at the top of the /welcome screen, and where tapping it sends visitors —
+    // both optional (null means "show the neutral placeholder" / "not clickable").
+    logoUrl: { type: String, default: null, trim: true, maxlength: 2000 },
+    logoRedirectUrl: { type: String, default: null, trim: true, maxlength: 2000 },
   },
   { timestamps: true },
 );
