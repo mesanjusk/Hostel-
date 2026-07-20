@@ -1,6 +1,6 @@
 import { createAsyncRouter } from "@/lib/asyncRouter";
 
-import { requireAuth } from "@/middleware/auth";
+import { requireAuth, requireIdentified } from "@/middleware/auth";
 import {
   canModerateMessage,
   deleteMessage,
@@ -28,7 +28,7 @@ import type { MessageScopeType } from "@/types";
 
 export const chatRouter = createAsyncRouter();
 
-chatRouter.use(requireAuth);
+chatRouter.use(requireAuth, requireIdentified);
 
 chatRouter.get("/:scopeType/:scopeId/messages", async (req, res) => {
   const parsed = listMessagesQuerySchema.safeParse(req.query);

@@ -107,7 +107,9 @@ export async function listAdminsWithWaStatus(): Promise<AdminWaStatusDTO[]> {
   return admins.map((admin) => ({
     id: admin._id.toString(),
     name: admin.name ?? null,
-    mobile: admin.mobile,
+    // Every admin account is created with a mobile number (see createUserByAdmin) — only
+    // anonymous student accounts can lack it.
+    mobile: admin.mobile!,
     waWindowOpenedAt: admin.waWindowOpenedAt ? admin.waWindowOpenedAt.toISOString() : null,
     isWindowOpen: isAdminWindowOpen(admin.waWindowOpenedAt),
     waBroadcastEnabled: admin.waBroadcastEnabled ?? true,

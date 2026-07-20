@@ -3,6 +3,7 @@ import { createAsyncRouter } from "@/lib/asyncRouter";
 
 import {
   checkMobileSchema,
+  genderUpdateSchema,
   loginSchema,
   onboardingSchema,
   otpRequestSchema,
@@ -13,16 +14,19 @@ import {
 import { authenticateWithPin, RateLimitedError } from "@/services/authService";
 import {
   completeOnboarding,
+  createAnonymousUser,
   getOrCreateUserByMobile,
   getUserByMobile,
+  linkMobileToUser,
   registerUserWithOtp,
   resetPinWithOtp,
+  setUserGender,
 } from "@/services/userService";
 import { requestOtp, verifyOtp, OtpCooldownError, OtpDailyLimitError } from "@/services/otpService";
 import { verifyWidgetToken, Msg91Error } from "@/services/msg91Service";
 import { signAuthToken } from "@/lib/jwt";
 import { serializeUser } from "@/lib/serialize";
-import { requireAuth } from "@/middleware/auth";
+import { requireAuth, optionalAuth } from "@/middleware/auth";
 import { logEventAsync } from "@/services/eventService";
 
 export const authRouter = createAsyncRouter();
@@ -40,6 +44,37 @@ function eventContext(req: Request) {
     userAgent: req.analytics?.userAgent ?? null,
   };
 }
+
+// Called once per new browser, the moment the app boots with no session token at all (see
+// frontend auth-context.tsx) — creates the "unidentified visitor" account transparently, before
+// the person has done anything at all, so every feature (checklist, budget, notes, ...) already
+// has somewhere real to save that visitor's data. Deliberately takes no body: nothing about this
+// visitor is known yet beyond that they exist.
+authRouter.post("/anonymous", async (req, res) => {
+  const user = await createAnonymousUser();
+  logEventAsync({ eventName: "registration_success", userId: user._id.toString(), ...eventContext(req), metadata: { via: "anonymous" } });
+  const token = signAuthToken(user._id.toString(), user.tokenVersion ?? 0);
+  res.json({ token, user: serializeUser(user) });
+});
+
+// Sets/changes gender for whoever is currently signed in — anonymous or fully identified. Its
+// own narrow endpoint (rather than folded into /onboarding or profile update) because the
+// Home-page gender popup needs to write exactly this one field the moment an anonymous visitor
+// picks it, without also requiring the rest of a profile edit.
+authRouter.patch("/gender", requireAuth, async (req, res) => {
+  const parsed = genderUpdateSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.issues[0]?.message ?? "Invalid input" });
+    return;
+  }
+
+  const updated = await setUserGender(req.user!._id.toString(), parsed.data.gender);
+  if (!updated) {
+    res.status(404).json({ error: "User not found" });
+    return;
+  }
+  res.json({ user: serializeUser(updated) });
+});
 
 authRouter.post("/login", async (req, res) => {
   const parsed = loginSchema.safeParse(req.body);
@@ -78,7 +113,7 @@ authRouter.post("/login", async (req, res) => {
 // JWT. First sign-in for a number creates the account (→ needsOnboarding); returning numbers
 // just log in. This replaces the WhatsApp-OTP register/reset + mobile-PIN login as the primary
 // auth path.
-authRouter.post("/otp/widget-verify", async (req, res) => {
+authRouter.post("/otp/widget-verify", optionalAuth, async (req, res) => {
   const parsed = widgetVerifySchema.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.issues[0]?.message ?? "Invalid input" });
@@ -99,8 +134,26 @@ authRouter.post("/otp/widget-verify", async (req, res) => {
     throw error;
   }
 
-  const isNew = !(await getUserByMobile(mobile));
-  const user = await getOrCreateUserByMobile(mobile);
+  const existingByMobile = await getUserByMobile(mobile);
+  const isNew = !existingByMobile;
+
+  // The session making this request is already an anonymous account (created transparently on
+  // first visit — see POST /anonymous) and this mobile isn't claimed by anyone else: attach it
+  // to that SAME document in place, rather than creating a second account, so every bit of
+  // checklist/budget/notes/etc. this visitor already saved anonymously stays theirs. Any other
+  // case (no session yet, or the number already belongs to a different, already-identified
+  // account) falls back to the normal get-or-create/log-into-that-account behavior.
+  const user =
+    req.user && !req.user.mobile && !existingByMobile
+      ? await linkMobileToUser(req.user._id.toString(), mobile)
+      : await getOrCreateUserByMobile(mobile);
+
+  if (!user) {
+    // linkMobileToUser's target vanished mid-request (extremely unlikely) — fall back rather
+    // than 500.
+    res.status(409).json({ error: "Something went wrong linking your account. Please try again." });
+    return;
+  }
 
   logEventAsync({ eventName: "otp_verified", ...ctx, metadata: { via: "msg91_widget" } });
   logEventAsync({

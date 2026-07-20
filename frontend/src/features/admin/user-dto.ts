@@ -3,7 +3,8 @@ import type { CollegeCategory, Gender, UserRole } from "@/types";
 export interface AdminUserDTO {
   id: string;
   name: string | null;
-  mobile: string;
+  /** Null for a visitor who has only ever used the app anonymously. */
+  mobile: string | null;
   gender: Gender | null;
   college: string | null;
   collegeCategory: CollegeCategory | null;

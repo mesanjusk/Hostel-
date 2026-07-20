@@ -2,11 +2,10 @@ import { Suspense } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 
 import { useAuth } from "@/context/auth-context";
-import { ProtectedRoute, AdminRoute, AuthOnlyRoute } from "@/components/protected-route";
+import { ProtectedRoute, AdminRoute, AuthOnlyRoute, RequireIdentifiedRoute } from "@/components/protected-route";
 import { ScrollToTop } from "@/components/shared/scroll-to-top";
 import { RouteFallback } from "@/components/shared/route-fallback";
 import { HOME_ROUTE } from "@/lib/nav-items";
-import { hasSelectedGender } from "@/lib/onboarding-gender";
 import { useAnalyticsPageViews } from "@/lib/analytics/use-page-view-tracking";
 import { useGenderTheme } from "@/lib/use-gender-theme";
 import { lazyRetry } from "@/lib/lazy-retry";
@@ -81,12 +80,15 @@ const ChatConversationPage = lazyRetry(() => import("@/pages/chat-conversation-p
 const UserProfilePage = lazyRetry(() => import("@/pages/user-profile-page"));
 
 function RootRoute() {
-  const { user, loading } = useAuth();
+  const { loading } = useAuth();
   if (loading) return null;
-  if (user) return <Navigate to={HOME_ROUTE} replace />;
-  // First-time visitors get the cute gender-pick landing page; anyone who's already been
-  // through it (even without finishing signup) skips straight to login.
-  return <Navigate to={hasSelectedGender() ? "/wa-login" : "/welcome"} replace />;
+  // Every visitor has a `user` by the time loading settles — anonymous ones get one
+  // transparently on first boot (see auth-context.tsx's ensureAnonymousSession) — so the
+  // sticky-notes Home page is simply the landing page for everyone now. The gender pick that
+  // used to gate this route happens as a popup on Home instead (see wa-login-home-view.tsx),
+  // and registering/logging in to link a mobile number is an opt-in action from there, not a
+  // prerequisite for landing here at all.
+  return <Navigate to={HOME_ROUTE} replace />;
 }
 
 export default function App() {
@@ -113,10 +115,14 @@ export default function App() {
                 </AuthOnlyRoute>
               }
             />
+            {/* Gender is picked via the popup on Home now (see wa-login-home-view.tsx), not the
+                /welcome landing page, so this no longer gates on requireSelectedGender — an
+                anonymous visitor can reach OTP login directly the moment they choose to link a
+                mobile number. */}
             <Route
               path="/wa-login"
               element={
-                <AuthOnlyRoute redirectTo={HOME_ROUTE} requireSelectedGender>
+                <AuthOnlyRoute redirectTo={HOME_ROUTE}>
                   <OtpLoginPage />
                 </AuthOnlyRoute>
               }
@@ -157,16 +163,62 @@ export default function App() {
             <Route path="/contacts" element={<ContactsPage />} />
             <Route path="/wishlist" element={<WishlistPage />} />
             <Route path="/shopping" element={<ShoppingPage />} />
-            <Route path="/discover" element={<DiscoverPage />} />
-            <Route path="/find-a-roomie" element={<FindARoomiePage />} />
+            {/* Roommate/co-packer matching and Connections need a phone-verified identity behind
+                them (abuse-prevention call, see requireIdentified on the backend) — an
+                anonymous visitor is sent to /wa-login to link a mobile number first, keeping
+                everything they've saved anonymously under the same account. */}
+            <Route
+              path="/discover"
+              element={
+                <RequireIdentifiedRoute>
+                  <DiscoverPage />
+                </RequireIdentifiedRoute>
+              }
+            />
+            <Route
+              path="/find-a-roomie"
+              element={
+                <RequireIdentifiedRoute>
+                  <FindARoomiePage />
+                </RequireIdentifiedRoute>
+              }
+            />
             <Route path="/hostel-pg-flat" element={<HostelPgFlatPage />} />
             <Route path="/bookings" element={<BookingsPage />} />
             <Route path="/explore" element={<ExplorePage />} />
             <Route path="/know-your-campus" element={<KnowYourCampusPage />} />
-            <Route path="/community" element={<CommunityPage />} />
-            <Route path="/community/:slug" element={<CommunityDetailPage />} />
-            <Route path="/chat" element={<ChatPage />} />
-            <Route path="/chat/:id" element={<ChatConversationPage />} />
+            <Route
+              path="/community"
+              element={
+                <RequireIdentifiedRoute>
+                  <CommunityPage />
+                </RequireIdentifiedRoute>
+              }
+            />
+            <Route
+              path="/community/:slug"
+              element={
+                <RequireIdentifiedRoute>
+                  <CommunityDetailPage />
+                </RequireIdentifiedRoute>
+              }
+            />
+            <Route
+              path="/chat"
+              element={
+                <RequireIdentifiedRoute>
+                  <ChatPage />
+                </RequireIdentifiedRoute>
+              }
+            />
+            <Route
+              path="/chat/:id"
+              element={
+                <RequireIdentifiedRoute>
+                  <ChatConversationPage />
+                </RequireIdentifiedRoute>
+              }
+            />
             <Route path="/u/:username" element={<UserProfilePage />} />
             <Route path="/guide" element={<GuidePage />} />
             <Route path="/guide/survival-guide" element={<SurvivalGuidePage />} />

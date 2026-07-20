@@ -21,7 +21,8 @@ export type CollegeCategory = (typeof COLLEGE_CATEGORY_OPTIONS)[number];
 export interface UserDTO {
   id: string;
   name: string | null;
-  mobile: string;
+  /** Null for a still-anonymous visitor — see User model's `mobile` field comment. */
+  mobile: string | null;
   avatar: string | null;
   gender: Gender | null;
   college: string | null;

@@ -1,6 +1,6 @@
 import { createAsyncRouter } from "@/lib/asyncRouter";
 
-import { requireAuth } from "@/middleware/auth";
+import { requireAuth, requireIdentified } from "@/middleware/auth";
 import { getMyTravelProfile, upsertMyTravelProfile } from "@/services/travelProfileService";
 import { findCoPackers, findRoommates } from "@/services/discoveryService";
 import {
@@ -17,7 +17,7 @@ import { travelProfileSchema, discoveryQuerySchema, sendConnectionSchema, respon
 
 export const discoveryRouter = createAsyncRouter();
 
-discoveryRouter.use(requireAuth);
+discoveryRouter.use(requireAuth, requireIdentified);
 
 discoveryRouter.get("/profile", async (req, res) => {
   const profile = await getMyTravelProfile(req.user!._id.toString());

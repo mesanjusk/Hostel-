@@ -189,7 +189,14 @@ export async function createUserByAdmin(mobile: string) {
   const loginPinHash = await hashPin(pin);
   const username = await generateUniqueUsername();
 
-  const user = await User.create({ mobile, role: "student", loginPinHash, username, displayName: username });
+  const user = await User.create({
+    mobile,
+    role: "student",
+    loginPinHash,
+    username,
+    displayName: username,
+    registeredAt: new Date(),
+  });
   return { success: true as const, user, pin };
 }
 
@@ -206,7 +213,14 @@ export async function registerUserWithOtp(mobile: string, verifiedOtpCode: strin
 
   const loginPinHash = await hashPin(customPin ?? verifiedOtpCode);
   const username = await generateUniqueUsername();
-  const user = await User.create({ mobile, role: "student", loginPinHash, username, displayName: username });
+  const user = await User.create({
+    mobile,
+    role: "student",
+    loginPinHash,
+    username,
+    displayName: username,
+    registeredAt: new Date(),
+  });
   return { success: true as const, user };
 }
 
@@ -222,7 +236,44 @@ export async function getOrCreateUserByMobile(mobile: string) {
   if (existing) return existing;
 
   const username = await generateUniqueUsername();
-  return User.create({ mobile, role: "student", username, displayName: username });
+  return User.create({ mobile, role: "student", username, displayName: username, registeredAt: new Date() });
+}
+
+/** Creates the account behind a brand-new, never-seen-before browser — called the moment
+ * anyone lands on the site (see POST /api/auth/anonymous), before they've provided a mobile
+ * number or even opened the app before. No `mobile` is set at all (not even `null` — see the
+ * User model's comment on that field), so this never collides with the sparse unique index
+ * no matter how many anonymous visitors exist. Gets a normal JWT just like any other account,
+ * which is what lets every existing feature (checklist, budget, notes, ...) work unchanged for
+ * an unidentified visitor — they're a real User document from their very first page load. */
+export async function createAnonymousUser() {
+  await connectDB();
+
+  const username = await generateUniqueUsername();
+  return User.create({ role: "student", username, displayName: username });
+}
+
+/** Attaches a freshly OTP-verified mobile number to an already-existing account in place —
+ * used when the account making the request is still anonymous (see auth.routes.ts's
+ * otp/widget-verify): the visitor's existing checklist/budget/notes/etc. stay exactly where
+ * they are, keyed to the same `_id`, and this is the first time that document becomes
+ * identifiable. Distinct from getOrCreateUserByMobile, which always resolves (or creates) the
+ * account for a mobile number rather than a specific already-known document. Throws on a
+ * duplicate-key race (mobile claimed by someone else a moment earlier) — the caller falls back
+ * to a normal login for that mobile instead. */
+export async function linkMobileToUser(userId: string, mobile: string) {
+  await connectDB();
+  return User.findByIdAndUpdate(userId, { mobile, registeredAt: new Date() }, { returnDocument: "after" });
+}
+
+/** Sets (or changes) an authenticated visitor's gender — the one field the Home-page gender
+ * popup needs to write, for both anonymous and fully-identified accounts. Deliberately its own
+ * narrow endpoint/service function rather than routed through updateProfile, which requires a
+ * full profile edit's worth of fields (college/city/etc.) that an anonymous visitor picking a
+ * theme on their first visit hasn't provided yet. */
+export async function setUserGender(userId: string, gender: string) {
+  await connectDB();
+  return User.findByIdAndUpdate(userId, { gender }, { returnDocument: "after" });
 }
 
 /** Sets a new login code for an existing account once the mobile's OTP has been verified.

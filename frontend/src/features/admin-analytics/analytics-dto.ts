@@ -70,6 +70,18 @@ export interface ReferralResponse {
   };
 }
 
+export interface IdentityResponse {
+  range: DateRangeDTO;
+  identity: {
+    newAnonymousUsers: number;
+    returningAnonymousUsers: number;
+    newRegisteredUsers: number;
+    returningRegisteredUsers: number;
+    totalAnonymousUsers: number;
+    totalRegisteredUsers: number;
+  };
+}
+
 export interface FunnelStep {
   key: string;
   label: string;

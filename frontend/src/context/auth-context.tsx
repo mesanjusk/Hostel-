@@ -74,9 +74,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(next);
   }, []);
 
+  // Every visitor gets a real (if unidentified) account the moment the app boots with no
+  // session at all — a brand-new browser, or one that cleared storage. This is what lets
+  // checklist/budget/notes/etc. start saving to the server before anyone has registered: the
+  // JWT this issues is a completely ordinary session, it's just for an account with no mobile
+  // number yet (see backend POST /api/auth/anonymous). Failing silently and leaving `user: null`
+  // is the only fallback — an offline first-ever visit just gets the login-gated experience.
+  const ensureAnonymousSession = useCallback(async () => {
+    try {
+      const { token, user } = await api.post<{ token: string; user: UserDTO }>("/api/auth/anonymous");
+      setAuthToken(token);
+      applyUser(user);
+    } catch {
+      applyUser(null);
+    }
+  }, [applyUser]);
+
   const refreshUser = useCallback(async () => {
     if (!getAuthToken()) {
-      applyUser(null);
+      await ensureAnonymousSession();
       return;
     }
     try {
@@ -96,7 +112,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return prev;
       });
     }
-  }, [applyUser]);
+  }, [applyUser, ensureAnonymousSession]);
 
   useEffect(() => {
     refreshUser().finally(() => setLoading(false));

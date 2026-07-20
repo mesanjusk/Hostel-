@@ -5,7 +5,15 @@ import { COLLEGE_CATEGORY_OPTIONS, GENDER_OPTIONS } from "@/types";
 const UserSchema = new Schema(
   {
     name: { type: String, default: null, trim: true, maxlength: 80 },
-    mobile: { type: String, required: true, unique: true, index: true },
+    /** Absent (not `null`) for an unidentified visitor — an anonymous session created the
+     * moment someone lands on the site (see userService.createAnonymousUser), before they've
+     * ever provided a mobile number. Left genuinely unset rather than defaulted to `null` so
+     * the sparse unique index below only enforces uniqueness once a mobile actually exists;
+     * many anonymous documents with the field literally set to `null` would collide on that
+     * index. Set exactly once, in place on the same document, the moment that visitor either
+     * links a number via OTP (userService merges it into their existing anonymous account) or
+     * an admin provisions a fully-identified account directly. */
+    mobile: { type: String, unique: true, sparse: true, index: true },
     avatar: { type: String, default: null },
     gender: { type: String, enum: GENDER_OPTIONS, default: null },
     college: { type: String, default: null, trim: true, maxlength: 120 },
@@ -67,6 +75,13 @@ const UserSchema = new Schema(
      * verified users"). Distinct from having a valid login: verification is a manual admin
      * action, not automatic on account creation. */
     verified: { type: Boolean, default: false },
+    /** Set the moment `mobile` is first attached to this document — distinct from
+     * `createdAt`, which for most accounts today is the moment the anonymous session itself
+     * was created, potentially long before the visitor ever provides a number. Powers the
+     * admin analytics "new vs returning registered users" split (see visitorAnalyticsService),
+     * which needs to know when identity was linked, not just when the row was born. Null for
+     * an account that's still anonymous. */
+    registeredAt: { type: Date, default: null },
     /** Optional — enables age-range matching in Co-Packer/Roommate discovery. Never required. */
     dateOfBirth: { type: Date, default: null },
     /** Users this account has blocked, for discovery/directory features. Kept as an embedded

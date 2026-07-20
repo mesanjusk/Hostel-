@@ -72,3 +72,15 @@ export function requireAdmin(req: Request, res: Response, next: NextFunction) {
   }
   next();
 }
+
+/** Gates the social/messaging surface (chat, community, roommate discovery, connections) behind
+ * an actually-linked mobile number — every other feature works for a purely anonymous visitor,
+ * but messaging strangers or joining a community as a throwaway unidentified account is an abuse
+ * vector the rest of the app doesn't have. Must run after requireAuth (needs req.user). */
+export function requireIdentified(req: Request, res: Response, next: NextFunction) {
+  if (!req.user?.mobile) {
+    res.status(403).json({ error: "Link your mobile number to use this feature.", code: "IDENTIFICATION_REQUIRED" });
+    return;
+  }
+  next();
+}

@@ -6,6 +6,7 @@ import { emitComingSoon } from "@/lib/coming-soon-bus";
 import { cn } from "@/lib/utils";
 import { HUB_CARDS } from "@/features/welcome/hub-widget-registry";
 import { useHubLayout } from "@/features/welcome/use-hub-layout";
+import { GenderPickerDialog } from "@/features/welcome/gender-picker-dialog";
 
 /** One distinct pastel per note so the board reads as a set of colorful pinned notes. */
 const CARD_BACKGROUNDS = [
@@ -51,6 +52,8 @@ export function WaLoginHomeView() {
 
   return (
     <div className="mx-auto flex max-w-5xl flex-col gap-8">
+      <GenderPickerDialog />
+
       <div className="flex flex-col items-center gap-3 text-center">
         <h1
           className="text-5xl font-bold sm:text-6xl"

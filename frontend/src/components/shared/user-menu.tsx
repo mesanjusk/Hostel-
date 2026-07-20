@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "react-router-dom";
-import { LogOut, Pencil, UserRound } from "lucide-react";
+import { LogIn, LogOut, Pencil, UserRound } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -21,7 +21,7 @@ export function UserMenu() {
 
   if (!user) return null;
 
-  const initials = (user.name ?? user.mobile.slice(-2) ?? "?").slice(0, 2).toUpperCase();
+  const initials = (user.name ?? user.mobile?.slice(-2) ?? "?").slice(0, 2).toUpperCase();
 
   function handleLogout() {
     logout();
@@ -41,7 +41,9 @@ export function UserMenu() {
       <DropdownMenuContent align="end">
         <DropdownMenuLabel className="font-normal">
           <p className="truncate text-sm font-medium">{user.name ?? "Student"}</p>
-          <p className="text-muted-foreground truncate text-xs">+{user.mobile}</p>
+          <p className="text-muted-foreground truncate text-xs">
+            {user.mobile ? `+${user.mobile}` : "Not linked yet"}
+          </p>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild>
@@ -63,10 +65,21 @@ export function UserMenu() {
           </Link>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem variant="destructive" onSelect={handleLogout}>
-          <LogOut className="size-4" />
-          Log out
-        </DropdownMenuItem>
+        {/* An anonymous account has no credential to log back in with — offer to link a
+            mobile number instead of a logout that would just orphan everything saved so far. */}
+        {user.mobile ? (
+          <DropdownMenuItem variant="destructive" onSelect={handleLogout}>
+            <LogOut className="size-4" />
+            Log out
+          </DropdownMenuItem>
+        ) : (
+          <DropdownMenuItem asChild>
+            <Link to="/wa-login">
+              <LogIn className="size-4" />
+              Link mobile number
+            </Link>
+          </DropdownMenuItem>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );

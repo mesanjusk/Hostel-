@@ -155,6 +155,15 @@ jobs:
           # touches defaultChecklistTemplate.ts).
           run_seed migrate:checklist-gender backend/scripts/retagChecklistGender.ts backend/src/lib/defaultChecklistTemplate.ts
 
+          # `mobile` went from required+unique to optional+sparse+unique (anonymous visitor
+          # accounts have no mobile at all — see userService.createAnonymousUser). Mongoose
+          # never alters an already-deployed index by itself, and a non-sparse unique index
+          # treats every document missing the field as colliding on the same "null" entry, so
+          # this has to run once against the real index before anonymous accounts can coexist.
+          # Idempotent (no-ops once the index is already sparse+unique), so safe to leave gated
+          # on this script's own source like the migrations above.
+          run_seed migrate:sparse-mobile-index backend/scripts/migrateSparseMobileIndex.ts
+
           # Category.ts only seeds a user's default folders once (existingCount === 0), so a
           # category added to the template after a user already onboarded — like Hobbies —
           # never reaches them on its own. Backfills that folder onto existing users; skips

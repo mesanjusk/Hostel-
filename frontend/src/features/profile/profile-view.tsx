@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { motion } from "framer-motion";
-import { Download, Loader2, MessageCircle, User, LogOut, Pencil, Share, SquarePlus, type LucideIcon } from "lucide-react";
+import { Download, Loader2, LogIn, MessageCircle, User, LogOut, Pencil, Share, SquarePlus, type LucideIcon } from "lucide-react";
 import { toast } from "sonner";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -143,7 +143,7 @@ export function ProfileView() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const initials = (user?.name ?? user?.mobile.slice(-2) ?? "?").slice(0, 2).toUpperCase();
+  const initials = (user?.name ?? user?.mobile?.slice(-2) ?? "?").slice(0, 2).toUpperCase();
 
   const form = useForm<ProfileFieldsInput>({
     resolver: zodResolver(profileFieldsSchema),
@@ -218,7 +218,9 @@ export function ProfileView() {
                   <p className="font-display text-xl font-semibold">{user.name ?? "Student"}</p>
                   {user.role === "admin" && <Badge variant="accent">Admin</Badge>}
                 </div>
-                <p className="text-muted-foreground text-sm">+{user.mobile}</p>
+                <p className="text-muted-foreground text-sm">
+                  {user.mobile ? `+${user.mobile}` : "Not linked to a mobile number yet"}
+                </p>
               </div>
             </div>
             <Button type="button" variant="outline" onClick={() => setEditOpen(true)}>
@@ -263,6 +265,20 @@ export function ProfileView() {
           </DialogContent>
         </Dialog>
 
+        {!user.mobile && (
+          <Card className="border-primary/20 bg-primary/5 flex flex-col items-start gap-3 p-6 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="font-medium">Save your progress</p>
+              <p className="text-muted-foreground text-sm">
+                Link a mobile number so your checklist, budget, and notes stay safe if you switch devices.
+              </p>
+            </div>
+            <Button type="button" onClick={() => navigate("/wa-login")}>
+              <LogIn className="size-4" /> Link mobile number
+            </Button>
+          </Card>
+        )}
+
         <PublicProfileSettings autoOpen={location.hash === "#community"} />
 
         <SettingsSection title="App">
@@ -289,16 +305,21 @@ export function ProfileView() {
           </SettingsSection>
         )}
 
-        <Button
-          type="button"
-          variant="destructive"
-          size="lg"
-          className="self-start"
-          onClick={handleLogout}
-        >
-          <LogOut className="size-4" />
-          Log out
-        </Button>
+        {/* An anonymous account has no credential to log back in with — signing it out would
+            just orphan everything saved under it and hand the next boot a brand-new empty
+            account. Only a mobile-linked account can safely be logged out of. */}
+        {user.mobile && (
+          <Button
+            type="button"
+            variant="destructive"
+            size="lg"
+            className="self-start"
+            onClick={handleLogout}
+          >
+            <LogOut className="size-4" />
+            Log out
+          </Button>
+        )}
       </motion.div>
     </div>
   );

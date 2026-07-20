@@ -7,7 +7,8 @@ export function serializeUser(user: HydratedDocument<UserDocument>): UserDTO {
   return {
     id: user._id.toString(),
     name: user.name ?? null,
-    mobile: user.mobile,
+    // Null for a still-anonymous visitor — see the User model's `mobile` field comment.
+    mobile: user.mobile ?? null,
     avatar: user.avatar ?? null,
     gender: (user.gender as UserDTO["gender"]) ?? null,
     college: user.college ?? null,
@@ -18,7 +19,11 @@ export function serializeUser(user: HydratedDocument<UserDocument>): UserDTO {
     homeTown: user.homeTown ?? null,
     role: user.role as UserDTO["role"],
     theme: user.theme as UserDTO["theme"],
-    needsOnboarding: !user.name,
+    // An anonymous (no mobile yet) visitor is never forced through onboarding — they land
+    // straight on the sticky-notes Home page and pick up a name/gender at their own pace (the
+    // Home gender popup, or later if they ever bother with Profile). Onboarding only becomes
+    // mandatory once a mobile number is attached and there's still no name on file.
+    needsOnboarding: Boolean(user.mobile) && !user.name,
     verified: Boolean(user.verified),
     createdAt: (user as unknown as { createdAt: Date }).createdAt.toISOString(),
     username: user.username ?? null,

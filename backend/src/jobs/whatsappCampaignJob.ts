@@ -23,8 +23,10 @@ async function sendToOptedInAdmins(text: string): Promise<void> {
   if (openAdmins.length === 0) return;
 
   await Promise.all(
+    // Every admin account is created with a mobile number (admin provisioning always requires
+    // one — see createUserByAdmin) — only anonymous student accounts can lack it.
     openAdmins.map((admin) =>
-      sendWhatsAppText(admin.mobile, text).catch((error) => {
+      sendWhatsAppText(admin.mobile!, text).catch((error) => {
         console.error(`Failed to send WhatsApp campaign message to admin ${admin.mobile}:`, error);
       }),
     ),

@@ -1,5 +1,6 @@
 import { connectDB } from "@/db";
 import { AnalyticsEvent } from "@/models/AnalyticsEvent";
+import { User } from "@/models/User";
 import type { DateRange } from "@/lib/dateRange";
 import { daysAgo, startOfDay, startOfMonth, startOfWeek } from "@/lib/dateRange";
 import { getOnlineCount } from "@/services/eventService";
@@ -300,6 +301,57 @@ export async function getGeoBreakdown(range: DateRange) {
   ]);
 
   return { countries: topN(countries, 15), states: topN(states, 15), cities: topN(cities, 15) };
+}
+
+/** Splits traffic by *identity* rather than raw browser (visitorId): how many still-anonymous
+ * visitors vs. mobile-linked (registered) users are new in this range vs. already existed
+ * before it and came back. "New" is a direct count against User.createdAt (anonymous) or
+ * User.registeredAt (registered — the moment a mobile got attached, which can be long after
+ * that account's row was created). "Returning" needs the set of accounts that actually did
+ * something in-range (via AnalyticsEvent.userId, populated for every request once a session
+ * exists — see analyticsContext.ts) whose identity predates the range start. This is the
+ * backing data for the admin dashboard's "new/returning × anonymous/registered" split, distinct
+ * from getVisitorOverview's raw-browser new/returning numbers above. */
+export async function getIdentityOverview(range: DateRange) {
+  await connectDB();
+
+  const [newAnonymousUsers, newRegisteredUsers, totalAnonymousUsers, totalRegisteredUsers] = await Promise.all([
+    User.countDocuments({ mobile: { $exists: false }, createdAt: { $gte: range.start, $lte: range.end } }),
+    User.countDocuments({ mobile: { $exists: true, $ne: null }, registeredAt: { $gte: range.start, $lte: range.end } }),
+    User.countDocuments({ mobile: { $exists: false } }),
+    User.countDocuments({ mobile: { $exists: true, $ne: null } }),
+  ]);
+
+  const activeUserIds = await distinctValues<string>(AnalyticsEvent, "userId", {
+    timestamp: { $gte: range.start, $lte: range.end },
+    userId: { $ne: null },
+  });
+
+  let returningAnonymousUsers = 0;
+  let returningRegisteredUsers = 0;
+
+  if (activeUserIds.length > 0) {
+    const activeUsers = await User.find({ _id: { $in: activeUserIds } })
+      .select("mobile createdAt registeredAt")
+      .lean();
+
+    for (const u of activeUsers) {
+      const isRegistered = Boolean(u.mobile);
+      const identifiedAt = isRegistered ? (u.registeredAt ?? u.createdAt) : u.createdAt;
+      if (identifiedAt >= range.start) continue; // counted as "new" above, not "returning"
+      if (isRegistered) returningRegisteredUsers += 1;
+      else returningAnonymousUsers += 1;
+    }
+  }
+
+  return {
+    newAnonymousUsers,
+    returningAnonymousUsers,
+    newRegisteredUsers,
+    returningRegisteredUsers,
+    totalAnonymousUsers,
+    totalRegisteredUsers,
+  };
 }
 
 /** Referral source + UTM campaign performance, with conversion counted as a

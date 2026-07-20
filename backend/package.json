@@ -18,7 +18,8 @@
     "categories:add-hobbies": "tsx scripts/addHobbiesCategory.ts",
     "seed:cities": "tsx scripts/seedCities.ts",
     "seed:colleges": "tsx scripts/seedColleges.ts",
-    "migrate:checklist-v2": "tsx scripts/migrateLegacyChecklistToV2.ts"
+    "migrate:checklist-v2": "tsx scripts/migrateLegacyChecklistToV2.ts",
+    "migrate:sparse-mobile-index": "tsx scripts/migrateSparseMobileIndex.ts"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
