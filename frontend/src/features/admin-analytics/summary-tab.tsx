@@ -14,6 +14,9 @@ const SUGGESTED_ITEMS_PATH = "/api/admin/suggested-items";
 
 interface AdminAnalytics {
   totalUsers: number;
+  /** Has actually linked a mobile number — excludes still-anonymous accounts. */
+  registeredUsers: number;
+  anonymousUsers: number;
   activeUsers7d: number;
   activeUsers30d: number;
   totalItems: number;
@@ -66,27 +69,31 @@ export function SummaryTab() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        <StatCard icon={<Users className="size-5" />} label="Total students" value={String(analytics.totalUsers)} tone="primary" />
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <StatCard icon={<Users className="size-5" />} label="Total accounts" value={String(analytics.totalUsers)} tone="primary" />
+        <StatCard icon={<UserCheck className="size-5" />} label="Registered" value={String(analytics.registeredUsers)} tone="success" delay={0.05} />
+        <StatCard icon={<Users className="size-5" />} label="Anonymous visitors" value={String(analytics.anonymousUsers)} tone="accent" delay={0.1} />
         <StatCard
           icon={<UserCheck className="size-5" />}
           label="Active in last 7 days"
           value={String(analytics.activeUsers7d)}
           hint={`${analytics.activeUsers30d} active in last 30 days`}
-          tone="success"
-          delay={0.05}
+          tone="warning"
+          delay={0.15}
         />
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         <StatCard
           icon={<TrendingUp className="size-5" />}
           label="Overall completion rate"
           value={`${Math.round(analytics.completionRate)}%`}
           hint={`${analytics.completedItems} of ${analytics.totalItems} items packed`}
           tone="accent"
-          delay={0.1}
         />
-        <StatCard icon={<ListChecks className="size-5" />} label="Checklist items tracked" value={String(analytics.totalItems)} tone="warning" delay={0.15} />
-        <StatCard icon={<ShoppingBag className="size-5" />} label="Products curated" value={String(analytics.totalProducts)} tone="primary" delay={0.2} />
-        <StatCard icon={<BookOpen className="size-5" />} label="Guide articles" value={String(analytics.totalGuideArticles)} tone="success" delay={0.25} />
+        <StatCard icon={<ListChecks className="size-5" />} label="Checklist items tracked" value={String(analytics.totalItems)} tone="warning" delay={0.05} />
+        <StatCard icon={<ShoppingBag className="size-5" />} label="Products curated" value={String(analytics.totalProducts)} tone="primary" delay={0.1} />
+        <StatCard icon={<BookOpen className="size-5" />} label="Guide articles" value={String(analytics.totalGuideArticles)} tone="success" delay={0.15} />
       </div>
 
       <Card>

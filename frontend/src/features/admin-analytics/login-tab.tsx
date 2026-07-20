@@ -42,6 +42,7 @@ export function LoginTab({ range }: { range: DateRangeValue }) {
       <div className="grid gap-4 sm:grid-cols-2">
         <StatCard icon={<AlertTriangle className="size-5" />} label="Users with 3+ failed attempts" value={login.usersWithMultipleFailedAttempts.toLocaleString("en-IN")} tone="destructive" />
         <StatCard icon={<CheckCircle2 className="size-5" />} label="Total registered users" value={login.totalRegisteredUsers.toLocaleString("en-IN")} tone="primary" delay={0.05} />
+        <StatCard icon={<CheckCircle2 className="size-5" />} label="Total anonymous visitors" value={login.totalAnonymousUsers.toLocaleString("en-IN")} tone="accent" delay={0.1} />
       </div>
     </div>
   );

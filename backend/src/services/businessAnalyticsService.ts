@@ -18,7 +18,9 @@ export async function getBusinessAnalytics(range: DateRange) {
 
   const [
     registeredUsers,
-    newUsersToday,
+    anonymousUsers,
+    newRegisteredUsersToday,
+    newAnonymousUsersToday,
     totalVisitors,
     registeredVisitorIds,
     loginSuccessUserIds,
@@ -26,9 +28,13 @@ export async function getBusinessAnalytics(range: DateRange) {
     v2ActivatedUserIds,
   ] = await Promise.all([
     // Admin-dashboard-only reads — prefer a secondary rather than compete with the
-    // operational write path.
-    User.countDocuments().read("secondaryPreferred"),
-    User.countDocuments({ createdAt: { $gte: today } }).read("secondaryPreferred"),
+    // operational write path. "Registered" = has actually linked a mobile number, distinct
+    // from an anonymous visitor's own User document (see userService.createAnonymousUser) —
+    // a plain countDocuments() here would silently count anonymous accounts as "registered".
+    User.countDocuments({ mobile: { $exists: true, $ne: null } }).read("secondaryPreferred"),
+    User.countDocuments({ mobile: { $exists: false } }).read("secondaryPreferred"),
+    User.countDocuments({ mobile: { $exists: true, $ne: null }, registeredAt: { $gte: today } }).read("secondaryPreferred"),
+    User.countDocuments({ mobile: { $exists: false }, createdAt: { $gte: today } }).read("secondaryPreferred"),
     distinctValues(AnalyticsEvent, "visitorId", match),
     distinctValues(AnalyticsEvent, "visitorId", { ...match, eventName: "registration_success" }),
     distinctValues(AnalyticsEvent, "userId", { ...match, eventName: "login_success", userId: { $ne: null } }),
@@ -79,7 +85,9 @@ export async function getBusinessAnalytics(range: DateRange) {
 
   return {
     registeredUsers,
-    newUsersToday,
+    anonymousUsers,
+    newRegisteredUsersToday,
+    newAnonymousUsersToday,
     activeUsers: activeUserIds.length,
     inactiveUsers,
     conversionRates: {

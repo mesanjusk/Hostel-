@@ -198,13 +198,27 @@ export async function setNotificationPreference(userId: string, enabled: boolean
   return User.findByIdAndUpdate(userId, { notificationsEnabled: enabled }, { returnDocument: "after" }).lean();
 }
 
-export async function listUsers(page: number, pageSize: number) {
+export type UserRegistrationStatus = "all" | "registered" | "anonymous";
+
+function registrationStatusFilter(status: UserRegistrationStatus) {
+  if (status === "registered") return { mobile: { $exists: true, $ne: null } };
+  if (status === "anonymous") return { mobile: { $exists: false } };
+  return {};
+}
+
+/** Powers the admin Users table's Registered/Anonymous tabs (see admin.routes.ts). Always
+ * returns both status counts alongside the current page/filter's total, so the tabs can show
+ * "Registered (12)" / "Anonymous (340)" without a second round trip. */
+export async function listUsers(page: number, pageSize: number, status: UserRegistrationStatus = "all") {
   await connectDB();
-  const [users, total] = await Promise.all([
-    User.find().sort({ createdAt: -1 }).skip((page - 1) * pageSize).limit(pageSize).lean(),
-    User.countDocuments(),
+  const filter = registrationStatusFilter(status);
+  const [users, total, registeredCount, anonymousCount] = await Promise.all([
+    User.find(filter).sort({ createdAt: -1 }).skip((page - 1) * pageSize).limit(pageSize).lean(),
+    User.countDocuments(filter),
+    User.countDocuments({ mobile: { $exists: true, $ne: null } }),
+    User.countDocuments({ mobile: { $exists: false } }),
   ]);
-  return { users, total };
+  return { users, total, registeredCount, anonymousCount };
 }
 
 // Admin-dashboard-only (the sole caller is analyticsService.getAdminAnalytics) — safe to

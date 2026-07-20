@@ -9,6 +9,7 @@ import {
   deleteUserByAdmin,
   listUsers,
   regeneratePin,
+  type UserRegistrationStatus,
 } from "@/services/userService";
 import {
   bulkUpsertProducts,
@@ -143,10 +144,15 @@ adminRouter.get("/analytics", async (_req, res) => {
   res.json({ analytics });
 });
 
+const USER_STATUS_VALUES: UserRegistrationStatus[] = ["all", "registered", "anonymous"];
+
 adminRouter.get("/users", async (req, res) => {
   const page = Number(req.query.page ?? 1) || 1;
   const pageSize = Number(req.query.pageSize ?? 20) || 20;
-  const { users, total } = await listUsers(page, pageSize);
+  const status: UserRegistrationStatus = USER_STATUS_VALUES.includes(req.query.status as UserRegistrationStatus)
+    ? (req.query.status as UserRegistrationStatus)
+    : "all";
+  const { users, total, registeredCount, anonymousCount } = await listUsers(page, pageSize, status);
   const sanitized = users.map((user) => ({
     id: user._id.toString(),
     name: user.name ?? null,
@@ -160,7 +166,7 @@ adminRouter.get("/users", async (req, res) => {
     deviceId: user.deviceId ?? null,
     createdAt: (user as unknown as { createdAt: Date }).createdAt.toISOString(),
   }));
-  res.json({ users: sanitized, total });
+  res.json({ users: sanitized, total, registeredCount, anonymousCount });
 });
 
 adminRouter.post("/users", async (req, res) => {
