@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import { Camera, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -11,8 +11,9 @@ import { api, ApiError } from "@/lib/api";
 interface AvatarUploadFieldProps {
   value: string;
   onChange: (value: string) => void;
-  /** Shown inside the circle when there's no photo yet. */
-  fallback: string;
+  /** Shown inside the circle when there's no photo yet — initials text, or an icon for a
+   * not-yet-registered visitor (see profile-view.tsx). */
+  fallback: ReactNode;
 }
 
 /** Optional profile-picture picker for onboarding — plain `accept="image/*"` (no `capture`

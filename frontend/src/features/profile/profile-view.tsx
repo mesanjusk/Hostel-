@@ -145,7 +145,11 @@ export function ProfileView() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const initials = (user?.name ?? user?.mobile?.slice(-2) ?? "?").slice(0, 2).toUpperCase();
+  // Null (not "?") for a not-yet-registered visitor — the avatar falls back to a generic
+  // person icon instead of showing a question mark, which reads as an error rather than "you
+  // haven't linked a mobile number yet".
+  const initialsSource = user?.name ?? user?.mobile?.slice(-2) ?? null;
+  const initials = initialsSource?.slice(0, 2).toUpperCase() ?? null;
 
   const form = useForm<ProfileFieldsInput>({
     resolver: zodResolver(profileFieldsSchema),
@@ -213,7 +217,9 @@ export function ProfileView() {
             <div className="flex items-center gap-4">
               <Avatar className="size-20">
                 {user.avatar && <AvatarImage src={user.avatar} alt={user.name ?? "Profile"} />}
-                <AvatarFallback className="text-xl">{initials}</AvatarFallback>
+                <AvatarFallback className="text-xl">
+                  {initials ?? <User className="size-8" />}
+                </AvatarFallback>
               </Avatar>
               <div>
                 <div className="flex items-center gap-2">
@@ -238,7 +244,7 @@ export function ProfileView() {
             </DialogHeader>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-4">
-                <AvatarUploadField value={avatar} onChange={setAvatar} fallback={initials} />
+                <AvatarUploadField value={avatar} onChange={setAvatar} fallback={initials ?? <User className="size-8" />} />
                 <FormField
                   control={form.control}
                   name="name"
