@@ -7,24 +7,7 @@ import { api, ApiError } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import type { Gender, UserDTO } from "@/types";
 
-const DISMISSED_KEY = "pwm_gender_prompt_dismissed";
 const SHOW_DELAY_MS = 2000;
-
-function readDismissed(): boolean {
-  try {
-    return localStorage.getItem(DISMISSED_KEY) === "1";
-  } catch {
-    return false;
-  }
-}
-
-function writeDismissed() {
-  try {
-    localStorage.setItem(DISMISSED_KEY, "1");
-  } catch {
-    // Storage full/blocked — worst case the popup just reappears next visit.
-  }
-}
 
 const GENDER_CARDS: { gender: Gender; label: string; bg: string }[] = [
   { gender: "Female", label: "College Girl", bg: "#F6F4FF" },
@@ -32,21 +15,25 @@ const GENDER_CARDS: { gender: Gender; label: string; bg: string }[] = [
 ];
 
 /**
- * Shown once, ~2 seconds after landing on the Home sticky-notes board, so it never blocks that
- * first paint. Only appears when gender isn't known yet and the visitor hasn't dismissed it
- * before (see readDismissed/writeDismissed). Picking one calls PATCH /api/auth/gender directly
- * — unlike the old pre-login /welcome pick (lib/onboarding-gender.ts, localStorage only), this
- * fires for a visitor who already has a real account (anonymous or not), so it writes straight
- * to that account's `gender` field and use-gender-theme.ts picks it up reactively.
+ * Shown ~2 seconds after landing on the Home sticky-notes board, so it never blocks that first
+ * paint — but once it appears it's mandatory: no close button, and clicking outside or pressing
+ * Escape is blocked (same pattern as the one-time Community profile-setup prompt, see
+ * community-profile-setup-dialog.tsx), so a visitor can't keep using the app without picking one.
+ * There's deliberately no dismiss path — `open` is derived straight from `!user.gender`, so the
+ * only way this closes is by actually answering it. Picking one calls PATCH /api/auth/gender
+ * directly — unlike the old pre-login /welcome pick (lib/onboarding-gender.ts, localStorage
+ * only), this fires for a visitor who already has a real account (anonymous or not), so it
+ * writes straight to that account's `gender` field and use-gender-theme.ts picks it up
+ * reactively.
  */
 export function GenderPickerDialog() {
   const { user, setUser } = useAuth();
-  const [open, setOpen] = useState(false);
+  const [ready, setReady] = useState(false);
   const [saving, setSaving] = useState<Gender | null>(null);
 
   useEffect(() => {
-    if (!user || user.gender || readDismissed()) return;
-    const timer = setTimeout(() => setOpen(true), SHOW_DELAY_MS);
+    if (!user || user.gender) return;
+    const timer = setTimeout(() => setReady(true), SHOW_DELAY_MS);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.gender]);
@@ -56,7 +43,6 @@ export function GenderPickerDialog() {
     try {
       const { user: updated } = await api.patch<{ user: UserDTO }>("/api/auth/gender", { gender });
       setUser(updated);
-      setOpen(false);
     } catch (error) {
       toast.error(error instanceof ApiError ? error.message : "Couldn't save that. Please try again.");
     } finally {
@@ -64,17 +50,19 @@ export function GenderPickerDialog() {
     }
   }
 
-  function handleOpenChange(next: boolean) {
-    if (!next) writeDismissed();
-    setOpen(next);
-  }
+  const open = ready && Boolean(user) && !user?.gender;
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-w-sm">
+    <Dialog open={open}>
+      <DialogContent
+        className="max-w-sm"
+        showCloseButton={false}
+        onInteractOutside={(e) => e.preventDefault()}
+        onEscapeKeyDown={(e) => e.preventDefault()}
+      >
         <DialogHeader>
           <DialogTitle>Who's packing?</DialogTitle>
-          <DialogDescription>Pick one to personalize your theme — change it anytime from Profile.</DialogDescription>
+          <DialogDescription>Pick one to personalize your theme — you can change it later from Profile.</DialogDescription>
         </DialogHeader>
         <div className="mt-2 flex gap-4">
           {GENDER_CARDS.map(({ gender, label, bg }) => (
