@@ -1,21 +1,25 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { UserPlus, Repeat, UserCheck, Users2 } from "lucide-react";
 
 import { api, ApiError, peekCache } from "@/lib/api";
 import { CountedTable } from "@/features/admin-analytics/counted-table";
+import { StatCard } from "@/components/shared/stat-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { DateRangeValue } from "@/features/admin-analytics/date-range-filter";
-import type { TechResponse, GeoResponse, ReferralResponse } from "@/features/admin-analytics/analytics-dto";
+import type { TechResponse, GeoResponse, ReferralResponse, IdentityResponse } from "@/features/admin-analytics/analytics-dto";
 
 export function AudienceTab({ range }: { range: DateRangeValue }) {
   const qs = `?from=${range.from}&to=${range.to}`;
   const techPath = `/api/analytics/tech${qs}`;
   const geoPath = `/api/analytics/geo${qs}`;
   const referralPath = `/api/analytics/referral${qs}`;
+  const identityPath = `/api/analytics/identity${qs}`;
   const [tech, setTech] = useState<TechResponse | null>(() => peekCache(techPath) ?? null);
   const [geo, setGeo] = useState<GeoResponse | null>(() => peekCache(geoPath) ?? null);
   const [referral, setReferral] = useState<ReferralResponse | null>(() => peekCache(referralPath) ?? null);
+  const [identity, setIdentity] = useState<IdentityResponse | null>(() => peekCache(identityPath) ?? null);
 
   useEffect(() => {
     api.get<TechResponse>(techPath).then(setTech).catch((e) => toast.error(e instanceof ApiError ? e.message : "Failed to load"));
@@ -24,11 +28,47 @@ export function AudienceTab({ range }: { range: DateRangeValue }) {
       .get<ReferralResponse>(referralPath)
       .then(setReferral)
       .catch((e) => toast.error(e instanceof ApiError ? e.message : "Failed to load"));
+    api
+      .get<IdentityResponse>(identityPath)
+      .then(setIdentity)
+      .catch((e) => toast.error(e instanceof ApiError ? e.message : "Failed to load"));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [range.from, range.to]);
 
   return (
     <div className="flex flex-col gap-6">
+      {identity && (
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <StatCard
+            icon={<UserPlus className="size-5" />}
+            label="New unregistered visitors"
+            value={identity.identity.newAnonymousUsers.toLocaleString("en-IN")}
+            tone="primary"
+          />
+          <StatCard
+            icon={<Repeat className="size-5" />}
+            label="Returning unregistered visitors"
+            value={identity.identity.returningAnonymousUsers.toLocaleString("en-IN")}
+            tone="accent"
+            delay={0.05}
+          />
+          <StatCard
+            icon={<UserCheck className="size-5" />}
+            label="New registered users"
+            value={identity.identity.newRegisteredUsers.toLocaleString("en-IN")}
+            tone="success"
+            delay={0.1}
+          />
+          <StatCard
+            icon={<Users2 className="size-5" />}
+            label="Returning registered users"
+            value={identity.identity.returningRegisteredUsers.toLocaleString("en-IN")}
+            tone="warning"
+            delay={0.15}
+          />
+        </div>
+      )}
+
       {tech && (
         <div className="grid gap-4 lg:grid-cols-3">
           <CountedTable title="Device type" valueLabel="Device" rows={tech.tech.devices} filename="devices" />

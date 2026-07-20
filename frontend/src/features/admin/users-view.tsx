@@ -104,7 +104,7 @@ export function UsersView({
               {users.map((user) => (
                 <TableRow key={user.id}>
                   <TableCell className="font-medium">{user.name ?? "—"}</TableCell>
-                  <TableCell>{formatMobileForDisplay(user.mobile)}</TableCell>
+                  <TableCell>{user.mobile ? formatMobileForDisplay(user.mobile) : "Not linked"}</TableCell>
                   <TableCell>
                     {user.hasPinSet ? (
                       <span className="text-muted-foreground inline-flex items-center gap-1.5 text-sm">
@@ -149,7 +149,7 @@ export function UsersView({
                             </Button>
                           }
                           title="Delete this user?"
-                          description={`This permanently removes ${user.name ?? formatMobileForDisplay(user.mobile)} and all of their checklist, budget, notes, documents, contacts, and wishlist data.`}
+                          description={`This permanently removes ${user.name ?? (user.mobile ? formatMobileForDisplay(user.mobile) : "this unregistered visitor")} and all of their checklist, budget, notes, documents, contacts, and wishlist data.`}
                           confirmLabel="Delete"
                           onConfirm={() => handleDelete(user.id)}
                         />

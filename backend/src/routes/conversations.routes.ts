@@ -1,12 +1,12 @@
 import { createAsyncRouter } from "@/lib/asyncRouter";
 
-import { requireAuth } from "@/middleware/auth";
+import { requireAuth, requireIdentified } from "@/middleware/auth";
 import { createGroupConversation, findOrCreateDirectConversation, listConversations } from "@/services/conversationService";
 import { createConversationSchema, createDirectConversationSchema } from "@/validations/chat";
 
 export const conversationsRouter = createAsyncRouter();
 
-conversationsRouter.use(requireAuth);
+conversationsRouter.use(requireAuth, requireIdentified);
 
 conversationsRouter.get("/", async (req, res) => {
   const conversations = await listConversations(req.user!._id.toString());

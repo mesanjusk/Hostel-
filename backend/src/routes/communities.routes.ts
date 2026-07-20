@@ -1,6 +1,6 @@
 import { createAsyncRouter } from "@/lib/asyncRouter";
 
-import { requireAuth } from "@/middleware/auth";
+import { requireAuth, requireIdentified } from "@/middleware/auth";
 import {
   canModerate,
   createCustomCommunity,
@@ -28,7 +28,7 @@ import type { CommunityRole } from "@/types";
 
 export const communitiesRouter = createAsyncRouter();
 
-communitiesRouter.use(requireAuth);
+communitiesRouter.use(requireAuth, requireIdentified);
 
 communitiesRouter.get("/", async (req, res) => {
   const parsed = listCommunitiesQuerySchema.safeParse(req.query);

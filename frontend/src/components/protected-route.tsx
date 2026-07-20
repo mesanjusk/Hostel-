@@ -46,6 +46,11 @@ export function AdminRoute({ children }: { children: ReactNode }) {
  * itself calls right after, since that reactive redirect commits after the form's own
  * synchronous handler already ran. Defaults to the main app's home route; pass a different
  * target for routes (like /wa-login) that should land somewhere else after signing in.
+ *
+ * Gates on being *identified* (a linked mobile number), not merely having a `user` — every
+ * visitor has a `user` from their very first page load now (see auth-context.tsx's anonymous
+ * session), so gating on plain truthiness would bounce an anonymous visitor away from
+ * /wa-login before they ever get a chance to actually register/log in.
  */
 export function AuthOnlyRoute({
   children,
@@ -62,14 +67,33 @@ export function AuthOnlyRoute({
   if (loading) {
     return null;
   }
-  if (user && !user.needsOnboarding) {
+  const identified = Boolean(user?.mobile);
+  if (identified && !user!.needsOnboarding) {
     return <Navigate to={redirectTo} replace />;
   }
-  if (user && user.needsOnboarding) {
+  if (identified && user!.needsOnboarding) {
     return <Navigate to="/onboarding" replace />;
   }
   if (requireSelectedGender && !hasSelectedGender()) {
     return <Navigate to="/welcome" replace />;
+  }
+  return <>{children}</>;
+}
+
+/** Gates the social/messaging surface (Chat, Community, Find-a-Roomie, Connections) behind an
+ * actually-linked mobile number — every other feature works for a purely anonymous visitor
+ * (see auth-context.tsx), but this corner of the app lets strangers message/match with each
+ * other, which needs a real phone-verified identity behind it. Sends an unidentified visitor to
+ * /wa-login to link one; their anonymous account (and everything saved under it) is preserved
+ * and simply gains a mobile number, per the merge behavior in the backend's otp/widget-verify
+ * route. */
+export function RequireIdentifiedRoute({ children }: { children: ReactNode }) {
+  const { user, loading } = useAuth();
+  if (loading) {
+    return null;
+  }
+  if (!user?.mobile) {
+    return <Navigate to="/wa-login" replace />;
   }
   return <>{children}</>;
 }

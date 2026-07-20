@@ -87,6 +87,11 @@ export const checkMobileSchema = z.object({
   mobile: mobileSchema,
 });
 
+// Home-page gender popup — see auth.routes.ts's PATCH /gender.
+export const genderUpdateSchema = z.object({
+  gender: genderSchema,
+});
+
 export const registerVerifySchema = z.object({
   mobile: mobileSchema,
   code: otpCodeSchema,

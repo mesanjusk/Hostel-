@@ -12,6 +12,7 @@ import {
   getTechBreakdown,
   getGeoBreakdown,
   getReferralAnalytics,
+  getIdentityOverview,
 } from "@/services/visitorAnalyticsService";
 import { getRegistrationFunnel } from "@/services/registrationFunnelService";
 import { getLoginAnalytics } from "@/services/loginAnalyticsService";
@@ -98,6 +99,11 @@ analyticsRouter.get("/geo", async (req, res) => {
 analyticsRouter.get("/referral", async (req, res) => {
   const range = parseRange(req);
   res.json({ range, referral: await getReferralAnalytics(range) });
+});
+
+analyticsRouter.get("/identity", async (req, res) => {
+  const range = parseRange(req);
+  res.json({ range, identity: await getIdentityOverview(range) });
 });
 
 analyticsRouter.get("/registration-funnel", async (req, res) => {

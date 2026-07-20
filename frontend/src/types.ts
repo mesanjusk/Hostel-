@@ -20,7 +20,9 @@ export type CollegeCategory = (typeof COLLEGE_CATEGORY_OPTIONS)[number];
 export interface UserDTO {
   id: string;
   name: string | null;
-  mobile: string;
+  /** Null until this visitor links a mobile number (or an admin doesn't set one) — see
+   * backend User model's `mobile` field. */
+  mobile: string | null;
   avatar: string | null;
   gender: Gender | null;
   college: string | null;
