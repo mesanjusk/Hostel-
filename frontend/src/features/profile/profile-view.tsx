@@ -30,6 +30,7 @@ import { profileFieldsSchema, type ProfileFieldsInput } from "@/features/auth/pr
 import { AvatarUploadField } from "@/features/auth/avatar-upload-field";
 import { PublicProfileSettings } from "@/features/community/public-profile-settings";
 import { updatePublicProfile } from "@/features/community/community-api";
+import { OtpLoginDialog } from "@/features/auth/otp-login-dialog";
 
 function SettingsSection({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -134,6 +135,7 @@ export function ProfileView() {
   const { user, refreshUser, logout } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
+  const [linkMobileOpen, setLinkMobileOpen] = useState(false);
   const [avatar, setAvatar] = useState(user?.avatar ?? "");
 
   // Deep-linked from the account menu ("Edit profile" / "Edit community profile") so those
@@ -273,11 +275,13 @@ export function ProfileView() {
                 Link a mobile number so your checklist, budget, and notes stay safe if you switch devices.
               </p>
             </div>
-            <Button type="button" onClick={() => navigate("/wa-login")}>
+            <Button type="button" onClick={() => setLinkMobileOpen(true)}>
               <LogIn className="size-4" /> Link mobile number
             </Button>
           </Card>
         )}
+
+        <OtpLoginDialog open={linkMobileOpen} onOpenChange={setLinkMobileOpen} />
 
         <PublicProfileSettings autoOpen={location.hash === "#community"} />
 

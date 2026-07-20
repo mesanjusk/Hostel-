@@ -1,9 +1,11 @@
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 
+import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/auth-context";
 import { hasSelectedGender } from "@/lib/onboarding-gender";
 import { HOME_ROUTE } from "@/lib/routes";
+import { OtpLoginDialog } from "@/features/auth/otp-login-dialog";
 
 export function ProtectedRoute({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
@@ -83,17 +85,35 @@ export function AuthOnlyRoute({
 /** Gates the social/messaging surface (Chat, Community, Find-a-Roomie, Connections) behind an
  * actually-linked mobile number — every other feature works for a purely anonymous visitor
  * (see auth-context.tsx), but this corner of the app lets strangers message/match with each
- * other, which needs a real phone-verified identity behind it. Sends an unidentified visitor to
- * /wa-login to link one; their anonymous account (and everything saved under it) is preserved
- * and simply gains a mobile number, per the merge behavior in the backend's otp/widget-verify
- * route. */
+ * other, which needs a real phone-verified identity behind it. Opens the OTP-login popup in
+ * place (see otp-login-dialog.tsx) rather than navigating away to the full /wa-login page — the
+ * moment it succeeds, `user.mobile` is set and this re-renders straight into `children`, no
+ * navigation involved. The anonymous account (and everything saved under it) is preserved and
+ * simply gains a mobile number, per the merge behavior in the backend's otp/widget-verify route. */
 export function RequireIdentifiedRoute({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
+  const [dialogOpen, setDialogOpen] = useState(true);
+
   if (loading) {
     return null;
   }
+
   if (!user?.mobile) {
-    return <Navigate to="/wa-login" replace />;
+    return (
+      <>
+        <div className="flex min-h-[50vh] flex-col items-center justify-center gap-4 px-6 text-center">
+          <p className="text-muted-foreground max-w-sm text-sm">
+            Link your mobile number to use this feature — everything you've already added stays
+            exactly where it is.
+          </p>
+          <Button type="button" onClick={() => setDialogOpen(true)}>
+            Link mobile number
+          </Button>
+        </div>
+        <OtpLoginDialog open={dialogOpen} onOpenChange={setDialogOpen} />
+      </>
+    );
   }
+
   return <>{children}</>;
 }

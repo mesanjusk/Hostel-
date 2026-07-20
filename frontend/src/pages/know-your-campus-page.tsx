@@ -1,12 +1,11 @@
-import { Link } from "react-router-dom";
-import { GraduationCap } from "lucide-react";
-
 import { PageHeader } from "@/components/shared/page-header";
-import { EmptyState } from "@/components/shared/empty-state";
-import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/auth-context";
 import { CampusTipsView } from "@/features/campus/campus-tips-view";
+import { CollegeQuickPrompt } from "@/features/auth/quick-profile-prompts";
 
+/** Missing city/college no longer sends the visitor off to a full profile-edit form — they're
+ * prompted in place for just those fields (see quick-profile-prompts.tsx), which works the same
+ * for a still-anonymous visitor as for an identified one. */
 export default function KnowYourCampusPage() {
   const { user, loading } = useAuth();
 
@@ -21,20 +20,7 @@ export default function KnowYourCampusPage() {
         title="Know Your Campus"
         description={college ? `Share your experience in and around ${college} campus` : "Share your experience in and around campus"}
       />
-      {city && college ? (
-        <CampusTipsView college={college} />
-      ) : (
-        <EmptyState
-          icon={GraduationCap}
-          title="Set your college"
-          description="Add your city and college in your profile and we'll show what students there are sharing."
-          action={
-            <Button asChild size="sm">
-              <Link to="/profile">Complete profile</Link>
-            </Button>
-          }
-        />
-      )}
+      {city && college ? <CampusTipsView college={college} /> : <CollegeQuickPrompt />}
     </div>
   );
 }
