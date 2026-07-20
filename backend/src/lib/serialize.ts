@@ -28,6 +28,8 @@ export function serializeUser(user: HydratedDocument<UserDocument>): UserDTO {
     campus: user.campus ?? null,
     year: user.year ?? null,
     communityProfileConfigured: Boolean(user.communityProfileConfigured),
+    waBroadcastEnabled: user.waBroadcastEnabled ?? true,
+    waWindowOpenedAt: user.waWindowOpenedAt ? user.waWindowOpenedAt.toISOString() : null,
   };
 }
 

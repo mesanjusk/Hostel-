@@ -3,13 +3,14 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { motion } from "framer-motion";
-import { Download, Loader2, User, LogOut, Pencil, Share, SquarePlus, type LucideIcon } from "lucide-react";
+import { Download, Loader2, MessageCircle, User, LogOut, Pencil, Share, SquarePlus, type LucideIcon } from "lucide-react";
 import { toast } from "sonner";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import {
   Form,
@@ -103,6 +104,28 @@ function InstallAppAction() {
       Install
     </Button>
   );
+}
+
+/** Self-service mirror of the master admin panel's per-admin switch (Admin panel → WhatsApp
+ * Campaign) — both write the same User.waBroadcastEnabled field, so an admin can opt themselves
+ * out without needing another admin to do it. Only ever rendered for role:"admin" (see caller). */
+function WhatsAppBroadcastToggleAction({ enabled }: { enabled: boolean }) {
+  const { refreshUser } = useAuth();
+  const [saving, setSaving] = useState(false);
+
+  async function handleChange(next: boolean) {
+    setSaving(true);
+    try {
+      await api.patch("/api/profile/whatsapp-notifications", { waBroadcastEnabled: next });
+      await refreshUser();
+    } catch (error) {
+      toast.error(error instanceof ApiError ? error.message : "Failed to update setting");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return <Switch checked={enabled} disabled={saving} onCheckedChange={handleChange} />;
 }
 
 export function ProfileView() {
@@ -250,6 +273,21 @@ export function ProfileView() {
             action={<InstallAppAction />}
           />
         </SettingsSection>
+
+        {user.role === "admin" && (
+          <SettingsSection title="Admin">
+            <SettingsRow
+              icon={MessageCircle}
+              label="WhatsApp registration alerts"
+              description={
+                user.waWindowOpenedAt
+                  ? "You're opted in — message the business number again if this turns off unexpectedly"
+                  : "Message the business WhatsApp number once to opt in first"
+              }
+              action={<WhatsAppBroadcastToggleAction enabled={user.waBroadcastEnabled} />}
+            />
+          </SettingsSection>
+        )}
 
         <Button
           type="button"

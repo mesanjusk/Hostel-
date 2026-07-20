@@ -225,6 +225,21 @@ export const landingPageSettingsUpdateSchema = z.object({
   boyImageUrl: urlOrEmpty,
 });
 
+// "" means "no cutoff" — routes.ts maps that to null before it hits the service, same
+// empty-string-means-clear pattern as the color/URL fields above.
+export const whatsappCampaignSettingsUpdateSchema = z.object({
+  enabled: z.boolean(),
+  mode: z.enum(["time", "quantity"]),
+  intervalMinutes: z.coerce.number().int().min(1).max(1440),
+  quantityThreshold: z.coerce.number().int().min(1).max(100000),
+  skipIfZero: z.boolean(),
+  endAt: z.string().trim().max(40).optional().or(z.literal("")),
+});
+
+export const whatsappAdminBroadcastToggleSchema = z.object({
+  waBroadcastEnabled: z.boolean(),
+});
+
 export type ProductInput = z.infer<typeof productSchema>;
 export type ProductUpdateInput = z.infer<typeof productUpdateSchema>;
 export type GuideArticleInput = z.infer<typeof guideArticleSchema>;
@@ -240,3 +255,4 @@ export type PlaceUpdateInput = z.infer<typeof placeUpdateSchema>;
 export type ListingInput = z.infer<typeof listingSchema>;
 export type ListingUpdateInput = z.infer<typeof listingUpdateSchema>;
 export type GenderThemeUpdateInput = z.infer<typeof genderThemeUpdateSchema>;
+export type WhatsAppCampaignSettingsUpdateInput = z.infer<typeof whatsappCampaignSettingsUpdateSchema>;

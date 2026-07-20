@@ -66,6 +66,7 @@ const AdminChecklistTemplatesPage = lazyRetry(() => import("@/pages/admin-checkl
 const AdminDefaultChecklistPage = lazyRetry(() => import("@/pages/admin-default-checklist-page"));
 const AdminSuggestedItemsPage = lazyRetry(() => import("@/pages/admin-suggested-items-page"));
 const AdminTempUsersPage = lazyRetry(() => import("@/pages/admin-temp-users-page"));
+const AdminWhatsAppCampaignPage = lazyRetry(() => import("@/pages/admin-whatsapp-campaign-page"));
 const AdminChecklistHealthPage = lazyRetry(() => import("@/pages/admin-checklist-health-page"));
 const DiscoverPage = lazyRetry(() => import("@/pages/discover-page"));
 const FindARoomiePage = lazyRetry(() => import("@/pages/find-a-roomie-page"));
@@ -362,6 +363,14 @@ export default function App() {
               element={
                 <AdminRoute>
                   <AdminTempUsersPage />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/admin/whatsapp-campaign"
+              element={
+                <AdminRoute>
+                  <AdminWhatsAppCampaignPage />
                 </AdminRoute>
               }
             />

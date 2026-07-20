@@ -36,9 +36,5 @@ services:
         value: instify_otp
       - key: WHATSAPP_OTP_TEMPLATE_LANGUAGE
         value: en_US
-      - key: WHATSAPP_ADMIN_CAMPAIGN_INTERVAL_MINUTES
-        value: "30"
-      - key: WHATSAPP_ADMIN_CAMPAIGN_END_AT
-        sync: false
       - key: METABSP_WEBHOOK_SECRET
         sync: false

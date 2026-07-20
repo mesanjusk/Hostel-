@@ -18,4 +18,8 @@ export const notificationSettingsSchema = z.object({
   notificationsEnabled: z.boolean(),
 });
 
+export const whatsappBroadcastSettingsSchema = z.object({
+  waBroadcastEnabled: z.boolean(),
+});
+
 export type ProfileUpdateInput = z.infer<typeof profileUpdateSchema>;

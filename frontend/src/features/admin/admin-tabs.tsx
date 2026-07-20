@@ -22,6 +22,7 @@ const TABS = [
   { href: "/admin/checklist-health", label: "Checklist Health" },
   { href: "/admin/suggested-items", label: "Suggested Items" },
   { href: "/admin/pending-registrations", label: "Pending WA Signups" },
+  { href: "/admin/whatsapp-campaign", label: "WhatsApp Campaign" },
   { href: "/admin/layout", label: "Dashboard Layout" },
   { href: "/admin/nav", label: "Nav Items" },
   { href: "/admin/home-cards", label: "Home Cards" },

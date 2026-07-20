@@ -31,6 +31,12 @@ import {
   updateGenderThemeSettings,
   type GenderThemeKey,
 } from "@/services/genderThemeService";
+import {
+  getCampaignSettings,
+  listAdminsWithWaStatus,
+  setAdminBroadcastEnabled,
+  updateCampaignSettings,
+} from "@/services/whatsappCampaignService";
 import { createPlace, deletePlace, listPlaces, updatePlace } from "@/services/placeService";
 import { createListing, deleteListing, listListings, updateListing } from "@/services/listingService";
 import {
@@ -56,6 +62,8 @@ import {
   productUpdateSchema,
   uiLayoutSchema,
   updateUserByAdminSchema,
+  whatsappAdminBroadcastToggleSchema,
+  whatsappCampaignSettingsUpdateSchema,
 } from "@/validations/admin";
 import {
   createCollegeCategory,
@@ -409,6 +417,37 @@ adminRouter.put("/landing-settings", async (req, res) => {
     boyImageUrl: asUrl(parsed.data.boyImageUrl),
   });
   res.json({ settings });
+});
+
+// --- WhatsApp registration-count campaign (jobs/whatsappCampaignJob.ts) ---
+
+adminRouter.get("/whatsapp-campaign", async (_req, res) => {
+  const [settings, admins] = await Promise.all([getCampaignSettings(), listAdminsWithWaStatus()]);
+  res.json({ settings, admins });
+});
+
+adminRouter.put("/whatsapp-campaign", async (req, res) => {
+  const parsed = whatsappCampaignSettingsUpdateSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.issues[0]?.message ?? "Invalid input" });
+    return;
+  }
+  const { endAt, ...rest } = parsed.data;
+  const settings = await updateCampaignSettings({
+    ...rest,
+    endAt: endAt ? new Date(endAt) : null,
+  });
+  res.json({ settings });
+});
+
+adminRouter.patch("/whatsapp-campaign/admins/:id", async (req, res) => {
+  const parsed = whatsappAdminBroadcastToggleSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.issues[0]?.message ?? "Invalid input" });
+    return;
+  }
+  await setAdminBroadcastEnabled(req.params.id, parsed.data.waBroadcastEnabled);
+  res.json({ success: true });
 });
 
 // --- Places ---
