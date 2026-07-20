@@ -14,7 +14,7 @@ import {
 import { authenticateWithPin, RateLimitedError } from "@/services/authService";
 import {
   completeOnboarding,
-  createAnonymousUser,
+  getOrCreateAnonymousUserByDeviceId,
   getOrCreateUserByMobile,
   getUserByMobile,
   linkMobileToUser,
@@ -45,15 +45,23 @@ function eventContext(req: Request) {
   };
 }
 
-// Called once per new browser, the moment the app boots with no session token at all (see
-// frontend auth-context.tsx) — creates the "unidentified visitor" account transparently, before
-// the person has done anything at all, so every feature (checklist, budget, notes, ...) already
-// has somewhere real to save that visitor's data. Deliberately takes no body: nothing about this
-// visitor is known yet beyond that they exist.
+// Called the moment the app boots with no session token at all (see frontend
+// auth-context.tsx) — not only a brand-new browser's very first visit, but also every time the
+// frontend needs to re-establish a session it's lost track of (expired/rotated token, a
+// request dropped mid-bootstrap, two tabs racing on first load). Get-or-create BY DEVICE ID
+// (getOrCreateAnonymousUserByDeviceId) rather than always inserting is what keeps those
+// re-establishments from spawning a second, empty account for the same browser — see that
+// function's own comment for why a blind create() here used to orphan a visitor's
+// already-set gender/college/checklist behind a duplicate row every time their token died.
 authRouter.post("/anonymous", async (req, res) => {
   const ctx = eventContext(req);
-  const user = await createAnonymousUser(ctx.visitorId);
-  logEventAsync({ eventName: "registration_success", userId: user._id.toString(), ...ctx, metadata: { via: "anonymous" } });
+  // Deliberately NOT ctx.visitorId — that falls back to an IP-derived id for old/no-JS clients,
+  // which would incorrectly dedupe unrelated visitors behind the same NAT. The lookup only ever
+  // trusts a real X-Visitor-Id header.
+  const { user, isNew } = await getOrCreateAnonymousUserByDeviceId(req.analytics?.visitorId ?? null);
+  if (isNew) {
+    logEventAsync({ eventName: "registration_success", userId: user._id.toString(), ...ctx, metadata: { via: "anonymous" } });
+  }
   const token = signAuthToken(user._id.toString(), user.tokenVersion ?? 0);
   res.json({ token, user: serializeUser(user) });
 });

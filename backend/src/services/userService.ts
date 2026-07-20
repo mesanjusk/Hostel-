@@ -300,18 +300,35 @@ export async function getOrCreateUserByMobile(mobile: string, deviceId?: string 
   });
 }
 
-/** Creates the account behind a brand-new, never-seen-before browser — called the moment
- * anyone lands on the site (see POST /api/auth/anonymous), before they've provided a mobile
- * number or even opened the app before. No `mobile` is set at all (not even `null` — see the
- * User model's comment on that field), so this never collides with the sparse unique index
- * no matter how many anonymous visitors exist. Gets a normal JWT just like any other account,
- * which is what lets every existing feature (checklist, budget, notes, ...) work unchanged for
- * an unidentified visitor — they're a real User document from their very first page load. */
-export async function createAnonymousUser(deviceId?: string | null) {
+/** Called on every POST /api/auth/anonymous — not just a brand-new browser's very first visit,
+ * but also whenever the frontend needs to re-establish a session it's lost track of (an expired/
+ * rotated token, a dropped request during the original bootstrap, two tabs booting at once
+ * before either's token is persisted — see auth-context.tsx's ensureAnonymousSession retry
+ * logic). Get-or-create BY DEVICE ID rather than always inserting is exactly what keeps those
+ * re-establishments from spawning a second orphaned account for the same browser: without this,
+ * every one of those retries created a fresh, empty account with the SAME deviceId as one that
+ * might already have a gender/college/checklist on it, silently abandoning all of that.
+ *
+ * Only ever matches against still-anonymous (mobile-less) accounts — once a deviceId's account
+ * registers, a later /anonymous call from that same browser (e.g. its token died some other
+ * way) should get a brand-new anonymous identity, not resurrect the identified account as if it
+ * were anonymous again.
+ *
+ * `deviceId` of `null` (no X-Visitor-Id header at all — an old/no-JS client) always creates,
+ * since there's nothing stable to key a lookup on; a shared IP-derived fallback would
+ * incorrectly merge unrelated visitors behind the same NAT.
+ */
+export async function getOrCreateAnonymousUserByDeviceId(deviceId: string | null) {
   await connectDB();
 
+  if (deviceId) {
+    const existing = await User.findOne({ deviceId, mobile: { $exists: false } });
+    if (existing) return { user: existing, isNew: false as const };
+  }
+
   const username = await generateUniqueUsername();
-  return User.create({ role: "student", username, displayName: username, deviceId: deviceId ?? null });
+  const user = await User.create({ role: "student", username, displayName: username, deviceId: deviceId ?? null });
+  return { user, isNew: true as const };
 }
 
 /** Attaches a freshly OTP-verified mobile number to an already-existing account in place —
