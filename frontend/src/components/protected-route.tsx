@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 
 import { Button } from "@/components/ui/button";
@@ -6,6 +6,49 @@ import { useAuth } from "@/context/auth-context";
 import { hasSelectedGender } from "@/lib/onboarding-gender";
 import { HOME_ROUTE } from "@/lib/routes";
 import { OtpLoginDialog } from "@/features/auth/otp-login-dialog";
+
+/** Stands the anonymous session back up when we've somehow ended up with none, without ever
+ * navigating away. Renders nothing while it's working — the app shell is already painted and
+ * this normally resolves in one round-trip, so a spinner would just flash. Only a genuinely
+ * unreachable server surfaces anything, and then it's a retry, not a login prompt. */
+function SessionRecovery() {
+  const { ensureSession } = useAuth();
+  const [failed, setFailed] = useState(false);
+  const [retrying, setRetrying] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    void ensureSession().then((ok) => {
+      if (!cancelled && !ok) setFailed(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [ensureSession]);
+
+  if (!failed) return null;
+
+  return (
+    <div className="flex min-h-[50vh] flex-col items-center justify-center gap-4 px-6 text-center">
+      <p className="text-muted-foreground max-w-sm text-sm">
+        We couldn't reach the server. Check your connection and try again — nothing you've saved
+        is lost.
+      </p>
+      <Button
+        type="button"
+        disabled={retrying}
+        onClick={async () => {
+          setRetrying(true);
+          const ok = await ensureSession();
+          setRetrying(false);
+          if (ok) setFailed(false);
+        }}
+      >
+        {retrying ? "Retrying…" : "Try again"}
+      </Button>
+    </div>
+  );
+}
 
 export function ProtectedRoute({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
@@ -16,7 +59,12 @@ export function ProtectedRoute({ children }: { children: ReactNode }) {
   }
 
   if (!user) {
-    return <Navigate to="/wa-login" replace state={{ from: location }} />;
+    // NOT a redirect to /wa-login. Every visitor is supposed to get an anonymous account on
+    // boot, so `user: null` here doesn't mean "logged out", it means the bootstrap hasn't
+    // landed yet (cold backend, offline, or a token that just died). Sending them to the login
+    // page in that window is what made packwithme.co.in bounce people to /wa-login — the exact
+    // entry barrier the anonymous-visitor work exists to remove. Recover in place instead.
+    return <SessionRecovery />;
   }
 
   if (user.needsOnboarding && location.pathname !== "/onboarding") {

@@ -21,6 +21,12 @@ import type { Gender, UserDTO } from "@/types";
 // main bundle for every visitor, including anonymous users who only see the login screen.
 const disconnectSocket = () => import("@/lib/socket").then((m) => m.disconnectSocket());
 
+/** Anonymous-session bootstrap retry budget — see ensureAnonymousSession. Deliberately small:
+ * enough to ride out a cold backend or a dropped packet, not enough to hang the first paint. */
+const ANONYMOUS_SESSION_ATTEMPTS = 3;
+const ANONYMOUS_SESSION_RETRY_BASE_MS = 400;
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
 interface OnboardingInput {
   name: string;
   gender: Gender;
@@ -41,6 +47,10 @@ interface AuthContextValue {
   logout: () => void;
   completeOnboarding: (input: OnboardingInput) => Promise<void>;
   refreshUser: () => Promise<void>;
+  /** Stands up an anonymous (mobile-less) session, retrying a few times. Safe to call whenever
+   * we've ended up with no session at all — resolves false only if the server stayed
+   * unreachable. Used by ProtectedRoute to recover in place instead of redirecting to login. */
+  ensureSession: () => Promise<boolean>;
   setUser: (user: UserDTO) => void;
   checkMobile: (mobile: string) => Promise<boolean>;
   loginWithToken: (token: string, user: UserDTO) => void;
@@ -78,16 +88,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // session at all — a brand-new browser, or one that cleared storage. This is what lets
   // checklist/budget/notes/etc. start saving to the server before anyone has registered: the
   // JWT this issues is a completely ordinary session, it's just for an account with no mobile
-  // number yet (see backend POST /api/auth/anonymous). Failing silently and leaving `user: null`
-  // is the only fallback — an offline first-ever visit just gets the login-gated experience.
-  const ensureAnonymousSession = useCallback(async () => {
-    try {
-      const { token, user } = await api.post<{ token: string; user: UserDTO }>("/api/auth/anonymous");
-      setAuthToken(token);
-      applyUser(user);
-    } catch {
-      applyUser(null);
+  // number yet (see backend POST /api/auth/anonymous).
+  //
+  // Retries before giving up: this runs on the very first paint, when a cold backend, a flaky
+  // mobile connection or a brief 5xx is entirely normal. A single failed attempt used to leave
+  // `user: null`, which ProtectedRoute turned into a redirect to /wa-login — i.e. one hiccup
+  // put a brand-new visitor behind the exact login wall this whole flow exists to remove.
+  const ensureAnonymousSession = useCallback(async (): Promise<boolean> => {
+    for (let attempt = 0; attempt < ANONYMOUS_SESSION_ATTEMPTS; attempt += 1) {
+      try {
+        const { token, user } = await api.post<{ token: string; user: UserDTO }>("/api/auth/anonymous");
+        setAuthToken(token);
+        applyUser(user);
+        return true;
+      } catch {
+        const isLastAttempt = attempt === ANONYMOUS_SESSION_ATTEMPTS - 1;
+        if (!isLastAttempt) await sleep(ANONYMOUS_SESSION_RETRY_BASE_MS * 2 ** attempt);
+      }
     }
+    applyUser(null);
+    return false;
   }, [applyUser]);
 
   const refreshUser = useCallback(async () => {
@@ -100,8 +120,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       applyUser(user);
     } catch (error) {
       if (error instanceof ApiError && error.status === 401) {
+        // The stored token is dead (expired, rotated, or issued by a previous JWT_SECRET).
+        // Don't stop at `user: null` — that's a logged-out state, and ProtectedRoute turns it
+        // into a bounce to /wa-login. Replace it with a fresh anonymous session so the visitor
+        // simply carries on; an identified user lands back as anonymous and can re-link their
+        // number from the in-place dialog, with their server-side data untouched.
         setAuthToken(null);
-        applyUser(null);
+        await ensureAnonymousSession();
         return;
       }
       // Transient failure (offline, 5xx, cold backend): keep rendering the persisted
@@ -126,13 +151,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       clearPersistedUser();
       disconnectSocket();
       setUser((prev) => {
-        if (prev) {
+        // Only an *identified* session dying is worth interrupting someone about. An anonymous
+        // token lapsing is invisible plumbing — telling a visitor who never logged in to "log in
+        // again" is both confusing and the opposite of the no-login-required experience.
+        if (prev?.mobile) {
           toast.error("Your session has expired. Please log in again.");
         }
         return null;
       });
+      // Immediately stand a new anonymous session back up, so a dead token means "carry on as a
+      // fresh visitor", never "get dumped on the login page".
+      void ensureAnonymousSession();
     });
-  }, []);
+  }, [ensureAnonymousSession]);
 
   const login = useCallback(async (mobile: string, pin: string) => {
     const { token, user } = await api.post<{ token: string; user: UserDTO }>("/api/auth/login", {
@@ -221,6 +252,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       logout,
       completeOnboarding,
       refreshUser,
+      ensureSession: ensureAnonymousSession,
       // Exposed as `setUser` so profile edits etc. keep the persisted copy current too.
       setUser: applyUser,
       checkMobile,
@@ -238,6 +270,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       logout,
       completeOnboarding,
       refreshUser,
+      ensureAnonymousSession,
       applyUser,
       checkMobile,
       loginWithToken,
