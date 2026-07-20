@@ -30,11 +30,14 @@ export async function getLoginAnalytics(range: DateRange) {
   ]);
 
   const now = new Date();
-  const [dau, wau, mau, totalRegistered] = await Promise.all([
+  const [dau, wau, mau, totalRegistered, totalAnonymous] = await Promise.all([
     distinctValues(AnalyticsEvent, "userId", { eventName: "login_success", timestamp: { $gte: daysAgo(1, now) }, userId: { $ne: null } }),
     distinctValues(AnalyticsEvent, "userId", { eventName: "login_success", timestamp: { $gte: startOfWeek(now) }, userId: { $ne: null } }),
     distinctValues(AnalyticsEvent, "userId", { eventName: "login_success", timestamp: { $gte: startOfMonth(now) }, userId: { $ne: null } }),
-    User.countDocuments(),
+    // "Registered" = has actually linked a mobile number — see businessAnalyticsService's
+    // identical fix for why a plain countDocuments() no longer means this.
+    User.countDocuments({ mobile: { $exists: true, $ne: null } }),
+    User.countDocuments({ mobile: { $exists: false } }),
   ]);
 
   const recentlyLoggedInUserIds = await distinctValues(AnalyticsEvent, "userId", {
@@ -55,5 +58,6 @@ export async function getLoginAnalytics(range: DateRange) {
     monthlyActiveUsers: mau.length,
     inactiveUsers,
     totalRegisteredUsers: totalRegistered,
+    totalAnonymousUsers: totalAnonymous,
   };
 }

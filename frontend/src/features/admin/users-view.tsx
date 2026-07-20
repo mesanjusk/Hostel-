@@ -30,14 +30,20 @@ export function UsersView({
   totalPages,
   totalUsers,
   currentUserId,
+  status,
 }: {
   users: AdminUserDTO[];
   page: number;
   totalPages: number;
   totalUsers: number;
   currentUserId: string | null;
+  /** Which tab this table is rendering for — an anonymous account has nothing meaningful in
+   * Mobile/Login code/Role/Verified (always "Not linked"/"Not set"/"student"/unverified), so
+   * that tab swaps those columns for Device and Gender instead. */
+  status: "registered" | "anonymous";
 }) {
   const [users, setUsers] = useState(initialUsers);
+  const isAnonymousTab = status === "anonymous";
 
   // `initialUsers` starts as [] while the parent's fetch is still in flight, then arrives
   // with the real data (and again on every page change / refresh) — without this sync,
@@ -81,89 +87,122 @@ export function UsersView({
         ) : (
           <EmptyState
             icon={Users}
-            title="No students yet"
-            description="Users appear here after their first login, or once you add one."
+            title={isAnonymousTab ? "No anonymous visitors" : "No registered students yet"}
+            description={
+              isAnonymousTab
+                ? "Anonymous accounts appear here the moment someone lands on the site, before they ever register."
+                : "Users appear here once they link a mobile number, or once you add one directly."
+            }
           />
         )
       ) : (
         <Card className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Mobile</TableHead>
-                <TableHead>Device</TableHead>
-                <TableHead>Login code</TableHead>
-                <TableHead>College / Category</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead>Verified</TableHead>
-                <TableHead>Joined</TableHead>
-                <TableHead />
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {users.map((user) => (
-                <TableRow key={user.id}>
-                  <TableCell className="font-medium">{user.name ?? "—"}</TableCell>
-                  <TableCell>{user.mobile ? formatMobileForDisplay(user.mobile) : "Not linked"}</TableCell>
-                  <TableCell className="text-muted-foreground max-w-[10rem] truncate font-mono text-xs" title={user.deviceId ?? undefined}>
-                    {user.deviceId ?? "—"}
-                  </TableCell>
-                  <TableCell>
-                    {user.hasPinSet ? (
-                      <span className="text-muted-foreground inline-flex items-center gap-1.5 text-sm">
-                        <KeyRound className="size-3.5" />
-                        Set
-                      </span>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  {isAnonymousTab ? (
+                    <>
+                      <TableHead>Device</TableHead>
+                      <TableHead>Gender</TableHead>
+                    </>
+                  ) : (
+                    <>
+                      <TableHead>Mobile</TableHead>
+                      <TableHead>Login code</TableHead>
+                    </>
+                  )}
+                  <TableHead>College / Category</TableHead>
+                  {!isAnonymousTab && (
+                    <>
+                      <TableHead>Role</TableHead>
+                      <TableHead>Verified</TableHead>
+                    </>
+                  )}
+                  <TableHead>Joined</TableHead>
+                  <TableHead />
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {users.map((user) => (
+                  <TableRow key={user.id}>
+                    <TableCell className="font-medium">{user.name ?? "—"}</TableCell>
+                    {isAnonymousTab ? (
+                      <>
+                        <TableCell
+                          className="text-muted-foreground max-w-[10rem] truncate font-mono text-xs"
+                          title={user.deviceId ?? undefined}
+                        >
+                          {user.deviceId ?? "—"}
+                        </TableCell>
+                        <TableCell>{user.gender ?? "—"}</TableCell>
+                      </>
                     ) : (
-                      <span className="text-muted-foreground text-sm">Not set</span>
+                      <>
+                        <TableCell>{user.mobile ? formatMobileForDisplay(user.mobile) : "Not linked"}</TableCell>
+                        <TableCell>
+                          {user.hasPinSet ? (
+                            <span className="text-muted-foreground inline-flex items-center gap-1.5 text-sm">
+                              <KeyRound className="size-3.5" />
+                              Set
+                            </span>
+                          ) : (
+                            <span className="text-muted-foreground text-sm">Not set</span>
+                          )}
+                        </TableCell>
+                      </>
                     )}
-                  </TableCell>
-                  <TableCell>
-                    {user.college ?? "—"} {user.collegeCategory ? `/ ${user.collegeCategory}` : ""}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={user.role === "admin" ? "accent" : "outline"}>{user.role}</Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleToggleVerified(user.id, !user.verified)}
-                    >
-                      {user.verified ? <Badge variant="success">Verified</Badge> : "Mark verified"}
-                    </Button>
-                  </TableCell>
-                  <TableCell>{format(new Date(user.createdAt), "d MMM yyyy")}</TableCell>
-                  <TableCell>
-                    <div className="flex justify-end gap-2">
-                      <UserFormDialog
-                        user={user}
-                        trigger={
-                          <Button variant="outline" size="sm">
-                            Edit
+                    <TableCell>
+                      {user.college ?? "—"} {user.collegeCategory ? `/ ${user.collegeCategory}` : ""}
+                    </TableCell>
+                    {!isAnonymousTab && (
+                      <>
+                        <TableCell>
+                          <Badge variant={user.role === "admin" ? "accent" : "outline"}>{user.role}</Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleToggleVerified(user.id, !user.verified)}
+                          >
+                            {user.verified ? <Badge variant="success">Verified</Badge> : "Mark verified"}
                           </Button>
-                        }
-                      />
-                      {user.id !== currentUserId && (
-                        <ConfirmDialog
+                        </TableCell>
+                      </>
+                    )}
+                    <TableCell>{format(new Date(user.createdAt), "d MMM yyyy")}</TableCell>
+                    <TableCell>
+                      <div className="flex justify-end gap-2">
+                        <UserFormDialog
+                          user={user}
                           trigger={
                             <Button variant="outline" size="sm">
-                              Delete
+                              Edit
                             </Button>
                           }
-                          title="Delete this user?"
-                          description={`This permanently removes ${user.name ?? (user.mobile ? formatMobileForDisplay(user.mobile) : "this unregistered visitor")} and all of their checklist, budget, notes, documents, contacts, and wishlist data.`}
-                          confirmLabel="Delete"
-                          onConfirm={() => handleDelete(user.id)}
                         />
-                      )}
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+                        {user.id !== currentUserId && (
+                          <ConfirmDialog
+                            trigger={
+                              <Button variant="outline" size="sm">
+                                Delete
+                              </Button>
+                            }
+                            title="Delete this user?"
+                            description={`This permanently removes ${user.name ?? (user.mobile ? formatMobileForDisplay(user.mobile) : "this unregistered visitor")} and all of their checklist, budget, notes, documents, contacts, and wishlist data.`}
+                            confirmLabel="Delete"
+                            onConfirm={() => handleDelete(user.id)}
+                          />
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
 
           {totalPages > 1 && (
             <div className="border-border/60 flex items-center justify-between border-t px-4 py-3">
@@ -177,7 +216,7 @@ export function UsersView({
                   </Button>
                 ) : (
                   <Button asChild variant="outline" size="sm">
-                    <Link to={`/admin/users?page=${page - 1}`}>Previous</Link>
+                    <Link to={`?status=${status}&page=${page - 1}`}>Previous</Link>
                   </Button>
                 )}
                 {page >= totalPages ? (
@@ -186,7 +225,7 @@ export function UsersView({
                   </Button>
                 ) : (
                   <Button asChild variant="outline" size="sm">
-                    <Link to={`/admin/users?page=${page + 1}`}>Next</Link>
+                    <Link to={`?status=${status}&page=${page + 1}`}>Next</Link>
                   </Button>
                 )}
               </div>

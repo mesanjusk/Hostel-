@@ -119,6 +119,7 @@ export interface LoginResponse {
     monthlyActiveUsers: number;
     inactiveUsers: number;
     totalRegisteredUsers: number;
+    totalAnonymousUsers: number;
   };
 }
 
@@ -148,8 +149,11 @@ export interface RetentionResponse {
 export interface BusinessResponse {
   range: DateRangeDTO;
   business: {
+    /** Has actually linked a mobile number — excludes still-anonymous accounts. */
     registeredUsers: number;
-    newUsersToday: number;
+    anonymousUsers: number;
+    newRegisteredUsersToday: number;
+    newAnonymousUsersToday: number;
     activeUsers: number;
     inactiveUsers: number;
     conversionRates: { visitorToRegistration: number; registrationToLogin: number; loginToActivation: number };

@@ -28,9 +28,14 @@ export function BusinessTab({ range }: { range: DateRangeValue }) {
     <div className="flex flex-col gap-6">
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard icon={<Users className="size-5" />} label="Registered users" value={business.registeredUsers.toLocaleString("en-IN")} tone="primary" />
-        <StatCard icon={<UserPlus className="size-5" />} label="New users today" value={business.newUsersToday.toLocaleString("en-IN")} tone="success" delay={0.05} />
-        <StatCard icon={<UserCheck className="size-5" />} label="Active users" value={business.activeUsers.toLocaleString("en-IN")} tone="accent" delay={0.1} />
+        <StatCard icon={<Users className="size-5" />} label="Anonymous visitors" value={business.anonymousUsers.toLocaleString("en-IN")} tone="accent" delay={0.05} />
+        <StatCard icon={<UserCheck className="size-5" />} label="Active users" value={business.activeUsers.toLocaleString("en-IN")} tone="success" delay={0.1} />
         <StatCard icon={<UserX className="size-5" />} label="Inactive users" value={business.inactiveUsers.toLocaleString("en-IN")} tone="warning" delay={0.15} />
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <StatCard icon={<UserPlus className="size-5" />} label="New registered today" value={business.newRegisteredUsersToday.toLocaleString("en-IN")} tone="success" />
+        <StatCard icon={<UserPlus className="size-5" />} label="New anonymous today" value={business.newAnonymousUsersToday.toLocaleString("en-IN")} tone="accent" delay={0.05} />
       </div>
 
       <Card>

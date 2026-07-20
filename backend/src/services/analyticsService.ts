@@ -17,6 +17,8 @@ export async function getAdminAnalytics() {
 
   const [
     totalUsers,
+    registeredUsers,
+    anonymousUsers,
     activeUsers7d,
     activeUsers30d,
     legacyTotalItems,
@@ -32,6 +34,11 @@ export async function getAdminAnalytics() {
     // the operational write path (checklist toggles, etc.) once this is a multi-node replica
     // set. Never applied to the per-student checklist read/write path.
     User.countDocuments().read("secondaryPreferred"),
+    // "Registered" = has actually linked a mobile number — an anonymous visitor is a real User
+    // document from their first page load (see userService.createAnonymousUser), so plain
+    // countDocuments() alone can no longer stand in for "registered" the way it used to.
+    User.countDocuments({ mobile: { $exists: true, $ne: null } }).read("secondaryPreferred"),
+    User.countDocuments({ mobile: { $exists: false } }).read("secondaryPreferred"),
     countActiveUsers(7),
     countActiveUsers(30),
     ChecklistItem.countDocuments().read("secondaryPreferred"),
@@ -95,6 +102,8 @@ export async function getAdminAnalytics() {
 
   return {
     totalUsers,
+    registeredUsers,
+    anonymousUsers,
     activeUsers7d,
     activeUsers30d,
     totalItems,
