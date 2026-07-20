@@ -24,7 +24,9 @@ export function UserMenu() {
 
   if (!user) return null;
 
-  const initials = (user.name ?? user.mobile?.slice(-2) ?? "?").slice(0, 2).toUpperCase();
+  // Null (not "?") for a not-yet-registered visitor — see profile-view.tsx's identical fallback.
+  const initialsSource = user.name ?? user.mobile?.slice(-2) ?? null;
+  const initials = initialsSource?.slice(0, 2).toUpperCase() ?? null;
 
   function handleLogout() {
     logout();
@@ -38,7 +40,9 @@ export function UserMenu() {
           <Button variant="ghost" size="icon" aria-label="Account">
             <Avatar className="size-8">
               {user.avatar && <AvatarImage src={user.avatar} alt={user.name ?? "Profile"} />}
-              <AvatarFallback className="text-xs">{initials}</AvatarFallback>
+              <AvatarFallback className="text-xs">
+                {initials ?? <UserRound className="size-4" />}
+              </AvatarFallback>
             </Avatar>
           </Button>
         </DropdownMenuTrigger>
