@@ -82,6 +82,14 @@ const UserSchema = new Schema(
      * which needs to know when identity was linked, not just when the row was born. Null for
      * an account that's still anonymous. */
     registeredAt: { type: Date, default: null },
+    /** The frontend analytics client's per-browser id (`pwm_visitor_id` in localStorage — see
+     * lib/analytics/client.ts), captured server-side the moment this account is created (from
+     * the `X-Visitor-Id` header every request already carries) rather than anything the client
+     * asserts about itself afterward. Admin-only visibility (see AdminUserDTO) — an internal
+     * tracing aid for "which browser/device is this account", not something surfaced to the
+     * account holder themselves. Null for the handful of legacy accounts created before this
+     * field existed. */
+    deviceId: { type: String, default: null, index: true },
     /** Optional — enables age-range matching in Co-Packer/Roommate discovery. Never required. */
     dateOfBirth: { type: Date, default: null },
     /** Users this account has blocked, for discovery/directory features. Kept as an embedded

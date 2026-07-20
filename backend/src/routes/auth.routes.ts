@@ -51,8 +51,9 @@ function eventContext(req: Request) {
 // has somewhere real to save that visitor's data. Deliberately takes no body: nothing about this
 // visitor is known yet beyond that they exist.
 authRouter.post("/anonymous", async (req, res) => {
-  const user = await createAnonymousUser();
-  logEventAsync({ eventName: "registration_success", userId: user._id.toString(), ...eventContext(req), metadata: { via: "anonymous" } });
+  const ctx = eventContext(req);
+  const user = await createAnonymousUser(ctx.visitorId);
+  logEventAsync({ eventName: "registration_success", userId: user._id.toString(), ...ctx, metadata: { via: "anonymous" } });
   const token = signAuthToken(user._id.toString(), user.tokenVersion ?? 0);
   res.json({ token, user: serializeUser(user) });
 });
@@ -146,7 +147,7 @@ authRouter.post("/otp/widget-verify", optionalAuth, async (req, res) => {
   const user =
     req.user && !req.user.mobile && !existingByMobile
       ? await linkMobileToUser(req.user._id.toString(), mobile)
-      : await getOrCreateUserByMobile(mobile);
+      : await getOrCreateUserByMobile(mobile, ctx.visitorId);
 
   if (!user) {
     // linkMobileToUser's target vanished mid-request (extremely unlikely) — fall back rather

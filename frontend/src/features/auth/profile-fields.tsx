@@ -40,8 +40,10 @@ const cityFilter: NonNullable<ComponentProps<typeof Command>["filter"]> = (value
   value.toLowerCase().includes(search.toLowerCase()) ? 1 : 0;
 
 /** Searchable city picker — the plain `Select` doesn't scale to the full Indian-city catalog,
- * so this swaps in a filterable command palette inside a popover instead. */
-function CityCombobox({
+ * so this swaps in a filterable command palette inside a popover instead. Exported for the
+ * standalone progressive-capture prompts (see quick-profile-prompts.tsx) that only need a bare
+ * city picker, not the full college/profile field set. */
+export function CityCombobox({
   cities,
   value,
   onChange,

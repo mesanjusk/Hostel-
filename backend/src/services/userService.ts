@@ -19,7 +19,7 @@ import { ensureAutoJoinCommunities } from "@/services/communityService";
 import { ensurePlacesForCity } from "@/services/placeAutoFetchService";
 import { ensureCollegeExists } from "@/services/collegeVerificationService";
 import type { OnboardingInput } from "@/validations/auth";
-import type { ProfileUpdateInput } from "@/validations/profile";
+import type { ProfileUpdateInput, ProfileQuickUpdateInput } from "@/validations/profile";
 import { LEGACY_COLLEGE_CATEGORY_MAP, type UserRole } from "@/types";
 
 export async function getUserByMobile(mobile: string) {
@@ -153,6 +153,46 @@ export async function updateProfile(userId: string, input: ProfileUpdateInput) {
   return updated;
 }
 
+/** Progressive-profiling counterpart to updateProfile above: applies only whichever fields the
+ * caller actually provided (Explore only ever sends `city`; Know Your Campus sends
+ * `city`+`collegeCategoryId`+`college`), leaving every other field exactly as it was — unlike
+ * updateProfile, which is fed a complete form and treats an absent optional field as "clear it".
+ * Runs the same downstream side effects as updateProfile, but only the ones relevant to
+ * whatever actually changed. */
+export async function updateProfileFieldsPartial(userId: string, fields: ProfileQuickUpdateInput) {
+  await connectDB();
+
+  const set: Record<string, unknown> = {};
+  if (fields.name !== undefined) set.name = fields.name;
+  if (fields.gender !== undefined) set.gender = fields.gender;
+  if (fields.city !== undefined) set.city = fields.city;
+  if (fields.college !== undefined) set.college = fields.college;
+  if (fields.homeTown !== undefined) set.homeTown = fields.homeTown || null;
+  if (fields.courseId !== undefined) set.courseId = fields.courseId || null;
+  if (fields.collegeCategoryId !== undefined) {
+    set.collegeCategoryId = fields.collegeCategoryId;
+    set.collegeCategory = await resolveLegacyCollegeCategory(fields.collegeCategoryId);
+  }
+
+  const updated = await User.findByIdAndUpdate(userId, set, { returnDocument: "after" }).lean();
+  if (!updated) return null;
+
+  if (fields.city !== undefined) ensurePlacesForCity(updated.city);
+  if (fields.college !== undefined) {
+    ensureCollegeExists(updated.city, updated.collegeCategoryId?.toString() ?? null, updated.college);
+  }
+  if (fields.city !== undefined || fields.college !== undefined) {
+    await ensureAutoJoinCommunities(updated);
+    await syncTravelProfileFromAccount(updated._id.toString(), {
+      city: updated.city,
+      college: updated.college,
+      homeTown: updated.homeTown,
+    });
+  }
+
+  return updated;
+}
+
 export async function setNotificationPreference(userId: string, enabled: boolean) {
   await connectDB();
   return User.findByIdAndUpdate(userId, { notificationsEnabled: enabled }, { returnDocument: "after" }).lean();
@@ -229,14 +269,21 @@ export async function registerUserWithOtp(mobile: string, verifiedOtpCode: strin
  * MSG91 the number itself is the credential (re-verified via OTP on every login), so these
  * accounts authenticate purely by widget-verified mobile. A fresh account has no `name`, so
  * serializeUser reports `needsOnboarding: true` and the app routes it to onboarding. */
-export async function getOrCreateUserByMobile(mobile: string) {
+export async function getOrCreateUserByMobile(mobile: string, deviceId?: string | null) {
   await connectDB();
 
   const existing = await User.findOne({ mobile });
   if (existing) return existing;
 
   const username = await generateUniqueUsername();
-  return User.create({ mobile, role: "student", username, displayName: username, registeredAt: new Date() });
+  return User.create({
+    mobile,
+    role: "student",
+    username,
+    displayName: username,
+    registeredAt: new Date(),
+    deviceId: deviceId ?? null,
+  });
 }
 
 /** Creates the account behind a brand-new, never-seen-before browser — called the moment
@@ -246,11 +293,11 @@ export async function getOrCreateUserByMobile(mobile: string) {
  * no matter how many anonymous visitors exist. Gets a normal JWT just like any other account,
  * which is what lets every existing feature (checklist, budget, notes, ...) work unchanged for
  * an unidentified visitor — they're a real User document from their very first page load. */
-export async function createAnonymousUser() {
+export async function createAnonymousUser(deviceId?: string | null) {
   await connectDB();
 
   const username = await generateUniqueUsername();
-  return User.create({ role: "student", username, displayName: username });
+  return User.create({ role: "student", username, displayName: username, deviceId: deviceId ?? null });
 }
 
 /** Attaches a freshly OTP-verified mobile number to an already-existing account in place —

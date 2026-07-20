@@ -157,6 +157,7 @@ adminRouter.get("/users", async (req, res) => {
     role: user.role,
     verified: Boolean(user.verified),
     hasPinSet: Boolean(user.loginPinHash),
+    deviceId: user.deviceId ?? null,
     createdAt: (user as unknown as { createdAt: Date }).createdAt.toISOString(),
   }));
   res.json({ users: sanitized, total });

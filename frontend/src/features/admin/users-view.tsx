@@ -92,6 +92,7 @@ export function UsersView({
               <TableRow>
                 <TableHead>Name</TableHead>
                 <TableHead>Mobile</TableHead>
+                <TableHead>Device</TableHead>
                 <TableHead>Login code</TableHead>
                 <TableHead>College / Category</TableHead>
                 <TableHead>Role</TableHead>
@@ -105,6 +106,9 @@ export function UsersView({
                 <TableRow key={user.id}>
                   <TableCell className="font-medium">{user.name ?? "—"}</TableCell>
                   <TableCell>{user.mobile ? formatMobileForDisplay(user.mobile) : "Not linked"}</TableCell>
+                  <TableCell className="text-muted-foreground max-w-[10rem] truncate font-mono text-xs" title={user.deviceId ?? undefined}>
+                    {user.deviceId ?? "—"}
+                  </TableCell>
                   <TableCell>
                     {user.hasPinSet ? (
                       <span className="text-muted-foreground inline-flex items-center gap-1.5 text-sm">
