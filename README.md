@@ -36,18 +36,19 @@ In local dev (`NODE_ENV` unset or not `production`), if the WhatsApp send fails 
 
 ## Admin registration-count WhatsApp campaign
 
-A go-live monitoring campaign: every admin account (`role: "admin"`, see `npm run make-admin`) whose WhatsApp window is open gets a text every 30 minutes with the count of students who registered since the last check — one number, not a message per signup (`backend/src/jobs/registrationCountBroadcast.ts`). WhatsApp only allows free-form text within the 24h window opened by the *recipient* messaging in first, so this only reaches admins who've opted in:
+A go-live monitoring campaign: admins whose WhatsApp window is open get a text with the count of new student registrations, either on a timer or once a quantity threshold is hit — one number, not a message per signup (`backend/src/jobs/whatsappCampaignJob.ts`). Fully controlled at runtime from **Admin panel → WhatsApp Campaign** (`/admin/whatsapp-campaign`) — no env vars, no deploy needed to change anything:
 
-1. **Opt in**: each admin sends any WhatsApp message (e.g. `HOSTEL`) to the business number. That's it — no app-side toggle. The webhook (`backend/src/routes/whatsapp.routes.ts`) records the timestamp on that admin's `User` document and treats the window as open for the next ~23h.
-2. **If the window lapses**: an admin whose window has closed just stops receiving counts (silently, no error) until they message the business number again — there's no automated reminder/reactivation step, by design.
-3. **The whole campaign self-stops** after `WHATSAPP_ADMIN_CAMPAIGN_HOURS` (default 24) from server start — it's a bounded launch-day thing, not a permanent fixture. Restart the backend to run it again for another window.
+- **Start / Pause** — the campaign only runs while explicitly turned on.
+- **Trigger mode** — *Time-based* (broadcast every N minutes) or *Quantity-based* (broadcast once N new registrations have accumulated since the last send).
+- **Skip if zero** (time mode) — don't send when that interval had no new registrations, instead of texting "0" every tick.
+- **Optional end date** — the campaign auto-pauses once passed.
+- **Admin roster** — every `role: "admin"` account (see `npm run make-admin`) with their live WhatsApp opt-in window status, and a per-admin on/off switch to exclude a specific admin from the campaign without touching their opt-in window.
 
-Tune via (both optional, shown with their defaults):
+WhatsApp only allows free-form text within the 24h window opened by the *recipient* messaging in first, so this only reaches admins who've opted in:
 
-| Key | Value |
-| --- | --- |
-| `WHATSAPP_ADMIN_CAMPAIGN_INTERVAL_MINUTES` | `30` — how often to check + broadcast |
-| `WHATSAPP_ADMIN_CAMPAIGN_HOURS` | `24` — how long the campaign runs before stopping itself |
+1. **Opt in**: each admin sends any WhatsApp message (e.g. `HOSTEL`) to the business number. The webhook (`backend/src/routes/whatsapp.routes.ts`) records the timestamp on that admin's `User` document and treats the window as open for the next ~23h — this shows live on the admin panel's roster table.
+2. **If the window lapses**: that admin just stops receiving the campaign (silently, no error) until they message the business number again — there's no automated reminder/reactivation step, by design.
+3. **Per-admin opt-out**: independent of the window, any admin can be switched off from the master admin panel, or from their own **Profile → WhatsApp registration alerts** toggle — either one flips the same setting.
 
 Reuses the same `WHATSAPP_ACCESS_TOKEN`/`WHATSAPP_PHONE_NUMBER_ID` as WhatsApp OTP above — no separate credentials or Meta template needed.
 
@@ -137,7 +138,6 @@ Open [http://localhost:5173](http://localhost:5173) and log in with the mobile n
    | `CORS_ORIGIN` | Your deployed frontend URL, e.g. `https://your-frontend.vercel.app` (comma-separate if you also want to allow `http://localhost:5173` for local testing against the prod API) |
    | `NODE_ENV` | `production` |
    | `WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_API_VERSION`, `WHATSAPP_OTP_TEMPLATE_NAME`, `WHATSAPP_OTP_TEMPLATE_LANGUAGE` | See "WhatsApp OTP setup" above — required for self-registration and forgot-code to send real messages |
-   | `WHATSAPP_ADMIN_CAMPAIGN_INTERVAL_MINUTES`, `WHATSAPP_ADMIN_CAMPAIGN_HOURS` | Optional — see "Admin registration-count WhatsApp campaign" above, defaults to 30 min / 24h if unset |
 3. In MongoDB Atlas → Network Access, allow Render's outbound IPs (or `0.0.0.0/0`).
 4. Deploy. Your API will be live at something like `https://hostel-dpqg.onrender.com` — note this URL, the frontend needs it.
 5. Run `npm run make-admin -- <mobile>`, `npm run seed`, and `npm run seed:cities` locally (or from any machine) pointed at the same `MONGODB_URI` — these are one-off maintenance scripts, not part of the deployed service.

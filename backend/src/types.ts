@@ -42,6 +42,10 @@ export interface UserDTO {
   campus: string | null;
   year: string | null;
   communityProfileConfigured: boolean;
+  /** Only meaningful for role:"admin" — the WhatsApp registration-count campaign self-service
+   * toggle on the profile page. Present for every user for simplicity, harmless to ignore. */
+  waBroadcastEnabled: boolean;
+  waWindowOpenedAt: string | null;
 }
 
 export const DEFAULT_CHECKLIST_CATEGORIES = [

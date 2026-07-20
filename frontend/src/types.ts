@@ -41,6 +41,8 @@ export interface UserDTO {
   campus: string | null;
   year: string | null;
   communityProfileConfigured: boolean;
+  waBroadcastEnabled: boolean;
+  waWindowOpenedAt: string | null;
 }
 
 export const DEFAULT_CHECKLIST_CATEGORIES = [

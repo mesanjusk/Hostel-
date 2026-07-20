@@ -29,10 +29,16 @@ const UserSchema = new Schema(
     /** WhatsApp customer-service-window bookkeeping — only meaningful for role:"admin"
      * accounts. Set the moment an inbound WhatsApp message from this admin's mobile is seen at
      * the webhook (routes/whatsapp.routes.ts), mirroring Meta's real 24h window semantics
-     * rather than a flag we control ourselves. The registration-count broadcast
-     * (jobs/registrationCountBroadcast.ts) only texts admins whose window is still open —
-     * an admin whose window has lapsed needs to message the business number again. */
+     * rather than a flag we control ourselves. The registration-count campaign
+     * (jobs/whatsappCampaignJob.ts) only texts admins whose window is still open — an admin
+     * whose window has lapsed needs to message the business number again. */
     waWindowOpenedAt: { type: Date, default: null },
+    /** Per-admin override, independent of the window above: even with an open window, this
+     * admin is skipped when false. Toggleable either from the master admin panel (any admin
+     * managing any other admin) or by the admin themselves from their own profile settings —
+     * both write this same field. Defaults true so existing/newly-promoted admins keep
+     * receiving the campaign unless someone explicitly turns it off. */
+    waBroadcastEnabled: { type: Boolean, default: true },
     /** bcrypt hash of an admin-issued 7-digit login code. Never store or return the plain code. */
     loginPinHash: { type: String, default: null },
     /** Bumped whenever a previously-issued JWT should stop being accepted (PIN reset/regenerate)
