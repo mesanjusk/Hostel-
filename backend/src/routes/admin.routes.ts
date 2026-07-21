@@ -3,6 +3,7 @@ import { createAsyncRouter } from "@/lib/asyncRouter";
 import { CHECKLIST_GENDER_OPTIONS } from "@/types";
 import { requireAdmin, requireAuth } from "@/middleware/auth";
 import { getAdminAnalytics } from "@/services/analyticsService";
+import { getTimeSpentByUserIds } from "@/services/visitorAnalyticsService";
 import {
   adminUpdateUser,
   createUserByAdmin,
@@ -153,19 +154,26 @@ adminRouter.get("/users", async (req, res) => {
     ? (req.query.status as UserRegistrationStatus)
     : "all";
   const { users, total, registeredCount, anonymousCount } = await listUsers(page, pageSize, status);
-  const sanitized = users.map((user) => ({
-    id: user._id.toString(),
-    name: user.name ?? null,
-    mobile: user.mobile,
-    gender: user.gender ?? null,
-    college: user.college ?? null,
-    collegeCategory: user.collegeCategory ?? null,
-    role: user.role,
-    verified: Boolean(user.verified),
-    hasPinSet: Boolean(user.loginPinHash),
-    deviceId: user.deviceId ?? null,
-    createdAt: (user as unknown as { createdAt: Date }).createdAt.toISOString(),
-  }));
+  // Scoped to just this page's rows, not the whole collection — see getTimeSpentByUserIds.
+  const timeSpent = await getTimeSpentByUserIds(users.map((user) => user._id.toString()));
+  const sanitized = users.map((user) => {
+    const spent = timeSpent.get(user._id.toString());
+    return {
+      id: user._id.toString(),
+      name: user.name ?? null,
+      mobile: user.mobile,
+      gender: user.gender ?? null,
+      college: user.college ?? null,
+      collegeCategory: user.collegeCategory ?? null,
+      role: user.role,
+      verified: Boolean(user.verified),
+      hasPinSet: Boolean(user.loginPinHash),
+      deviceId: user.deviceId ?? null,
+      timeSpentSeconds: spent?.totalSeconds ?? 0,
+      sessionCount: spent?.sessionCount ?? 0,
+      createdAt: (user as unknown as { createdAt: Date }).createdAt.toISOString(),
+    };
+  });
   res.json({ users: sanitized, total, registeredCount, anonymousCount });
 });
 

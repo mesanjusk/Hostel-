@@ -24,6 +24,15 @@ import { emitRefresh } from "@/lib/refresh-bus";
 import { formatMobileForDisplay } from "@/lib/phone";
 import type { AdminUserDTO } from "@/features/admin/user-dto";
 
+function formatTimeSpent(seconds: number): string {
+  if (seconds <= 0) return "—";
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  if (hours > 0) return `${hours}h ${minutes}m`;
+  if (minutes > 0) return `${minutes}m`;
+  return `${seconds}s`;
+}
+
 export function UsersView({
   users: initialUsers,
   page,
@@ -113,6 +122,7 @@ export function UsersView({
                       <TableHead>Login code</TableHead>
                     </>
                   )}
+                  <TableHead>Time on site</TableHead>
                   <TableHead>College / Category</TableHead>
                   {!isAnonymousTab && (
                     <>
@@ -153,6 +163,12 @@ export function UsersView({
                         </TableCell>
                       </>
                     )}
+                    <TableCell
+                      className="text-muted-foreground"
+                      title={user.sessionCount > 0 ? `${user.sessionCount} session${user.sessionCount === 1 ? "" : "s"}` : undefined}
+                    >
+                      {formatTimeSpent(user.timeSpentSeconds)}
+                    </TableCell>
                     <TableCell>
                       {user.college ?? "—"} {user.collegeCategory ? `/ ${user.collegeCategory}` : ""}
                     </TableCell>
