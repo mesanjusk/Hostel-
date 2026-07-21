@@ -1,3 +1,5 @@
+import { Types } from "mongoose";
+
 import { connectDB } from "@/db";
 import { AnalyticsEvent } from "@/models/AnalyticsEvent";
 import { User } from "@/models/User";
@@ -301,6 +303,52 @@ export async function getGeoBreakdown(range: DateRange) {
   ]);
 
   return { countries: topN(countries, 15), states: topN(states, 15), cities: topN(cities, 15) };
+}
+
+/** Total time spent on the site per account, for the admin Users table (registered and
+ * anonymous alike — an anonymous visitor's activity is tracked exactly the same way, since they
+ * carry a real JWT and userId from their first page load; see auth-context.tsx). Scoped to a
+ * specific batch of userIds (the current page of the table) rather than the whole collection —
+ * this is rendered per-row, not as a dashboard aggregate.
+ *
+ * Same estimation the overview dashboard's avgSessionDurationSeconds uses: group events by
+ * (userId, sessionId) and take the span between the first and last event in each session, then
+ * sum across all of that user's sessions. Undercounts the very last page of their most recent
+ * session slightly (no explicit "session end" event exists), which is an accepted trade-off
+ * elsewhere in this file too rather than a gap specific to this function. */
+export async function getTimeSpentByUserIds(
+  userIds: string[],
+): Promise<Map<string, { totalSeconds: number; sessionCount: number }>> {
+  await connectDB();
+  if (userIds.length === 0) return new Map();
+
+  // Aggregation pipelines bypass Mongoose's usual query-time string-to-ObjectId casting, so
+  // this needs to convert explicitly — a raw string $in here would silently match nothing.
+  const objectIds = userIds.map((id) => new Types.ObjectId(id));
+
+  const rows = await AnalyticsEvent.aggregate<{ _id: string; totalSeconds: number; sessionCount: number }>([
+    { $match: { userId: { $in: objectIds } } },
+    {
+      $group: {
+        _id: { userId: "$userId", sessionId: "$sessionId" },
+        start: { $min: "$timestamp" },
+        end: { $max: "$timestamp" },
+      },
+    },
+    {
+      $group: {
+        _id: "$_id.userId",
+        totalSeconds: { $sum: { $divide: [{ $subtract: ["$end", "$start"] }, 1000] } },
+        sessionCount: { $sum: 1 },
+      },
+    },
+  ]).allowDiskUse(true);
+
+  const map = new Map<string, { totalSeconds: number; sessionCount: number }>();
+  for (const row of rows) {
+    map.set(row._id.toString(), { totalSeconds: Math.round(row.totalSeconds), sessionCount: row.sessionCount });
+  }
+  return map;
 }
 
 /** Splits traffic by *identity* rather than raw browser (visitorId): how many still-anonymous
