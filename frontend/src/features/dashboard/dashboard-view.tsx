@@ -2,12 +2,10 @@ import { Suspense } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { formatDistanceToNow } from "date-fns";
-import { ListTodo, Heart, Sparkles, ClipboardList, StickyNote, Wallet as WalletIcon } from "lucide-react";
+import { ListTodo, Heart, Sparkles, ClipboardList, StickyNote, Luggage, Wallet as WalletIcon } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { SuccessBurst } from "@/components/shared/success-burst";
-import { SuitcaseFill, PiggyBankFill } from "@/components/shared/liquid-fill-icons";
 import { StatCard } from "@/components/shared/stat-card";
 import { EmptyState } from "@/components/shared/empty-state";
 import { SiteFooter } from "@/components/shared/site-footer";
@@ -40,41 +38,39 @@ function StatsWidget({ data, visibleStatIds }: { data: DashboardDataDTO; visible
   const completionPercent = overallProgress.total === 0 ? 0 : (overallProgress.completed / overallProgress.total) * 100;
   const itemsRemaining = overallProgress.total - overallProgress.completed;
   const budgetUsedPercent = budgetSummary.planned === 0 ? 0 : (budgetSummary.spent / budgetSummary.planned) * 100;
+  const allPacked = completionPercent >= 100 && overallProgress.total > 0;
 
   return (
+    // All four stats share one card treatment (StatCard) — previously packing/budget were gradient
+    // liquid-fill hero cards while items-remaining/wishlist were StatCards, a visual mismatch. The
+    // 100% "all packed" celebration is preserved in the packing card's hint.
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
       {visibleStatIds.has("stat-packing") && (
-        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
-          <Card className="from-primary/10 items-center justify-center gap-1 bg-gradient-to-br via-card to-card p-6">
-            <div className="relative">
-              <SuitcaseFill value={completionPercent} />
-              {completionPercent >= 100 && (
-                <div className="pointer-events-none absolute -top-3 -right-3">
-                  <SuccessBurst size={48} />
-                </div>
-              )}
-            </div>
-            <p className="font-display mt-1 text-2xl font-bold">{Math.round(completionPercent)}%</p>
-            <p className="text-muted-foreground text-center text-sm">
-              {overallProgress.total === 0
-                ? "Add items to your checklist to get started"
-                : `${overallProgress.completed} of ${overallProgress.total} packed`}
-              {completionPercent >= 100 && overallProgress.total > 0 && " — all packed! 🎉"}
-            </p>
-          </Card>
-        </motion.div>
+        <StatCard
+          icon={<Luggage className="size-5" />}
+          label="Packing"
+          value={`${Math.round(completionPercent)}%`}
+          hint={
+            overallProgress.total === 0
+              ? "Add items to get started"
+              : allPacked
+                ? "All packed! 🎉"
+                : `${overallProgress.completed} of ${overallProgress.total} packed`
+          }
+          tone="primary"
+          delay={0}
+        />
       )}
 
       {visibleStatIds.has("stat-budget") && (
-        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
-          <Card className="from-secondary/10 items-center justify-center gap-1 bg-gradient-to-br via-card to-card p-6">
-            <PiggyBankFill value={budgetUsedPercent} />
-            <p className="font-display mt-1 text-2xl font-bold">{Math.round(budgetUsedPercent)}%</p>
-            <p className="text-muted-foreground text-center text-sm">
-              ₹{budgetSummary.spent.toLocaleString("en-IN")} of ₹{budgetSummary.planned.toLocaleString("en-IN")} spent
-            </p>
-          </Card>
-        </motion.div>
+        <StatCard
+          icon={<WalletIcon className="size-5" />}
+          label="Budget used"
+          value={`${Math.round(budgetUsedPercent)}%`}
+          hint={`₹${budgetSummary.spent.toLocaleString("en-IN")} of ₹${budgetSummary.planned.toLocaleString("en-IN")}`}
+          tone="warning"
+          delay={0.05}
+        />
       )}
 
       {visibleStatIds.has("stat-items-remaining") && (

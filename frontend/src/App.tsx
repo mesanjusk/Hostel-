@@ -7,7 +7,7 @@ import { ScrollToTop } from "@/components/shared/scroll-to-top";
 import { RouteFallback } from "@/components/shared/route-fallback";
 import { HOME_ROUTE } from "@/lib/nav-items";
 import { useAnalyticsPageViews } from "@/lib/analytics/use-page-view-tracking";
-import { useGenderTheme } from "@/lib/use-gender-theme";
+import { useColorTheme } from "@/lib/use-color-theme";
 import { lazyRetry } from "@/lib/lazy-retry";
 
 // Lazy, not a static import: eagerly importing the dashboard layout meant its weight shipped in
@@ -93,7 +93,7 @@ function RootRoute() {
 
 export default function App() {
   useAnalyticsPageViews();
-  useGenderTheme();
+  useColorTheme();
 
   return (
     <>

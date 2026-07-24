@@ -5,10 +5,10 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/auth-context";
 import { resolveStickerSrc } from "@/lib/gender-stickers";
 
-/** Backed by CSS custom properties (index.css's :root / [data-gender="male"] blocks) rather
- * than literal hex, so sticky-note colors follow the gender theme (and any admin override) the
- * same way --primary etc. already do. The default values are byte-identical to the old hardcoded
- * hex, so this is a pure refactor for anyone with no gender/no override. */
+/** Backed by CSS custom properties (index.css's :root / [data-theme="..."] blocks) rather
+ * than literal hex, so sticky-note colors follow the active color theme the same way --primary
+ * etc. already do. The default values are byte-identical to the old hardcoded hex, so this is a
+ * pure refactor for anyone on the default (Blossom) theme. */
 export const NOTE_COLORS = {
   yellow: "bg-[var(--note-yellow)]",
   pink: "bg-[var(--note-pink)]",

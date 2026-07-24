@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { motion } from "framer-motion";
-import { Download, Loader2, LogIn, MessageCircle, User, LogOut, Pencil, Share, SquarePlus, type LucideIcon } from "lucide-react";
+import { Download, Loader2, LogIn, MessageCircle, Palette, User, LogOut, Pencil, Share, SquarePlus, type LucideIcon } from "lucide-react";
 import { toast } from "sonner";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -31,6 +31,7 @@ import { AvatarUploadField } from "@/features/auth/avatar-upload-field";
 import { PublicProfileSettings } from "@/features/community/public-profile-settings";
 import { updatePublicProfile } from "@/features/community/community-api";
 import { OtpLoginDialog } from "@/features/auth/otp-login-dialog";
+import { ThemePicker } from "@/components/settings/theme-picker";
 
 function SettingsSection({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -136,6 +137,7 @@ export function ProfileView() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [linkMobileOpen, setLinkMobileOpen] = useState(false);
+  const [themeOpen, setThemeOpen] = useState(false);
   const [avatar, setAvatar] = useState(user?.avatar ?? "");
 
   // Deep-linked from the account menu ("Edit profile" / "Edit community profile") so those
@@ -290,6 +292,31 @@ export function ProfileView() {
         <OtpLoginDialog open={linkMobileOpen} onOpenChange={setLinkMobileOpen} />
 
         <PublicProfileSettings autoOpen={location.hash === "#community"} />
+
+        <SettingsSection title="Appearance">
+          <SettingsRow
+            icon={Palette}
+            label="Color theme"
+            description="Pick your app's accent color"
+            action={
+              <Button type="button" variant="outline" size="sm" onClick={() => setThemeOpen(true)}>
+                Change
+              </Button>
+            }
+          />
+        </SettingsSection>
+
+        <Dialog open={themeOpen} onOpenChange={setThemeOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Pick your vibe</DialogTitle>
+              <DialogDescription>
+                Choose a color theme for the app. Applies instantly and is saved on this device.
+              </DialogDescription>
+            </DialogHeader>
+            <ThemePicker className="mt-1" />
+          </DialogContent>
+        </Dialog>
 
         <SettingsSection title="App">
           <SettingsRow
