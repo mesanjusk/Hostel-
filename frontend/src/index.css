@@ -88,16 +88,14 @@
   --auth-blob-3: #fff3c4;
 }
 
-/** "Boy" theme — navy/steel/charcoal, applied only when <html data-gender="male">. Set/cleared
- * reactively by useGenderTheme() (frontend/src/lib/use-gender-theme.ts) from the logged-in
- * user's own gender (Male only — Female/Other/null all keep the default palette above,
- * unchanged) or, pre-login, the gender picked on /welcome. Only overrides the tokens that
- * actually change; --success/--warning/--destructive and everything else fall through to the
- * default :root block since they're semantic colors, not brand colors. Admin-configured hex
- * overrides (see the Gender Theme admin panel) layer on top of these as inline styles on
- * <html>, which win over this block by CSS specificity/origin — these values are just the
- * shipped defaults so the app looks right even if no admin doc has ever been saved. */
-:root[data-gender="male"] {
+/** "Harbor" theme — navy/steel/charcoal, applied only when <html data-theme="harbor">. Set/cleared
+ * reactively by useColorTheme() (frontend/src/lib/use-color-theme.ts) from the user's explicit
+ * color-theme choice (stored in localStorage). This is the same navy palette that used to ship
+ * under data-gender="male" — migrated off gender so it's now an opt-in visual theme, not tied to
+ * who the user is. Only overrides the tokens that actually change; --success/--warning/
+ * --destructive and everything else fall through to the default :root (Blossom) block since
+ * they're semantic colors, not brand colors. */
+:root[data-theme="harbor"] {
   --background: #f2f5f9;
   --foreground: #1e2a38;
 
@@ -136,23 +134,129 @@
   --gradient-brand: linear-gradient(135deg, #1e3a5f 0%, #2e8bc0 100%);
   --shadow-brand: rgba(30, 58, 95, 0.45);
 
-  /** Boy-theme sticky note colors — shipped defaults (used until an admin overrides them via
-   * the Gender Theme panel), chosen to read as clean/masculine rather than pastel: cool
-   * steel/slate tints consistent with the navy palette above instead of the girl set's warm
-   * pastels. */
+  /** Harbor sticky note colors — cool steel/slate tints consistent with the navy palette above. */
   --note-yellow: #e8c073;
   --note-pink: #9db4c9;
   --note-blue: #bcd8ee;
   --note-lavender: #8fa3ba;
 
-  /** Boy-theme auth background — cool steel/ice blue, echoing --primary/--accent above instead
-   * of the girl set's warm peach/pink. */
+  /** Harbor auth background — cool steel/ice blue, echoing --primary/--accent above. */
   --auth-bg-from: #dce9f5;
   --auth-bg-via: #e6edf7;
   --auth-bg-to: #f2f5f9;
   --auth-blob-1: #b8d4ea;
   --auth-blob-2: #9fc3e0;
   --auth-blob-3: #cfe3f0;
+}
+
+/** "Meadow" theme — fresh green, applied only when <html data-theme="meadow">. Same opt-in
+ * mechanism as Harbor above; overrides only the brand/surface tokens, semantic colors fall
+ * through to :root. */
+:root[data-theme="meadow"] {
+  --background: #f3f7f3;
+  --foreground: #24302a;
+
+  --card: #ffffff;
+  --card-foreground: #24302a;
+
+  --popover: #ffffff;
+  --popover-foreground: #24302a;
+
+  --primary: #3f9d6d;
+  --primary-foreground: #ffffff;
+
+  --secondary: #4a7a5f;
+  --secondary-foreground: #f3f7f3;
+
+  --accent: #e0a35b;
+  --accent-foreground: #2a1f0f;
+
+  --muted: #e5efe7;
+  --muted-foreground: #5e7267;
+
+  --border: #d9e7dd;
+  --input: #d9e7dd;
+  --ring: #3f9d6d;
+
+  --chart-1: #3f9d6d;
+  --chart-2: #e0a35b;
+  --chart-3: #7bc59a;
+  --chart-4: #4a7a5f;
+  --chart-5: #e4a11b;
+
+  --sidebar: #ffffff;
+  --sidebar-foreground: #24302a;
+  --sidebar-border: #d9e7dd;
+
+  --gradient-brand: linear-gradient(135deg, #3f9d6d 0%, #7bc59a 100%);
+  --shadow-brand: rgba(63, 157, 109, 0.42);
+
+  --note-yellow: #eef3c0;
+  --note-pink: #cfe4d6;
+  --note-blue: #cfe7e0;
+  --note-lavender: #d7e9cf;
+
+  --auth-bg-from: #e2f0e6;
+  --auth-bg-via: #eaf4ec;
+  --auth-bg-to: #f3f7f3;
+  --auth-blob-1: #bfe0c9;
+  --auth-blob-2: #a9d6bb;
+  --auth-blob-3: #d5ecdd;
+}
+
+/** "Sunset" theme — bright warm terracotta/amber, applied only when <html data-theme="sunset">.
+ * Same opt-in mechanism as Harbor above; overrides only the brand/surface tokens, semantic
+ * colors fall through to :root. */
+:root[data-theme="sunset"] {
+  --background: #fdf4ee;
+  --foreground: #3a2a20;
+
+  --card: #ffffff;
+  --card-foreground: #3a2a20;
+
+  --popover: #ffffff;
+  --popover-foreground: #3a2a20;
+
+  --primary: #dd7a4d;
+  --primary-foreground: #ffffff;
+
+  --secondary: #a85a3c;
+  --secondary-foreground: #fdf4ee;
+
+  --accent: #e6a94f;
+  --accent-foreground: #2a1a05;
+
+  --muted: #f5e6da;
+  --muted-foreground: #8a705f;
+
+  --border: #ecdac9;
+  --input: #ecdac9;
+  --ring: #dd7a4d;
+
+  --chart-1: #dd7a4d;
+  --chart-2: #e6a94f;
+  --chart-3: #f0b27a;
+  --chart-4: #a85a3c;
+  --chart-5: #e4a11b;
+
+  --sidebar: #ffffff;
+  --sidebar-foreground: #3a2a20;
+  --sidebar-border: #ecdac9;
+
+  --gradient-brand: linear-gradient(135deg, #dd7a4d 0%, #e6a94f 100%);
+  --shadow-brand: rgba(221, 122, 77, 0.42);
+
+  --note-yellow: #ffe6a8;
+  --note-pink: #ffd3b3;
+  --note-blue: #f2d9c0;
+  --note-lavender: #f0cbb0;
+
+  --auth-bg-from: #ffe6d2;
+  --auth-bg-via: #ffedd9;
+  --auth-bg-to: #fdf4ee;
+  --auth-blob-1: #ffcfa8;
+  --auth-blob-2: #f6b98a;
+  --auth-blob-3: #ffe3bf;
 }
 
 @theme inline {

@@ -33,7 +33,7 @@ let inFlight: Promise<GenderThemeSettingsMap | null> | null = null;
 
 /**
  * Fetches the admin-configured theme overrides once per page load (every caller shares the same
- * request/result — see useGenderTheme). Never throws: a network failure, or a brand new
+ * request/result — see useColorTheme). Never throws: a network failure, or a brand new
  * deployment with no GenderThemeSettings doc yet, both just mean "no overrides" — the hardcoded
  * defaults in index.css and gender-stickers.ts are the actual source of truth for anyone the
  * admin hasn't customized, so this is purely an optional layer on top, never a hard dependency.
@@ -60,11 +60,14 @@ export function ensureGenderThemeSettingsLoaded(): Promise<GenderThemeSettingsMa
   return inFlight;
 }
 
-/** Applies (or clears) one gender key's admin color overrides as inline CSS custom properties
- * on <html> — inline styles win over both the default and `[data-gender="male"]` blocks in
- * index.css by CSS origin, so this is always the final word once it resolves. Only ever touches
- * the background plus the five brand tokens; --success/--warning/--destructive etc. are never
- * overridden here. */
+/** @deprecated Legacy: the palette is now driven by the explicit color theme (data-theme, see
+ * use-color-theme.ts), not gender, so this is no longer called at runtime. Kept for reference
+ * (and in case a future admin-configurable per-theme override is wanted). The admin Gender Theme
+ * panel still saves these values; only their auto-application on load was removed.
+ *
+ * Applies (or clears) one gender key's admin color overrides as inline CSS custom properties on
+ * <html>. Only ever touches the background plus the five brand tokens; --success/--warning/
+ * --destructive etc. are never overridden here. */
 export function applyGenderColorOverrides(genderKey: "Male" | "Female", settings: GenderThemeSettingsMap | null) {
   const root = document.documentElement.style;
   const s = settings?.[genderKey];
@@ -90,11 +93,12 @@ export function applyGenderColorOverrides(genderKey: "Male" | "Female", settings
   }
 }
 
-/** Applies (or clears) one gender key's admin sticky-note color overrides as inline CSS custom
- * properties on <html> — same removeProperty-then-setProperty-if-present pattern as
- * applyGenderColorOverrides above, kept as a separate function since these are a distinct set of
- * tokens (NOTE_COLORS in components/shared/scrapbook-pieces.tsx) rather than the five brand
- * tokens that function already owns. Called alongside it from useGenderTheme(). */
+/** @deprecated Legacy alongside applyGenderColorOverrides above — no longer called at runtime now
+ * that the palette is theme-driven. Kept for reference.
+ *
+ * Applies (or clears) one gender key's admin sticky-note color overrides as inline CSS custom
+ * properties on <html>. Distinct set of tokens (NOTE_COLORS in
+ * components/shared/scrapbook-pieces.tsx) rather than the five brand tokens. */
 export function applyGenderNoteColorOverrides(genderKey: "Male" | "Female", settings: GenderThemeSettingsMap | null) {
   const root = document.documentElement.style;
   const s = settings?.[genderKey]?.noteColors;

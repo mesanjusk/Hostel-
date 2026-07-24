@@ -8,6 +8,7 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { ThemePicker } from "@/components/settings/theme-picker";
 import {
   Form,
   FormControl,
@@ -124,6 +125,20 @@ export function OnboardingForm({
               </div>
             </div>
           )}
+
+          {/* Optional "Pick your vibe" — the color theme is a purely cosmetic, reversible choice
+              (stored per-device, changeable anytime in Settings), so it lives inline here rather
+              than gating the flow. Selecting a card repaints the app instantly; skipping it just
+              keeps the default (Blossom). No gender is collected or implied by this. */}
+          <div className="flex flex-col gap-2">
+            <div>
+              <span className="text-sm leading-none font-medium">Pick your vibe</span>
+              <p className="text-muted-foreground mt-1 text-xs">
+                Choose a color theme — totally optional, change it anytime in Settings.
+              </p>
+            </div>
+            <ThemePicker className="mt-1" />
+          </div>
 
           <Button type="submit" size="lg" disabled={isSubmitting} className="mt-2">
             {isSubmitting && <Loader2 className="size-4 animate-spin" />}
