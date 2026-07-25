@@ -15,7 +15,7 @@ import { api } from "@/lib/api";
 import { GUIDE_TOPICS } from "@/features/guide/guide-topics";
 
 export interface SearchResult {
-  type: "checklist" | "bag" | "budget" | "note" | "document" | "contact" | "wishlist" | "guide";
+  type: "checklist" | "bag" | "budget" | "note" | "document" | "contact" | "wishlist" | "guide" | "listing";
   id: string;
   title: string;
   subtitle?: string;
@@ -33,6 +33,7 @@ const TYPE_LABELS: Record<SearchResult["type"], string> = {
   contact: "Emergency Contacts",
   wishlist: "Wishlist",
   guide: "Hostel Guide",
+  listing: "Hostel, PG, Flat",
 };
 
 /** The Hostel Survival Guide's content is a static scrapbook page, not database records, so
