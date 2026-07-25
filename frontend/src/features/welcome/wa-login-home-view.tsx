@@ -29,16 +29,21 @@ const PIN_ROTATIONS = [-8, 6, -4, 7, -6, 5, -5, 8, -3];
  * is precisely the guess that used to be wrong and visibly correct itself. */
 const SKELETON_CARD_COUNT = 6;
 
+/** Hub-card ids for student-only features, dropped from the board for working professionals.
+ * Each is also protected at the route level by RequireNotWorkingProfessionalRoute so a direct
+ * link still redirects (see App.tsx). Kept in sync with those guarded routes. */
+const STUDENT_ONLY_CARD_IDS = new Set(["know-your-campus", "student-offers"]);
+
 export function WaLoginHomeView() {
   const { user } = useAuth();
   const { cards, ready } = useHubLayout();
-  // Know Your Campus is a student-only feature — its home card is dropped for working
-  // professionals, matching the hidden nav entry and the redirected route.
-  const hideKnowYourCampus = user?.occupation === "Working Professional";
+  // Know Your Campus and Student Offers are student-only features — their home cards are dropped
+  // for working professionals, matching the hidden nav entry (KYC) and the redirected routes.
+  const hideStudentOnly = user?.occupation === "Working Professional";
   const cardsById = new Map(HUB_CARDS.map((card, i) => [card.id, { card, i }]));
   const visibleCards = cards
     .filter((entry) => entry.visible)
-    .filter((entry) => !(hideKnowYourCampus && entry.id === "know-your-campus"))
+    .filter((entry) => !(hideStudentOnly && STUDENT_ONLY_CARD_IDS.has(entry.id)))
     .map((entry) => {
       const found = cardsById.get(entry.id);
       return found ? { ...found, live: entry.live } : undefined;
