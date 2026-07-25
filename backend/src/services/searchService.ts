@@ -10,10 +10,11 @@ import { WishlistItem } from "@/models/WishlistItem";
 import { GuideArticle } from "@/models/GuideArticle";
 import { Community } from "@/models/Community";
 import { User } from "@/models/User";
+import { Listing } from "@/models/Listing";
 import { escapeRegex } from "@/lib/regex";
 
 export interface SearchResult {
-  type: "checklist" | "bag" | "budget" | "note" | "document" | "contact" | "wishlist" | "guide" | "community" | "user";
+  type: "checklist" | "bag" | "budget" | "note" | "document" | "contact" | "wishlist" | "guide" | "community" | "user" | "listing";
   id: string;
   title: string;
   subtitle?: string;
@@ -41,25 +42,29 @@ export async function globalSearch(userId: string, query: string): Promise<Searc
     return items.filter((i) => regex.test(i.item)).slice(0, 5);
   };
 
-  const [checklist, bags, budget, notes, documents, contacts, wishlist, guide, communities, users] = await Promise.all([
-    searchChecklist(),
-    Bag.find({ userId, name: regex }).limit(5).lean(),
-    BudgetEntry.find({ userId, title: regex }).limit(5).lean(),
-    Note.find({ userId, $or: [{ title: regex }, { content: regex }] }).limit(5).lean(),
-    DocumentItem.find({ userId, title: regex }).limit(5).lean(),
-    EmergencyContact.find({ userId, name: regex }).limit(5).lean(),
-    WishlistItem.find({ userId, item: regex }).limit(5).lean(),
-    // Guide articles are shared content, not scoped to a user.
-    GuideArticle.find({ $or: [{ title: regex }, { summary: regex }, { content: regex }] })
-      .limit(5)
-      .lean(),
-    // Communities/users are shared, public content too — searchable by anyone, not scoped to
-    // the requesting user's own data like the sections above.
-    Community.find({ active: true, visibility: "public", name: regex }).limit(5).lean(),
-    // Username only — never matches on real name/mobile, keeping the "communicate by
-    // username only" privacy rule intact even inside global search.
-    User.find({ username: usernamePrefixRegex }).select("username displayName avatar verified").limit(5).lean(),
-  ]);
+  const [checklist, bags, budget, notes, documents, contacts, wishlist, guide, communities, users, listings] =
+    await Promise.all([
+      searchChecklist(),
+      Bag.find({ userId, name: regex }).limit(5).lean(),
+      BudgetEntry.find({ userId, title: regex }).limit(5).lean(),
+      Note.find({ userId, $or: [{ title: regex }, { content: regex }] }).limit(5).lean(),
+      DocumentItem.find({ userId, title: regex }).limit(5).lean(),
+      EmergencyContact.find({ userId, name: regex }).limit(5).lean(),
+      WishlistItem.find({ userId, item: regex }).limit(5).lean(),
+      // Guide articles are shared content, not scoped to a user.
+      GuideArticle.find({ $or: [{ title: regex }, { summary: regex }, { content: regex }] })
+        .limit(5)
+        .lean(),
+      // Communities/users are shared, public content too — searchable by anyone, not scoped to
+      // the requesting user's own data like the sections above.
+      Community.find({ active: true, visibility: "public", name: regex }).limit(5).lean(),
+      // Username only — never matches on real name/mobile, keeping the "communicate by
+      // username only" privacy rule intact even inside global search.
+      User.find({ username: usernamePrefixRegex }).select("username displayName avatar verified").limit(5).lean(),
+      // Listings are an admin-managed catalog like guide articles — shared, not scoped to a
+      // user. Matching on city too since "PG in Pune" is as natural a query as the title itself.
+      Listing.find({ $or: [{ title: regex }, { city: regex }] }).limit(5).lean(),
+    ]);
 
   const bagIds = [...new Set(checklist.map((c) => c.bagId).filter(Boolean).map(String))];
   const assignedBags = bagIds.length
@@ -139,6 +144,16 @@ export async function globalSearch(userId: string, query: string): Promise<Searc
       title: `@${u.username}`,
       href: `/u/${u.username}`,
       imageUrl: u.avatar ?? null,
+    })),
+    ...listings.map((l) => ({
+      type: "listing" as const,
+      id: l._id.toString(),
+      title: l.title,
+      // No per-listing detail route — same pattern as budget/notes/documents/wishlist above,
+      // which link back to their own browse page rather than a specific item.
+      subtitle: [l.type, l.city, l.rent != null ? `₹${l.rent}/mo` : null].filter(Boolean).join(" · "),
+      href: "/hostel-pg-flat",
+      imageUrl: l.imageUrl ?? null,
     })),
   ];
 }
