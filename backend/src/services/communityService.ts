@@ -218,17 +218,27 @@ export async function ensureAutoJoinCommunities(user: AutoJoinableUser) {
   // ensureGlobalCommunitiesSeeded) and stay discoverable/joinable manually, but new users
   // are no longer added to them by default.
 
-  await Promise.all(
-    (user.interests ?? []).map(async (interest) => {
-      const key = slugify(interest);
-      if (!key) return;
-      const community = await ensureCommunity("interest", key, interest, {
-        description: `For students into ${interest}.`,
-        isOfficial: false,
-      });
-      joins.push(joinCommunity(userId, community._id.toString()));
-    }),
-  );
+  // Interest communities are scoped to the student's destination city, not global — a cyclist
+  // moving to Pune lands in "Cycling in Pune", not one giant worldwide Cycling room, so the
+  // people they meet are actually in the same place. Skipped entirely until a city is known
+  // (there's no city-specific room to form yet); a later profile edit that adds/changes the
+  // city re-runs this and joins the now-formable ones, same additive behavior as everywhere else.
+  if (user.city) {
+    const city = user.city;
+    const citySlug = slugify(city);
+    await Promise.all(
+      (user.interests ?? []).map(async (interest) => {
+        const interestSlug = slugify(interest);
+        if (!interestSlug || !citySlug) return;
+        const key = `${citySlug}:${interestSlug}`;
+        const community = await ensureCommunity("interest", key, `${interest} in ${city}`, {
+          description: `${interest} lovers in ${city} — meet up, swap tips, find buddies.`,
+          isOfficial: false,
+        });
+        joins.push(joinCommunity(userId, community._id.toString()));
+      }),
+    );
+  }
 
   await Promise.all(joins);
 }

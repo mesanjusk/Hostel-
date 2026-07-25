@@ -17,6 +17,38 @@ export const COLLEGE_CATEGORY_OPTIONS = [
 ] as const;
 export type CollegeCategory = (typeof COLLEGE_CATEGORY_OPTIONS)[number];
 
+/** What the account holder does — collected on the profile page. Distinct from `role` (the app
+ * permission): a working professional relocating for a job is still a role:"student" account. */
+export const OCCUPATION_OPTIONS = ["Student", "Working Professional"] as const;
+export type Occupation = (typeof OCCUPATION_OPTIONS)[number];
+
+/** Curated interest catalog offered as a multi-select on the profile page — kept a fixed list
+ * (not free text) so the destination-city+interest communities it auto-joins into stay clean.
+ * Mirrors backend/src/types.ts. */
+export const INTEREST_OPTIONS = [
+  "Cycling",
+  "Trekking",
+  "Running",
+  "Gym & Fitness",
+  "Football",
+  "Cricket",
+  "Badminton",
+  "Photography",
+  "Music",
+  "Gaming",
+  "Reading",
+  "Cooking",
+  "Art & Design",
+  "Travel",
+  "Movies & TV",
+  "Coding",
+  "Dancing",
+  "Yoga",
+  "Volunteering",
+  "Entrepreneurship",
+] as const;
+export type Interest = (typeof INTEREST_OPTIONS)[number];
+
 export interface UserDTO {
   id: string;
   name: string | null;
@@ -25,6 +57,7 @@ export interface UserDTO {
   mobile: string | null;
   avatar: string | null;
   gender: Gender | null;
+  occupation: Occupation | null;
   college: string | null;
   collegeCategory: CollegeCategory | null;
   collegeCategoryId: string | null;

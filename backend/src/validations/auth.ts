@@ -1,9 +1,16 @@
 import { z } from "zod";
 
 import { normalizeMobile } from "@/lib/phone";
-import { COLLEGE_CATEGORY_OPTIONS, GENDER_OPTIONS } from "@/types";
+import { COLLEGE_CATEGORY_OPTIONS, GENDER_OPTIONS, INTEREST_OPTIONS, OCCUPATION_OPTIONS } from "@/types";
 
 export const genderSchema = z.enum(GENDER_OPTIONS, { message: "Select a gender" });
+export const occupationSchema = z.enum(OCCUPATION_OPTIONS, { message: "Select an option" });
+/** Interests are constrained to the curated catalog (not free text), deduped, so the
+ * destination-city+interest communities they drive stay clean — see INTEREST_OPTIONS. */
+export const interestsSchema = z
+  .array(z.enum(INTEREST_OPTIONS))
+  .max(INTEREST_OPTIONS.length)
+  .transform((interests) => [...new Set(interests)]);
 /** Legacy fixed-enum validator — still used by the admin users list filter. New onboarding
  * and profile-edit flows use collegeCategoryId/courseId (see collegeCategoryIdSchema below)
  * against the DB-driven CollegeCategory/Course catalog instead. */

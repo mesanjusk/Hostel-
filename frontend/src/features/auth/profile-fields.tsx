@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import type { ComponentProps } from "react";
 import type { FieldPath, UseFormReturn } from "react-hook-form";
-import { Check, ChevronsUpDown, MapPin, School } from "lucide-react";
+import { Check, ChevronsUpDown, Heart, MapPin, School, X } from "lucide-react";
 import { toast } from "sonner";
 
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
@@ -12,7 +13,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
 import { api, ApiError } from "@/lib/api";
-import { GENDER_OPTIONS, type Gender } from "@/types";
+import { GENDER_OPTIONS, INTEREST_OPTIONS, OCCUPATION_OPTIONS, type Gender, type Interest } from "@/types";
 import type { ProfileFieldsInput } from "@/features/auth/profile-fields-schema";
 import {
   toCityOptionDTO,
@@ -158,14 +159,134 @@ export function GenderField<T extends { gender: Gender }>({ form }: { form: UseF
   );
 }
 
+/** Student vs Working Professional — a plain two-option segmented control, mirroring
+ * GenderField's look. Voluntary, so no selection is a valid state. */
+function OccupationField({ form }: { form: UseFormReturn<ProfileFieldsInput> }) {
+  return (
+    <FormField
+      control={form.control}
+      name="occupation"
+      render={({ field }) => (
+        <FormItem>
+          <FormLabel>I'm a</FormLabel>
+          <FormControl>
+            <div className="flex gap-2">
+              {OCCUPATION_OPTIONS.map((o) => (
+                <button
+                  key={o}
+                  type="button"
+                  onClick={() => field.onChange(o)}
+                  className={cn(
+                    "flex-1 rounded-full border px-4 py-2.5 text-sm font-medium transition-colors",
+                    field.value === o
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-input text-muted-foreground hover:border-primary/50 bg-transparent",
+                  )}
+                >
+                  {o}
+                </button>
+              ))}
+            </div>
+          </FormControl>
+          <FormMessage />
+        </FormItem>
+      )}
+    />
+  );
+}
+
+/** Multi-select interest picker — a searchable dropdown (same Popover+Command shape as the city
+ * combobox) whose items toggle on/off, with the current picks shown as removable chips below.
+ * Voluntary; drives the destination-city+interest community auto-join on the backend. */
+function InterestsField({ form }: { form: UseFormReturn<ProfileFieldsInput> }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <FormField
+      control={form.control}
+      name="interests"
+      render={({ field }) => {
+        const selected = (field.value ?? []) as Interest[];
+        const toggle = (interest: Interest) =>
+          field.onChange(
+            selected.includes(interest) ? selected.filter((i) => i !== interest) : [...selected, interest],
+          );
+        return (
+          <FormItem>
+            <FormLabel>Interests</FormLabel>
+            <Popover open={open} onOpenChange={setOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={open}
+                  className="w-full justify-between font-normal"
+                >
+                  <span className="flex min-w-0 items-center gap-2">
+                    <Heart className="text-muted-foreground size-4 shrink-0" />
+                    <span className={cn("truncate", selected.length === 0 && "text-muted-foreground")}>
+                      {selected.length === 0 ? "Select your interests" : `${selected.length} selected`}
+                    </span>
+                  </span>
+                  <ChevronsUpDown className="text-muted-foreground size-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+                <Command>
+                  <CommandInput placeholder="Search interests..." />
+                  <CommandList>
+                    <CommandEmpty>No interest found.</CommandEmpty>
+                    <CommandGroup>
+                      {INTEREST_OPTIONS.map((interest) => (
+                        <CommandItem key={interest} value={interest} onSelect={() => toggle(interest)}>
+                          <Check
+                            className={cn("size-4", selected.includes(interest) ? "opacity-100" : "opacity-0")}
+                          />
+                          {interest}
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
+            {selected.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                {selected.map((interest) => (
+                  <Badge key={interest} variant="secondary">
+                    {interest}
+                    <button
+                      type="button"
+                      onClick={() => toggle(interest)}
+                      className="hover:text-foreground -mr-0.5 ml-0.5 rounded-full"
+                      aria-label={`Remove ${interest}`}
+                    >
+                      <X className="size-3" />
+                    </button>
+                  </Badge>
+                ))}
+              </div>
+            )}
+            <FormMessage />
+          </FormItem>
+        );
+      }}
+    />
+  );
+}
+
 /** City + college category + college name, with the college shortlist cascading off city and
  * category. Shared by the full profile-edit form and the one-time Community profile-setup
  * dialog (where these fields are deferred from onboarding to first Community visit) — generic
  * over the host form's value type so each caller keeps its own narrower schema. */
 export function CollegeFields<T extends { city: string; collegeCategoryId: string; college: string }>({
   form,
+  disableCollege = false,
 }: {
   form: UseFormReturn<T>;
+  /** When true (a working professional, who has no college), the college category and name
+   * fields are greyed out and unselectable — the destination city above stays editable. */
+  disableCollege?: boolean;
 }) {
   const cityName = "city" as FieldPath<T>;
   const collegeCategoryIdName = "collegeCategoryId" as FieldPath<T>;
@@ -254,13 +375,14 @@ export function CollegeFields<T extends { city: string; collegeCategoryId: strin
             <FormControl>
               <Select
                 value={field.value}
+                disabled={disableCollege}
                 onValueChange={(value) => {
                   field.onChange(value);
                   form.setValue(collegeName, "" as never);
                 }}
               >
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select a category" />
+                  <SelectValue placeholder={disableCollege ? "Not needed for working professionals" : "Select a category"} />
                 </SelectTrigger>
                 <SelectContent>
                   {categories.map((c) => (
@@ -280,7 +402,7 @@ export function CollegeFields<T extends { city: string; collegeCategoryId: strin
         name={collegeName}
         render={({ field }) => {
           const selectValue = !field.value ? "" : collegeIsOther ? OTHER_COLLEGE : field.value;
-          const disabled = !city || !collegeCategoryId;
+          const disabled = disableCollege || !city || !collegeCategoryId;
           return (
             <FormItem>
               <FormLabel>College name</FormLabel>
@@ -302,7 +424,13 @@ export function CollegeFields<T extends { city: string; collegeCategoryId: strin
                     <SelectTrigger className="w-full">
                       <School className="text-muted-foreground size-4" />
                       <SelectValue
-                        placeholder={disabled ? "Pick a city and category first" : "Select your college"}
+                        placeholder={
+                          disableCollege
+                            ? "Not needed for working professionals"
+                            : disabled
+                              ? "Pick a city and category first"
+                              : "Select your college"
+                        }
                       />
                     </SelectTrigger>
                     <SelectContent>
@@ -337,6 +465,18 @@ export function ProfileFields({ form }: { form: UseFormReturn<ProfileFieldsInput
   const [courses, setCourses] = useState<CourseDTO[]>([]);
   const [cities, setCities] = useState<CityOptionDTO[]>([]);
   const collegeCategoryId = form.watch("collegeCategoryId");
+  const isWorkingProfessional = form.watch("occupation") === "Working Professional";
+
+  // A working professional relocating for a job has no college — clear (and disable, via the
+  // prop below) the college category / name / course fields when that's selected, so a leftover
+  // student-era value isn't silently saved and the now-optional fields don't linger.
+  useEffect(() => {
+    if (!isWorkingProfessional) return;
+    if (form.getValues("collegeCategoryId")) form.setValue("collegeCategoryId", "");
+    if (form.getValues("college")) form.setValue("college", "");
+    if (form.getValues("courseId")) form.setValue("courseId", "");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isWorkingProfessional]);
 
   useEffect(() => {
     if (!collegeCategoryId) {
@@ -359,7 +499,8 @@ export function ProfileFields({ form }: { form: UseFormReturn<ProfileFieldsInput
   return (
     <>
       <GenderField form={form} />
-      <CollegeFields form={form} />
+      <OccupationField form={form} />
+      <CollegeFields form={form} disableCollege={isWorkingProfessional} />
       <FormField
         control={form.control}
         name="courseId"
@@ -402,6 +543,7 @@ export function ProfileFields({ form }: { form: UseFormReturn<ProfileFieldsInput
           </FormItem>
         )}
       />
+      <InterestsField form={form} />
     </>
   );
 }

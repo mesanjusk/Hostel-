@@ -30,8 +30,14 @@ export function DashboardLayout() {
   // and where they sit, so painting it first is what made hidden features appear for a moment
   // and then rearrange or vanish. The bars keep their size while empty, so filling them in a
   // moment later doesn't shift the page.
-  const bottomItems = nav.ready ? nav.bottomItems : [];
-  const allOrderedItems = nav.ready ? nav.allOrderedItems : [];
+  // Know Your Campus is a student-only feature — hidden from the nav for working professionals
+  // (the route redirects them too, see RequireNotWorkingProfessionalRoute). Applied after the
+  // admin layout resolves so it composes with, rather than fights, the configured nav.
+  const hideKnowYourCampus = user?.occupation === "Working Professional";
+  const visibleFor = (items: typeof nav.bottomItems) =>
+    hideKnowYourCampus ? items.filter((item) => item.href !== "/know-your-campus") : items;
+  const bottomItems = nav.ready ? visibleFor(nav.bottomItems) : [];
+  const allOrderedItems = nav.ready ? visibleFor(nav.allOrderedItems) : [];
 
   return (
     <div className="bg-background relative flex min-h-dvh overflow-x-clip">

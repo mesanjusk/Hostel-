@@ -32,9 +32,13 @@ const SKELETON_CARD_COUNT = 6;
 export function WaLoginHomeView() {
   const { user } = useAuth();
   const { cards, ready } = useHubLayout();
+  // Know Your Campus is a student-only feature — its home card is dropped for working
+  // professionals, matching the hidden nav entry and the redirected route.
+  const hideKnowYourCampus = user?.occupation === "Working Professional";
   const cardsById = new Map(HUB_CARDS.map((card, i) => [card.id, { card, i }]));
   const visibleCards = cards
     .filter((entry) => entry.visible)
+    .filter((entry) => !(hideKnowYourCampus && entry.id === "know-your-campus"))
     .map((entry) => {
       const found = cardsById.get(entry.id);
       return found ? { ...found, live: entry.live } : undefined;

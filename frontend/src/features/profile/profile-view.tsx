@@ -27,6 +27,7 @@ import { api, ApiError } from "@/lib/api";
 import { usePwaInstall } from "@/lib/use-pwa-install";
 import { ProfileFields } from "@/features/auth/profile-fields";
 import { profileFieldsSchema, type ProfileFieldsInput } from "@/features/auth/profile-fields-schema";
+import type { Interest } from "@/types";
 import { AvatarUploadField } from "@/features/auth/avatar-upload-field";
 import { PublicProfileSettings } from "@/features/community/public-profile-settings";
 import { updatePublicProfile } from "@/features/community/community-api";
@@ -158,11 +159,13 @@ export function ProfileView() {
     defaultValues: {
       name: user?.name ?? "",
       gender: user?.gender ?? undefined,
+      occupation: user?.occupation ?? undefined,
       college: user?.college ?? "",
       collegeCategoryId: user?.collegeCategoryId ?? "",
       courseId: user?.courseId ?? "",
       city: user?.city ?? "",
       homeTown: user?.homeTown ?? "",
+      interests: (user?.interests ?? []) as Interest[],
     },
   });
 
@@ -171,11 +174,13 @@ export function ProfileView() {
     form.reset({
       name: user.name ?? "",
       gender: user.gender ?? undefined,
+      occupation: user.occupation ?? undefined,
       college: user.college ?? "",
       collegeCategoryId: user.collegeCategoryId ?? "",
       courseId: user.courseId ?? "",
       city: user.city ?? "",
       homeTown: user.homeTown ?? "",
+      interests: (user.interests ?? []) as Interest[],
     });
     setAvatar(user.avatar ?? "");
     // eslint-disable-next-line react-hooks/exhaustive-deps

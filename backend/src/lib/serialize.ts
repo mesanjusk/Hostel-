@@ -11,6 +11,7 @@ export function serializeUser(user: HydratedDocument<UserDocument>): UserDTO {
     mobile: user.mobile ?? null,
     avatar: user.avatar ?? null,
     gender: (user.gender as UserDTO["gender"]) ?? null,
+    occupation: (user.occupation as UserDTO["occupation"]) ?? null,
     college: user.college ?? null,
     collegeCategory: (user.collegeCategory as UserDTO["collegeCategory"]) ?? null,
     collegeCategoryId: user.collegeCategoryId ? String(user.collegeCategoryId) : null,
