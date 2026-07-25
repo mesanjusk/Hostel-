@@ -47,7 +47,9 @@ export async function completeOnboarding(userId: string, input: OnboardingInput)
     userId,
     {
       name: input.name,
-      gender: input.gender,
+      // Gender is no longer collected at onboarding — set it only if a caller still sends one,
+      // otherwise leave the field null for PATCH /gender to fill in on demand later.
+      ...(input.gender ? { gender: input.gender } : {}),
       ...(input.avatar ? { avatar: input.avatar } : {}),
     },
     { returnDocument: "after" },

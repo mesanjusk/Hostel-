@@ -51,11 +51,14 @@ const avatarImageField = z
   .or(z.literal(""));
 
 // College/city/course are deliberately not collected at registration — onboarding stays down
-// to name + gender, and the rest is collected the first time the student opens Community (see
-// communityProfileSetupSchema).
+// to just a name now, and the rest is collected later: college/city on the first Community
+// visit (see communityProfileSetupSchema), and gender lazily the first time the student opens
+// a gender-personalized page (Checklist / Survival Guide / Find a Roomie), via PATCH /gender.
 export const onboardingSchema = z.object({
   name: z.string().trim().min(2, "Name is too short").max(80, "Name is too long"),
-  gender: genderSchema,
+  // Optional — no longer asked during onboarding; a null gender is a valid account state
+  // (anonymous visitors have always had one) that PATCH /gender fills in on demand later.
+  gender: genderSchema.optional(),
   avatar: avatarImageField,
 });
 

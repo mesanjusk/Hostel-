@@ -20,27 +20,14 @@ import {
 import { useAuth } from "@/context/auth-context";
 import { ApiError } from "@/lib/api";
 import { HOME_ROUTE } from "@/lib/nav-items";
-import { clearSelectedGender } from "@/lib/onboarding-gender";
-import { cn } from "@/lib/utils";
 import { AvatarUploadField } from "@/features/auth/avatar-upload-field";
 import { onboardingNameSchema, type OnboardingNameInput } from "@/features/auth/profile-fields-schema";
-import { GENDER_OPTIONS, type Gender } from "@/types";
 
-export function OnboardingForm({
-  defaultName,
-  initialGender,
-}: {
-  defaultName?: string;
-  /** Gender picked on the pre-login landing page. Null only for entry paths that bypass it
-   * (e.g. the WhatsApp-bot confirmation link) — in that case we fall back to asking inline
-   * instead of bouncing the (already-authenticated) user in a redirect loop. */
-  initialGender: Gender | null;
-}) {
+export function OnboardingForm({ defaultName }: { defaultName?: string }) {
   const navigate = useNavigate();
   const { completeOnboarding } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [avatar, setAvatar] = useState("");
-  const [gender, setGender] = useState<Gender | null>(initialGender);
 
   const form = useForm<OnboardingNameInput>({
     resolver: zodResolver(onboardingNameSchema),
@@ -50,14 +37,12 @@ export function OnboardingForm({
   });
 
   async function onSubmit(values: OnboardingNameInput) {
-    if (!gender) {
-      toast.error("Select a gender to continue");
-      return;
-    }
+    // Gender is intentionally not collected here anymore — it's asked lazily the first time the
+    // student opens a gender-personalized page (Checklist / Survival Guide / Find a Roomie), see
+    // RequireGenderRoute. Onboarding is now just name (+ optional avatar and color theme).
     setIsSubmitting(true);
     try {
-      await completeOnboarding({ ...values, gender, avatar: avatar || undefined });
-      clearSelectedGender();
+      await completeOnboarding({ ...values, avatar: avatar || undefined });
       toast.success("Welcome to Pack with Me!");
       navigate(HOME_ROUTE, { replace: true });
     } catch (error) {
@@ -102,29 +87,6 @@ export function OnboardingForm({
               </FormItem>
             )}
           />
-
-          {!initialGender && (
-            <div className="flex flex-col gap-2">
-              <span className="text-sm leading-none font-medium">Gender</span>
-              <div className="flex gap-2">
-                {GENDER_OPTIONS.map((g) => (
-                  <button
-                    key={g}
-                    type="button"
-                    onClick={() => setGender(g)}
-                    className={cn(
-                      "flex-1 rounded-full border px-4 py-2.5 text-sm font-medium transition-colors",
-                      gender === g
-                        ? "border-primary bg-primary text-primary-foreground"
-                        : "border-input text-muted-foreground hover:border-primary/50 bg-transparent",
-                    )}
-                  >
-                    {g}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
 
           {/* Optional "Pick your vibe" — the color theme is a purely cosmetic, reversible choice
               (stored per-device, changeable anytime in Settings), so it lives inline here rather
