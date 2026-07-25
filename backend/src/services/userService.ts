@@ -112,7 +112,11 @@ export async function completeCommunityProfileSetup(
 
 export async function updateProfile(userId: string, input: ProfileUpdateInput) {
   await connectDB();
-  const collegeCategory = await resolveLegacyCollegeCategory(input.collegeCategoryId);
+  // A working professional has no college/category (both empty here) — skip the legacy-category
+  // lookup, which would otherwise CastError on an empty-string id.
+  const collegeCategory = input.collegeCategoryId
+    ? await resolveLegacyCollegeCategory(input.collegeCategoryId)
+    : null;
   // Captured before the write so ensureCollegeExists below only fires when college actually
   // changed — otherwise an unrelated edit (gender, city, ...) that leaves college untouched
   // would re-trigger a Wikipedia lookup for a name that's either already catalogued or was
@@ -125,11 +129,13 @@ export async function updateProfile(userId: string, input: ProfileUpdateInput) {
     {
       name: input.name,
       gender: input.gender,
-      college: input.college,
-      collegeCategoryId: input.collegeCategoryId,
+      occupation: input.occupation ?? null,
+      college: input.college || null,
+      collegeCategoryId: input.collegeCategoryId || null,
       courseId: input.courseId || null,
       city: input.city,
       homeTown: input.homeTown || null,
+      interests: input.interests ?? [],
       collegeCategory,
     },
     { returnDocument: "after" },
@@ -140,7 +146,7 @@ export async function updateProfile(userId: string, input: ProfileUpdateInput) {
   if (updated) {
     await ensureAutoJoinCommunities(updated);
     ensurePlacesForCity(updated.city);
-    if (updated.college !== previousCollege) {
+    if (updated.college && updated.college !== previousCollege) {
       ensureCollegeExists(updated.city, updated.collegeCategoryId?.toString() ?? null, updated.college);
     }
     // Keeps Roommate/Co-Packer matching (destinationCity + college) from running against a

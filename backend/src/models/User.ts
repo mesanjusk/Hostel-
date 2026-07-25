@@ -1,6 +1,6 @@
 import { Schema, model, models, type InferSchemaType, type Model } from "mongoose";
 
-import { COLLEGE_CATEGORY_OPTIONS, GENDER_OPTIONS } from "@/types";
+import { COLLEGE_CATEGORY_OPTIONS, GENDER_OPTIONS, OCCUPATION_OPTIONS } from "@/types";
 
 const UserSchema = new Schema(
   {
@@ -16,6 +16,10 @@ const UserSchema = new Schema(
     mobile: { type: String, unique: true, sparse: true, index: true },
     avatar: { type: String, default: null },
     gender: { type: String, enum: GENDER_OPTIONS, default: null },
+    /** Optional — Student vs Working Professional, chosen from the profile page. Never asked at
+     * registration, so null is a normal state for accounts that predate this field or haven't
+     * filled it in yet. */
+    occupation: { type: String, enum: OCCUPATION_OPTIONS, default: null },
     college: { type: String, default: null, trim: true, maxlength: 120 },
     /** City selected at registration, from the admin-managed City catalog (see City model). */
     city: { type: String, default: null, trim: true, maxlength: 80 },

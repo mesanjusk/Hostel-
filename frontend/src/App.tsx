@@ -8,6 +8,7 @@ import {
   AuthOnlyRoute,
   RequireIdentifiedRoute,
   RequireGenderRoute,
+  RequireNotWorkingProfessionalRoute,
 } from "@/components/protected-route";
 import { ScrollToTop } from "@/components/shared/scroll-to-top";
 import { RouteFallback } from "@/components/shared/route-fallback";
@@ -208,7 +209,14 @@ export default function App() {
             <Route path="/hostel-pg-flat" element={<HostelPgFlatPage />} />
             <Route path="/bookings" element={<BookingsPage />} />
             <Route path="/explore" element={<ExplorePage />} />
-            <Route path="/know-your-campus" element={<KnowYourCampusPage />} />
+            <Route
+              path="/know-your-campus"
+              element={
+                <RequireNotWorkingProfessionalRoute>
+                  <KnowYourCampusPage />
+                </RequireNotWorkingProfessionalRoute>
+              }
+            />
             <Route
               path="/community"
               element={

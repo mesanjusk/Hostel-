@@ -163,6 +163,21 @@ export function RequireGenderRoute({
   return <>{children}</>;
 }
 
+/** Redirects a working professional away from a student-only page (Know Your Campus) back to
+ * Home. The nav entry and home card are already hidden for them (see dashboard-layout.tsx and
+ * wa-login-home-view.tsx) — this only covers a direct or bookmarked URL. Students, and anyone
+ * who hasn't set an occupation, pass straight through. */
+export function RequireNotWorkingProfessionalRoute({ children }: { children: ReactNode }) {
+  const { user, loading } = useAuth();
+  if (loading) {
+    return null;
+  }
+  if (user?.occupation === "Working Professional") {
+    return <Navigate to={HOME_ROUTE} replace />;
+  }
+  return <>{children}</>;
+}
+
 /** Gates the social/messaging surface (Chat, Community, Find-a-Roomie, Connections) behind an
  * actually-linked mobile number — every other feature works for a purely anonymous visitor
  * (see auth-context.tsx), but this corner of the app lets strangers message/match with each
