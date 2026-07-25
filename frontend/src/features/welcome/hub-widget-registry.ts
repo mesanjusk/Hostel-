@@ -9,6 +9,7 @@ import {
   ListChecks,
   Luggage,
   ShoppingBag,
+  Tag,
   Users,
   Wallet,
   type LucideIcon,
@@ -65,6 +66,8 @@ export const HUB_CARDS: HubCardDef[] = [
   { id: "know-your-campus", section: "Campus Life", title: "Know Your Campus", href: "/know-your-campus", icon: GraduationCap },
   // Appended for the same order-collision reason as the cards above.
   { id: "hostel-pg-flat", section: "Roommate Vibes", title: "Hostel, PG, Flat", href: "/hostel-pg-flat", icon: Building2 },
+  // Appended for the same order-collision reason as the cards above.
+  { id: "student-offers", section: "Campus Life", title: "Student Offers", href: "/student-offers", icon: Tag },
 ];
 
 export const DEFAULT_HUB_LAYOUT: HubLayoutEntry[] = HUB_CARDS.map((card, i) => ({
