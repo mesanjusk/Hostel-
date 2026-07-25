@@ -3,37 +3,75 @@ import { ArrowUpRight, BadgeCheck } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/context/auth-context";
 import { cn } from "@/lib/utils";
 import {
   CATEGORY_ICONS,
-  STUDENT_OFFERS,
-  STUDENT_OFFER_CATEGORIES,
-  type StudentOfferCategory,
-} from "@/features/offers/student-offers-data";
+  OFFER_AUDIENCES,
+  defaultAudienceForOccupation,
+  type Audience,
+} from "@/features/offers/offers-data";
 
-type Filter = StudentOfferCategory | "All";
+const AUDIENCE_ORDER: Audience[] = ["student", "professional"];
 
-const FILTERS: Filter[] = ["All", ...STUDENT_OFFER_CATEGORIES];
+export function OffersView() {
+  const { user } = useAuth();
+  const [audience, setAudience] = useState<Audience>(() =>
+    defaultAudienceForOccupation(user?.occupation),
+  );
+  const [category, setCategory] = useState<string | "All">("All");
 
-export function StudentOffersView() {
-  const [filter, setFilter] = useState<Filter>("All");
+  const config = OFFER_AUDIENCES[audience];
 
   const offers = useMemo(
-    () => (filter === "All" ? STUDENT_OFFERS : STUDENT_OFFERS.filter((o) => o.category === filter)),
-    [filter],
+    () => (category === "All" ? config.offers : config.offers.filter((o) => o.category === category)),
+    [config, category],
   );
+
+  const filters: (string | "All")[] = ["All", ...config.categories];
+
+  const selectAudience = (next: Audience) => {
+    setAudience(next);
+    // A category from the previous audience won't exist in the new one — reset so the grid
+    // doesn't silently render empty.
+    setCategory("All");
+  };
 
   return (
     <div className="flex flex-col gap-6">
+      {/* Audience toggle — defaults to the viewer's occupation, but either can browse the other. */}
+      <div className="bg-muted flex w-fit gap-1 rounded-full p-1">
+        {AUDIENCE_ORDER.map((option) => {
+          const active = option === audience;
+          return (
+            <button
+              key={option}
+              type="button"
+              onClick={() => selectAudience(option)}
+              className={cn(
+                "rounded-full px-4 py-1.5 text-sm font-medium transition-colors",
+                active
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {OFFER_AUDIENCES[option].label}
+            </button>
+          );
+        })}
+      </div>
+
+      <p className="text-muted-foreground -mt-2 text-sm">{config.description}</p>
+
       <div className="-mx-1 flex flex-wrap gap-2 px-1">
-        {FILTERS.map((option) => {
-          const active = option === filter;
+        {filters.map((option) => {
+          const active = option === category;
           const Icon = option === "All" ? undefined : CATEGORY_ICONS[option];
           return (
             <button
               key={option}
               type="button"
-              onClick={() => setFilter(option)}
+              onClick={() => setCategory(option)}
               className={cn(
                 "inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors",
                 active
@@ -75,7 +113,7 @@ export function StudentOffersView() {
               </Badge>
               <p className="text-muted-foreground flex items-start gap-1.5 text-xs">
                 <BadgeCheck className="text-success mt-px size-3.5 shrink-0" />
-                <span>{offer.verification}</span>
+                <span>{offer.access}</span>
               </p>
             </div>
           </a>
@@ -83,18 +121,22 @@ export function StudentOffersView() {
       </div>
 
       <p className="text-muted-foreground text-center text-xs">
-        Offers, discounts and eligibility change over time — always confirm the current terms on
-        the brand's own page. Listing here isn't an endorsement.
+        Offers, perks and eligibility change over time — always confirm the current terms on the
+        brand's own page. Listing here isn't an endorsement.
       </p>
 
       <div className="flex justify-center">
         <Button variant="outline" size="sm" asChild>
           <a
-            href="https://www.myunidays.com/IN/en-IN"
+            href={
+              audience === "student"
+                ? "https://www.myunidays.com/IN/en-IN"
+                : "https://www.linkedin.com/learning/"
+            }
             target="_blank"
             rel="noopener noreferrer"
           >
-            Browse more on UNiDAYS
+            {audience === "student" ? "Browse more on UNiDAYS" : "Explore more on LinkedIn Learning"}
           </a>
         </Button>
       </div>

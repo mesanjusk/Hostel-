@@ -31,14 +31,16 @@ const SKELETON_CARD_COUNT = 6;
 
 /** Hub-card ids for student-only features, dropped from the board for working professionals.
  * Each is also protected at the route level by RequireNotWorkingProfessionalRoute so a direct
- * link still redirects (see App.tsx). Kept in sync with those guarded routes. */
-const STUDENT_ONLY_CARD_IDS = new Set(["know-your-campus", "student-offers"]);
+ * link still redirects (see App.tsx). Kept in sync with those guarded routes. Offers & Perks is
+ * intentionally NOT here — it's occupation-aware and useful to both audiences. */
+const STUDENT_ONLY_CARD_IDS = new Set(["know-your-campus"]);
 
 export function WaLoginHomeView() {
   const { user } = useAuth();
   const { cards, ready } = useHubLayout();
-  // Know Your Campus and Student Offers are student-only features — their home cards are dropped
-  // for working professionals, matching the hidden nav entry (KYC) and the redirected routes.
+  // Know Your Campus is a student-only feature — its home card is dropped for working
+  // professionals, matching the hidden nav entry and the redirected route (see
+  // STUDENT_ONLY_CARD_IDS). Offers & Perks stays visible: it's occupation-aware, not student-only.
   const hideStudentOnly = user?.occupation === "Working Professional";
   const cardsById = new Map(HUB_CARDS.map((card, i) => [card.id, { card, i }]));
   const visibleCards = cards
