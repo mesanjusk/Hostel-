@@ -29,7 +29,9 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 interface OnboardingInput {
   name: string;
-  gender: Gender;
+  /** Optional — gender is no longer collected at onboarding; it's asked lazily the first time
+   * a student opens a gender-personalized page (see RequireGenderRoute) via PATCH /gender. */
+  gender?: Gender;
   /** Optional — a student can finish onboarding without picking a profile picture. */
   avatar?: string;
 }

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -7,36 +7,35 @@ import { api, ApiError } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import type { Gender, UserDTO } from "@/types";
 
-const SHOW_DELAY_MS = 2000;
-
 const GENDER_CARDS: { gender: Gender; label: string; bg: string }[] = [
   { gender: "Female", label: "College Girl", bg: "#F6F4FF" },
   { gender: "Male", label: "College Boy", bg: "#F3F8FF" },
 ];
 
 /**
- * Shown ~2 seconds after landing on the Home sticky-notes board, so it never blocks that first
- * paint — but once it appears it's mandatory: no close button, and clicking outside or pressing
- * Escape is blocked (same pattern as the one-time Community profile-setup prompt, see
- * community-profile-setup-dialog.tsx), so a visitor can't keep using the app without picking one.
- * There's deliberately no dismiss path — `open` is derived straight from `!user.gender`, so the
- * only way this closes is by actually answering it. Picking one calls PATCH /api/auth/gender
- * directly — unlike the old pre-login /welcome pick (lib/onboarding-gender.ts, localStorage
- * only), this fires for a visitor who already has a real account (anonymous or not), so it
- * writes straight to that account's `gender` field and use-gender-theme.ts picks it up
- * reactively.
+ * The one-question gender prompt, shown the first time a visitor opens a page whose content is
+ * personalized by gender — the checklist, the survival guide, and find-a-roomie (see
+ * RequireGenderRoute, which owns *when* this appears). It's no longer an app-wide up-front step:
+ * onboarding and the Home board never ask, so a visitor who only browses the rest of the app is
+ * never bothered by it.
+ *
+ * `open` is controlled by the caller. While open it's mandatory — no close button, and clicking
+ * outside or pressing Escape is blocked — but the gate that renders it only guards those few
+ * pages, so a visitor who doesn't want to answer can simply navigate elsewhere. Picking one calls
+ * PATCH /api/auth/gender directly (works for anonymous and identified accounts alike) and
+ * use-color-theme.ts / the gender-personalized content pick it up reactively via setUser.
  */
-export function GenderPickerDialog() {
-  const { user, setUser } = useAuth();
-  const [ready, setReady] = useState(false);
+export function GenderPickerDialog({
+  open,
+  title = "Who's packing?",
+  description = "Pick one to personalize your checklist and suggestions — you can change it later from Profile.",
+}: {
+  open: boolean;
+  title?: string;
+  description?: string;
+}) {
+  const { setUser } = useAuth();
   const [saving, setSaving] = useState<Gender | null>(null);
-
-  useEffect(() => {
-    if (!user || user.gender) return;
-    const timer = setTimeout(() => setReady(true), SHOW_DELAY_MS);
-    return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.gender]);
 
   async function handleSelect(gender: Gender) {
     setSaving(gender);
@@ -50,8 +49,6 @@ export function GenderPickerDialog() {
     }
   }
 
-  const open = ready && Boolean(user) && !user?.gender;
-
   return (
     <Dialog open={open}>
       <DialogContent
@@ -61,8 +58,8 @@ export function GenderPickerDialog() {
         onEscapeKeyDown={(e) => e.preventDefault()}
       >
         <DialogHeader>
-          <DialogTitle>Who's packing?</DialogTitle>
-          <DialogDescription>Pick one to personalize your theme — you can change it later from Profile.</DialogDescription>
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
         <div className="mt-2 flex gap-4">
           {GENDER_CARDS.map(({ gender, label, bg }) => (

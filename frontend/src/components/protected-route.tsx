@@ -6,6 +6,7 @@ import { useAuth } from "@/context/auth-context";
 import { hasSelectedGender } from "@/lib/onboarding-gender";
 import { HOME_ROUTE } from "@/lib/routes";
 import { OtpLoginDialog } from "@/features/auth/otp-login-dialog";
+import { GenderPickerDialog } from "@/features/welcome/gender-picker-dialog";
 
 /** Stands the anonymous session back up when we've somehow ended up with none, without ever
  * navigating away. Renders nothing while it's working — the app shell is already painted and
@@ -126,6 +127,38 @@ export function AuthOnlyRoute({
   }
   if (requireSelectedGender && !hasSelectedGender()) {
     return <Navigate to="/welcome" replace />;
+  }
+  return <>{children}</>;
+}
+
+/** Gates a gender-personalized page (the checklist, the survival guide, find-a-roomie) behind
+ * having a gender on file. Gender is no longer collected up front (onboarding and the Home board
+ * never ask), so the first time a visitor opens one of these pages we show the one-question
+ * picker and hold the page behind it until they answer — they can always navigate elsewhere
+ * instead. Every visitor already has a `user` (anonymous ones included, see auth-context.tsx),
+ * so the only thing possibly missing here is the `gender` field itself. Once PATCH /gender lands,
+ * setUser flips `user.gender` and this re-renders straight into `children`.
+ *
+ * `description` tailors the picker's subline to the page that triggered it; omit for the default. */
+export function RequireGenderRoute({
+  children,
+  description,
+}: {
+  children: ReactNode;
+  description?: string;
+}) {
+  const { user, loading } = useAuth();
+  if (loading) {
+    return null;
+  }
+  if (user && !user.gender) {
+    return (
+      <>
+        {/* Keep the layout from collapsing to zero height behind the modal. */}
+        <div className="min-h-[50vh]" aria-hidden />
+        <GenderPickerDialog open description={description} />
+      </>
+    );
   }
   return <>{children}</>;
 }

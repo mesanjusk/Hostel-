@@ -2,7 +2,13 @@ import { Suspense } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 
 import { useAuth } from "@/context/auth-context";
-import { ProtectedRoute, AdminRoute, AuthOnlyRoute, RequireIdentifiedRoute } from "@/components/protected-route";
+import {
+  ProtectedRoute,
+  AdminRoute,
+  AuthOnlyRoute,
+  RequireIdentifiedRoute,
+  RequireGenderRoute,
+} from "@/components/protected-route";
 import { ScrollToTop } from "@/components/shared/scroll-to-top";
 import { RouteFallback } from "@/components/shared/route-fallback";
 import { HOME_ROUTE } from "@/lib/nav-items";
@@ -84,10 +90,10 @@ function RootRoute() {
   if (loading) return null;
   // Every visitor has a `user` by the time loading settles — anonymous ones get one
   // transparently on first boot (see auth-context.tsx's ensureAnonymousSession) — so the
-  // sticky-notes Home page is simply the landing page for everyone now. The gender pick that
-  // used to gate this route happens as a popup on Home instead (see wa-login-home-view.tsx),
-  // and registering/logging in to link a mobile number is an opt-in action from there, not a
-  // prerequisite for landing here at all.
+  // sticky-notes Home page is simply the landing page for everyone now. Gender is no longer
+  // asked here at all: it's collected lazily the first time a visitor opens a gender-personalized
+  // page (Checklist / Survival Guide / Find a Roomie, see RequireGenderRoute), and registering to
+  // link a mobile number is an opt-in action from Home, not a prerequisite for landing here.
   return <Navigate to={HOME_ROUTE} replace />;
 }
 
@@ -153,8 +159,22 @@ export default function App() {
                 redirect for old bookmarks/links (see HOME_ROUTE in lib/routes.ts). */}
             <Route path="/wa-login/home" element={<Navigate to={HOME_ROUTE} replace />} />
             <Route path="/dashboard" element={<DashboardPage />} />
-            <Route path="/checklist" element={<ChecklistPage />} />
-            <Route path="/checklist/:category" element={<ChecklistCategoryPage />} />
+            <Route
+              path="/checklist"
+              element={
+                <RequireGenderRoute description="Pick one so we can tailor your packing checklist — you can change it later from Profile.">
+                  <ChecklistPage />
+                </RequireGenderRoute>
+              }
+            />
+            <Route
+              path="/checklist/:category"
+              element={
+                <RequireGenderRoute description="Pick one so we can tailor your packing checklist — you can change it later from Profile.">
+                  <ChecklistCategoryPage />
+                </RequireGenderRoute>
+              }
+            />
             <Route path="/bags" element={<BagsPage />} />
             <Route path="/bags/:id" element={<BagDetailPage />} />
             <Route path="/budget" element={<BudgetPage />} />
@@ -179,7 +199,9 @@ export default function App() {
               path="/find-a-roomie"
               element={
                 <RequireIdentifiedRoute>
-                  <FindARoomiePage />
+                  <RequireGenderRoute description="Pick one so we can match you with the right roommates — you can change it later from Profile.">
+                    <FindARoomiePage />
+                  </RequireGenderRoute>
                 </RequireIdentifiedRoute>
               }
             />
@@ -221,7 +243,14 @@ export default function App() {
             />
             <Route path="/u/:username" element={<UserProfilePage />} />
             <Route path="/guide" element={<GuidePage />} />
-            <Route path="/guide/survival-guide" element={<SurvivalGuidePage />} />
+            <Route
+              path="/guide/survival-guide"
+              element={
+                <RequireGenderRoute description="Pick one so your survival guide is tailored to you — you can change it later from Profile.">
+                  <SurvivalGuidePage />
+                </RequireGenderRoute>
+              }
+            />
             <Route path="/guide/:slug" element={<GuideArticlePage />} />
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="/settings" element={<Navigate to="/profile" replace />} />
