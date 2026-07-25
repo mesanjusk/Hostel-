@@ -67,7 +67,7 @@ export const HUB_CARDS: HubCardDef[] = [
   // Appended for the same order-collision reason as the cards above.
   { id: "hostel-pg-flat", section: "Roommate Vibes", title: "Hostel, PG, Flat", href: "/hostel-pg-flat", icon: Building2 },
   // Appended for the same order-collision reason as the cards above.
-  { id: "student-offers", section: "Campus Life", title: "Student Offers", href: "/student-offers", icon: Tag },
+  { id: "offers", section: "Perks", title: "Offers & Perks", href: "/offers", icon: Tag },
 ];
 
 export const DEFAULT_HUB_LAYOUT: HubLayoutEntry[] = HUB_CARDS.map((card, i) => ({

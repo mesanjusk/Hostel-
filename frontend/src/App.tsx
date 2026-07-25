@@ -80,7 +80,7 @@ const HostelPgFlatPage = lazyRetry(() => import("@/pages/hostel-pg-flat-page"));
 const BookingsPage = lazyRetry(() => import("@/pages/bookings-page"));
 const ExplorePage = lazyRetry(() => import("@/pages/explore-page"));
 const KnowYourCampusPage = lazyRetry(() => import("@/pages/know-your-campus-page"));
-const StudentOffersPage = lazyRetry(() => import("@/pages/student-offers-page"));
+const OffersPage = lazyRetry(() => import("@/pages/offers-page"));
 const CommunityPage = lazyRetry(() => import("@/pages/community-page"));
 const CommunityDetailPage = lazyRetry(() => import("@/pages/community-detail-page"));
 const ChatPage = lazyRetry(() => import("@/pages/chat-page"));
@@ -210,14 +210,11 @@ export default function App() {
             <Route path="/hostel-pg-flat" element={<HostelPgFlatPage />} />
             <Route path="/bookings" element={<BookingsPage />} />
             <Route path="/explore" element={<ExplorePage />} />
-            <Route
-              path="/student-offers"
-              element={
-                <RequireNotWorkingProfessionalRoute>
-                  <StudentOffersPage />
-                </RequireNotWorkingProfessionalRoute>
-              }
-            />
+            {/* Open to everyone — the page is occupation-aware (student offers vs professional
+                perks) rather than student-only, so it isn't wrapped in
+                RequireNotWorkingProfessionalRoute. Legacy /student-offers redirects here. */}
+            <Route path="/offers" element={<OffersPage />} />
+            <Route path="/student-offers" element={<Navigate to="/offers" replace />} />
             <Route
               path="/know-your-campus"
               element={
