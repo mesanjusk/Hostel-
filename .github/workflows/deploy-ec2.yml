@@ -132,6 +132,11 @@ jobs:
           run_seed seed:products backend/scripts/seedProducts.ts
           run_seed seed:places backend/scripts/seedPlaces.ts
 
+          # Same gap as products/places: listListings has no auto-seed-on-empty fallback at
+          # all, so a fresh production database never gets Hostel/PG/Flat listings without this.
+          # Upserts by { city, title }, so safe to re-run.
+          run_seed seed:listings backend/scripts/seedListings.ts
+
           # Same gap as products/places: City.ensureCitiesSeeded and College.ensureCollegesSeeded
           # only auto-seed an EMPTY collection, so once either collection has any doc at all,
           # new entries added to indianCities.ts / collegeSeedData.ts never reach production on
