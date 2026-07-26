@@ -159,6 +159,14 @@ export function GenderField<T extends { gender: Gender }>({ form }: { form: UseF
   );
 }
 
+/** Display-only shortening so the segmented control fits mobile widths — the stored value
+ * stays "Working Professional" (mirrored in backend/src/types.ts and compared against
+ * elsewhere, e.g. isWorkingProfessional below), only the button label is shortened. */
+const OCCUPATION_LABELS: Record<(typeof OCCUPATION_OPTIONS)[number], string> = {
+  Student: "Student",
+  "Working Professional": "Professional",
+};
+
 /** Student vs Working Professional — a plain two-option segmented control, mirroring
  * GenderField's look. Voluntary, so no selection is a valid state. */
 function OccupationField({ form }: { form: UseFormReturn<ProfileFieldsInput> }) {
@@ -183,7 +191,7 @@ function OccupationField({ form }: { form: UseFormReturn<ProfileFieldsInput> }) 
                       : "border-input text-muted-foreground hover:border-primary/50 bg-transparent",
                   )}
                 >
-                  {o}
+                  {OCCUPATION_LABELS[o]}
                 </button>
               ))}
             </div>
