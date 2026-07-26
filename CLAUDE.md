@@ -57,11 +57,39 @@ Run from the repo root (`Hostel-/`) unless noted.
   `{type, scopeKey}` index and an idempotent `joinCommunity`.
 - Types/enums are **mirrored** between `backend/src/types.ts` and `frontend/src/types.ts` — change
   both. The backend serializes users through `backend/src/lib/serialize.ts`.
+- **Hostel/PG/Flat listings** (`Listing` model, `/hostel-pg-flat` page) have no auto-seed-on-empty
+  fallback (unlike `City`/`College`) — `backend/scripts/seedListings.ts` is the only source of
+  data, currently ~250 real, individually-sourced listings (rent/deposit/contact taken only from
+  what each source page states — nothing estimated) across India's top 20 student cities.
+  Upserts by `{ city, title }`, safe to re-run. The nav item / home hub card also carry an admin
+  "Live" toggle (`LIVE_TOGGLE_HREFS`/`LIVE_TOGGLE_IDS` in `nav-layout.ts`/`hub-widget-registry.ts`)
+  that shows a "Coming soon" popup instead of navigating when off — defaults to `true`, only
+  becomes `false` via an admin-saved `UiLayout` doc.
+
+## Deployment
+
+- Production (`packwithme.co.in`) auto-deploys via `.github/workflows/deploy-ec2.yml` on every
+  push to **`main`** — it SSHes into a single 1GB EC2 box, `git reset --hard origin/main`,
+  rebuilds both apps, and `pm2 restart`s. **`DEPLOYMENT.md`'s "Deployed branch: priyal" is
+  stale** — trust the workflow file, not the runbook, for what actually ships.
+- **A new seed/migration script under `backend/scripts/` does nothing on production until it's
+  also added to the `run_seed` list inside `deploy-ec2.yml`.** Having an npm script alias
+  (`package.json`) is not enough — that only makes it runnable, not run. This bit us once:
+  `seedListings.ts` shipped and merged to `main`, but Hostel/PG/Flat listings stayed empty on
+  prod because nothing wired it into the deploy workflow.
+- Each `run_seed` call is gated on `git diff` between the box's previously-deployed commit and
+  the new one — it only actually runs if one of its named watched files changed in that diff.
+  So adding a *new* `run_seed` line for a script that already existed in an earlier commit
+  **will not run on the deploy that adds the line**, since that script's file didn't change in
+  this diff. To force it once: `gh workflow run deploy-ec2.yml -f force_seed=true` (reruns every
+  seed script unconditionally; all are upsert-based so this is safe).
 
 ## Gotchas
 
 - **Local dev MongoDB** (from backend `.env`): `mongodb://localhost:27017/Hostel?directConnection=true`
-  — a safe local DB. `MONGODB_URI` is required; there is no hardcoded default.
+  — a safe local DB, separate from production's `hostel_prod` on the EC2 box. `MONGODB_URI` is
+  required; there is no hardcoded default. Seeding local dev does **not** touch production —
+  see Deployment above for how data actually reaches prod.
 - A one-off Node script that needs Mongoose must live in `backend/` (so `require("mongoose")`
   resolves), not a scratch dir. `Channel.communityId` is stored as an **ObjectId**, not a string —
   compare with `.toString()`.
