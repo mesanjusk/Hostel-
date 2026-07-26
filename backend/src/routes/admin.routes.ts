@@ -512,7 +512,7 @@ adminRouter.post("/listings", async (req, res) => {
     res.status(400).json({ error: parsed.error.issues[0]?.message ?? "Invalid input" });
     return;
   }
-  const listing = await createListing(parsed.data);
+  const listing = await createListing(parsed.data, { addedByUserId: req.user!._id.toString(), verified: true });
   res.json({ listing });
 });
 

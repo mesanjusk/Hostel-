@@ -2,9 +2,12 @@ import { Schema, model, models, type InferSchemaType, type Model } from "mongoos
 
 import { LISTING_TYPES } from "@/types";
 
-/** Admin-managed Hostel/PG/Flat listings shown to students on the "Hostel, PG, Flat" browse page —
- * same CMS shape as Place (city/category/content) plus rent/deposit/contact fields borrowed from
- * Booking's stay-specific fields. */
+/** Hostel/PG/Flat listings shown to students on the "Hostel, PG, Flat" browse page — same CMS
+ * shape as Place (city/category/content) plus rent/deposit/contact fields borrowed from
+ * Booking's stay-specific fields. Admin-managed by default, but any user can also submit one
+ * directly from the browse page (same moderation shape as DirectoryContact): `addedByUserId`
+ * is null for admin-authored/seeded listings, `verified` defaults false and is only ever set
+ * true by an admin action (or automatically for admin-authored listings — see admin.routes.ts). */
 const ListingSchema = new Schema(
   {
     type: { type: String, enum: LISTING_TYPES, required: true, index: true },
@@ -19,6 +22,8 @@ const ListingSchema = new Schema(
     mapsLink: { type: String, default: null, trim: true, maxlength: 500 },
     description: { type: String, default: "", maxlength: 500 },
     featured: { type: Boolean, default: false },
+    addedByUserId: { type: Schema.Types.ObjectId, ref: "User", default: null, index: true },
+    verified: { type: Boolean, default: false },
   },
   { timestamps: true },
 );
